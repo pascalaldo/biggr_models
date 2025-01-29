@@ -9,7 +9,7 @@ sys.path.insert(0, join(directory, 'bigg_models'))
 version = __import__('version').__version__
 
 setup(
-    name='BiGG Models',
+    name='bigg_models',
     version=version,
     author='Justin Lu & Zachary King',
     author_email='zaking@ucsd.edu',
@@ -23,12 +23,12 @@ setup(
     classifiers=[
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.10',
     ],
     install_requires=[
-        'cobradb>=0.3.0,<0.4',
-        'Jinja2>=2.10.3,<3',
-        'simplejson>=3.16.0,<4',
-        'progressbar2>=3.47.0,<4',
+        'cobradb',
+        'Jinja2',
+        'simplejson',
+        'progressbar2',
     ],
 )

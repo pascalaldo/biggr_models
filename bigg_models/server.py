@@ -10,14 +10,11 @@ from cobradb.parse import split_compartment, hash_metabolite_dictionary
 from tornado.ioloop import IOLoop
 from tornado.httpserver import HTTPServer
 from tornado.options import define, options, parse_command_line
-from tornado.escape import url_escape
 from tornado.web import (Application, StaticFileHandler, RequestHandler,
-                         RedirectHandler, asynchronous, HTTPError)
+                         RedirectHandler, HTTPError)
 
-import os
 from os.path import abspath, dirname, join, isfile
 from jinja2 import Environment, PackageLoader
-import subprocess
 import mimetypes
 # use simplejson to deal with Decimal coming out of SQLAlchemy
 import simplejson as json
@@ -31,8 +28,7 @@ define('debug', default=False, help='Start server in debug mode')
 define('processes', default=1, help='number of subprocesses to spawn', type=int)
 
 # set up jinja2 template location
-env = Environment(loader=PackageLoader('bigg_models', 'templates'),
-                  extensions=['jinja2.ext.with_'])
+env = Environment(loader=PackageLoader('bigg_models', 'templates'))
 
 # root directory
 directory = abspath(dirname(__file__))
@@ -203,15 +199,15 @@ class BaseHandler(RequestHandler):
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
         self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
 
-    def write(self, value):
+    def write(self, chunk):
         # note that serving a json list is a security risk
         # This is meant to be serving public-read only data only.
-        if isinstance(value, (dict, list, tuple)):
-            value_str = json.dumps(value)
+        if isinstance(chunk, (dict, list, tuple)):
+            value_str = json.dumps(chunk)
             RequestHandler.write(self, value_str)
             self.set_header('Content-type', 'application/json; charset=utf-8')
         else:
-            RequestHandler.write(self, value)
+            RequestHandler.write(self, chunk)
 
     def return_result(self, result=None):
         """Returns result as either rendered HTML or JSON
@@ -486,6 +482,7 @@ class ModelListHandler(PageableHandler):
 
         # run the queries
         raw_results = safe_query(queries.get_models, **kwargs)
+        print(raw_results)
         if "include_link_urls" in self.request.query_arguments:
             raw_results = [dict(x, link_urls={'bigg_id': '/models/{bigg_id}'.format(**x),
                                               'metabolite_count': '/models/{bigg_id}/metabolites'.format(**x),

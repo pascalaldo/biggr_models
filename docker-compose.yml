@@ -1,0 +1,34 @@
+networks:
+  biggr-net:
+    name: biggr-net
+    external: false
+
+services:
+  biggr-web:
+    build: .
+    ports:
+      - "80:8910"
+    depends_on:
+      biggr-db:
+        condition: service_healthy
+    networks:
+      - biggr-net
+    volumes:
+      - /data/biggr-genbank/:/genbank
+  biggr-db:
+    container_name: biggr-postgres
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - /data/biggr-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    env_file:
+      - .env
+    networks:
+      - biggr-net
