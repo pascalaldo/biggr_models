@@ -16,13 +16,14 @@ import cobra
 # DEBUG means test with one model
 DEBUG = False
 
+
 def get_model_polisher():
     """Return the path to ModelPolisher."""
-    path = abspath(join(dirname(__file__), '..', 'bin', 'ModelPolisher-1.7.jar'))
+    path = abspath(join(dirname(__file__), "..", "bin", "ModelPolisher-1.7.jar"))
     if not isfile(path):
-        raise Exception('Could not find ModelPolisher: %s' % path)
+        raise Exception("Could not find ModelPolisher: %s" % path)
     if not isfile(settings.java):
-        raise Exception('Could not find java executable: %s' % settings.java)
+        raise Exception("Could not find java executable: %s" % settings.java)
     return path
 
 
@@ -45,11 +46,13 @@ def make_all_static_models():
     session = Session()
     bigg_ids = [i[0] for i in session.query(Model.bigg_id)]
     for bigg_id in bigg_ids:
-        if DEBUG and bigg_id != 'e_coli_core':
+        if DEBUG and bigg_id != "e_coli_core":
             continue
         # keep track of which models failed
-        print('------------------------------------------------------------\n'
-              'Dumping model %s' % bigg_id)
+        print(
+            "------------------------------------------------------------\n"
+            "Dumping model %s" % bigg_id
+        )
         if not write_static_model(bigg_id, model_polisher_path):
             failed_models.append(bigg_id)
     session.close()
@@ -65,39 +68,39 @@ def write_static_model(bigg_id, model_polisher_path):
 
     """
     success = True
-    print('Dumping model')
+    print("Dumping model")
     t = time.time()
     model = dump_model(bigg_id)
-    print('Dumping finished in %.2f seconds' % (time.time() - t))
-    sbml_filepath = join(static_dir, bigg_id + '.xml')
+    print("Dumping finished in %.2f seconds" % (time.time() - t))
+    sbml_filepath = join(static_dir, bigg_id + ".xml")
     try:
-        print('Writing SBML')
+        print("Writing SBML")
         t = time.time()
         cobra.io.write_sbml_model(model, sbml_filepath)
-        print('Writing SBML finished in %.2f seconds' % (time.time() - t))
+        print("Writing SBML finished in %.2f seconds" % (time.time() - t))
     except Exception as e:
         success = False
         print('failed to export sbml model "%s": %s' % (bigg_id, e.message))
     else:
-        print('Compressing')
+        print("Compressing")
         t = time.time()
-        system('gzip --keep --force --best ' + sbml_filepath)
-        print('Compressing finished in %.2f seconds' % (time.time() - t))
+        system("gzip --keep --force --best " + sbml_filepath)
+        print("Compressing finished in %.2f seconds" % (time.time() - t))
         # else:
         #     success = False
 
-    print('Writing MAT')
+    print("Writing MAT")
     t = time.time()
-    mat_filepath = join(static_dir, bigg_id + '.mat')
+    mat_filepath = join(static_dir, bigg_id + ".mat")
     cobra.io.save_matlab_model(model, mat_filepath)
-    system('gzip --keep --force --best ' + mat_filepath)
-    print('Writing MAT finished in %.2f seconds' % (time.time() - t))
+    system("gzip --keep --force --best " + mat_filepath)
+    print("Writing MAT finished in %.2f seconds" % (time.time() - t))
 
-    print('Writing JSON')
+    print("Writing JSON")
     t = time.time()
-    json_filepath = join(static_dir, bigg_id + '.json')
+    json_filepath = join(static_dir, bigg_id + ".json")
     cobra.io.save_json_model(model, json_filepath)
-    system('gzip --keep --force --best ' + json_filepath)
-    print('Writing JSON finished in %.2f seconds' % (time.time() - t))
+    system("gzip --keep --force --best " + json_filepath)
+    print("Writing JSON finished in %.2f seconds" % (time.time() - t))
 
     return success
