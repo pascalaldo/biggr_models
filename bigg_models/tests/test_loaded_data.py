@@ -10,6 +10,7 @@ import numpy
 from os.path import abspath, dirname, join, exists
 from os import listdir
 from numpy.testing import assert_almost_equal
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -17,7 +18,6 @@ except ImportError:
 import re
 from time import time
 import itertools
-import six
 
 from cobradb.models import *
 from cobradb import settings
@@ -25,8 +25,7 @@ from cobradb.model_dumping import dump_model
 from cobradb.parse import convert_ids, remove_boundary_metabolites, invalid_formula
 from cobradb.util import load_tsv
 
-from bigg_models.server import (directory as bigg_root_directory,
-                                static_model_dir)
+from bigg_models.server import directory as bigg_root_directory, static_model_dir
 
 
 # Make a list of models to test
@@ -35,24 +34,27 @@ DEBUG = False
 STRICT_MASS_BALANCE = False
 
 if DEBUG:
-    model_files = ['iJO1366.xml']
+    model_files = ["iJO1366.xml"]
 else:
     model_files = [x[0] for x in load_tsv(settings.model_genome)]
 
 
 # make the fixtures
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture(scope="session")
 def session(request):
     """Make a session"""
+
     def teardown():
         Session.close_all()
+
     request.addfinalizer(teardown)
 
     return Session()
 
 
-@pytest.fixture(scope='session', params=model_files)
+@pytest.fixture(scope="session", params=model_files)
 def pub_model(request):
     # get a specific model. This fixture and all the tests that use it will run
     # for every model in the model_files list.
@@ -62,28 +64,28 @@ def pub_model(request):
     # load the file
     start = time()
     try:
-        if model_path.endswith('.xml'):
+        if model_path.endswith(".xml"):
             # LibSBML does not like unicode filepaths in Python 2.7
             pub_model = read_sbml_model(str(model_path))
-        elif model_path.endswith('.mat'):
+        elif model_path.endswith(".mat"):
             pub_model = load_matlab_model(model_path)
-        elif model_path.endswith('.json'):
+        elif model_path.endswith(".json"):
             pub_model = load_json_model(model_path)
         else:
-            raise Exception('Unrecongnized extension for model %s' % model_file)
+            raise Exception("Unrecongnized extension for model %s" % model_file)
     except IOError:
-        raise Exception('Could not find model %s' % model_path)
+        raise Exception("Could not find model %s" % model_path)
     print("Loaded %s in %.2f sec" % (model_file, time() - start))
 
     return pub_model
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def db_model(pub_model):
     # dump the model
     start = time()
     # take out special characters from model bigg_id
-    db_model = dump_model(pub_model.id.replace('.', '_'))
+    db_model = dump_model(pub_model.id.replace(".", "_"))
     print("Dumped %s in %.2f sec" % (pub_model.id, time() - start))
     return db_model
 
@@ -91,6 +93,7 @@ def db_model(pub_model):
 # model tests will run for every model in the model_files list
 
 # counts
+
 
 def _check_merged(cobra_dictlist, model_bigg_id, cobra_type):
     """Use original_bigg_ids in the notes to identify merged reactions,
@@ -101,52 +104,71 @@ def _check_merged(cobra_dictlist, model_bigg_id, cobra_type):
     # find number of copies for each gene
     db_merged = {}
     for o in cobra_dictlist:
-        if cobra_type == 'reaction':
-            bigg_id = re.sub(r'_copy\d+', '', o.id)
+        if cobra_type == "reaction":
+            bigg_id = re.sub(r"_copy\d+", "", o.id)
         else:
             bigg_id = o.id
         if bigg_id in db_merged:
-            db_merged[bigg_id]['bigg_ids_w_copy'] += (o.id,)
+            db_merged[bigg_id]["bigg_ids_w_copy"] += (o.id,)
         else:
-            original_bigg_ids = o.notes['original_bigg_ids']
+            original_bigg_ids = o.notes["original_bigg_ids"]
             if len(original_bigg_ids) == 0:
-                raise Exception('{} missing original ID for {} in {}'
-                                .format(bigg_id, cobra_type, model_bigg_id))
-            db_merged[bigg_id] = {'bigg_ids_w_copy': (o.id,),
-                                  'original_bigg_ids': original_bigg_ids}
+                raise Exception(
+                    "{} missing original ID for {} in {}".format(
+                        bigg_id, cobra_type, model_bigg_id
+                    )
+                )
+            db_merged[bigg_id] = {
+                "bigg_ids_w_copy": (o.id,),
+                "original_bigg_ids": original_bigg_ids,
+            }
 
     # count merged
-    db_merged_extra = sum([len(v['original_bigg_ids']) - len(v['bigg_ids_w_copy'])
-                           for v in six.itervalues(db_merged)])
+    db_merged_extra = sum(
+        [
+            len(v["original_bigg_ids"]) - len(v["bigg_ids_w_copy"])
+            for v in db_merged.items()
+        ]
+    )
 
     # report merged
     if db_merged_extra > 0:
-        merged_dict = {v['bigg_ids_w_copy']: v['original_bigg_ids'] for v in six.itervalues(db_merged)
-                       if len(v['original_bigg_ids']) > len(v['bigg_ids_w_copy'])}
-        print('{} {} merged in model {}: {}'
-              .format(db_merged_extra, cobra_type + 's', model_bigg_id, merged_dict))
+        merged_dict = {
+            v["bigg_ids_w_copy"]: v["original_bigg_ids"]
+            for v in db_merged.items()
+            if len(v["original_bigg_ids"]) > len(v["bigg_ids_w_copy"])
+        }
+        print(
+            "{} {} merged in model {}: {}".format(
+                db_merged_extra, cobra_type + "s", model_bigg_id, merged_dict
+            )
+        )
     return db_merged_extra
 
 
 def _find_missing(db_dictlist, pub_dictlist):
-    return [x for x in pub_dictlist
-            if x.id not in itertools.chain(*[y.notes['original_bigg_ids'] for y in db_dictlist])]
+    return [
+        x
+        for x in pub_dictlist
+        if x.id
+        not in itertools.chain(*[y.notes["original_bigg_ids"] for y in db_dictlist])
+    ]
 
 
 def _find_boundary_mets(mets):
-    return len([m for m in mets if m.id.endswith('_b')])
+    return len([m for m in mets if m.id.endswith("_b")])
 
 
 def test_reaction_count(db_model, pub_model):
     # check for merged reactions
     pub_reactions_len = len(pub_model.reactions)
     db_reactions_len = len(db_model.reactions)
-    db_merged_extra = _check_merged(db_model.reactions, db_model.id, 'reaction')
+    db_merged_extra = _check_merged(db_model.reactions, db_model.id, "reaction")
     try:
         assert db_reactions_len + db_merged_extra == pub_reactions_len
     except AssertionError as e:
         missing = _find_missing(db_model.reactions, pub_model.reactions)
-        print('Missing reactions:')
+        print("Missing reactions:")
         print(missing)
         raise e
 
@@ -156,9 +178,12 @@ def test_metabolite_count(db_model, pub_model):
     pub_metabolites_len = len(pub_model.metabolites)
     pub_boundary_len = _find_boundary_mets(pub_model.metabolites)
     db_metabolites_len = len(db_model.metabolites)
-    db_merged_extra = _check_merged(db_model.metabolites, db_model.id, 'metabolite')
+    db_merged_extra = _check_merged(db_model.metabolites, db_model.id, "metabolite")
     try:
-        assert db_metabolites_len + db_merged_extra == pub_metabolites_len - pub_boundary_len
+        assert (
+            db_metabolites_len + db_merged_extra
+            == pub_metabolites_len - pub_boundary_len
+        )
     except AssertionError as e:
         missing = _find_missing(db_model.metabolites, pub_model.metabolites)
         print(missing)
@@ -169,7 +194,7 @@ def test_gene_count(db_model, pub_model):
     # check for merged genes, and filter out genes that are not used in pub model
     pub_genes_len = len([g for g in pub_model.genes if len(g.reactions) > 0])
     db_genes_len = len(db_model.genes)
-    db_merged_extra = _check_merged(db_model.genes, db_model.id, 'gene')
+    db_merged_extra = _check_merged(db_model.genes, db_model.id, "gene")
     try:
         assert db_genes_len + db_merged_extra == pub_genes_len
     except AssertionError as e:
@@ -180,10 +205,11 @@ def test_gene_count(db_model, pub_model):
 
 # ID format
 
-id_reg = re.compile(r'[^a-zA-Z0-9_]')
+id_reg = re.compile(r"[^a-zA-Z0-9_]")
+
+
 def _check_ids(l):
-    return [r_id for r_id in (r.id for r in l)
-            if id_reg.search(r_id) is not None]
+    return [r_id for r_id in (r.id for r in l) if id_reg.search(r_id) is not None]
 
 
 def test_reaction_ids(db_model):
@@ -200,44 +226,53 @@ def test_gene_ids(db_model):
 
 # formulas
 
+
 def test_formula(db_model):
-    formula_reg = re.compile(r'[^A-Za-z0-9]')
+    formula_reg = re.compile(r"[^A-Za-z0-9]")
+
     def ok(met):
         return formula_reg.search(str(met.formula)) is None
+
     assert [(x.id, x.formula) for x in db_model.metabolites if not ok(x)] == []
 
 
 # dumped files
 
+
 def test_load_sbml(db_model):
-    model = read_sbml_model(join(static_model_dir, db_model.id + '.xml'))
+    model = read_sbml_model(join(static_model_dir, db_model.id + ".xml"))
     assert model.id == db_model.id
 
 
 def test_load_compressed_sbml(db_model):
-    model = read_sbml_model(join(static_model_dir, db_model.id + '.xml.gz'))
+    model = read_sbml_model(join(static_model_dir, db_model.id + ".xml.gz"))
     assert model.id == db_model.id
 
 
 def test_load_mat(db_model):
-    if db_model.id.startswith('iCHO') or db_model.id == 'iJB785':
+    if db_model.id.startswith("iCHO") or db_model.id == "iJB785":
         # remove when this is solved: https://github.com/opencobra/cobrapy/issues/919
         return
-    model = load_matlab_model(join(static_model_dir, db_model.id + '.mat'))
+    model = load_matlab_model(join(static_model_dir, db_model.id + ".mat"))
     assert model.id == db_model.id
 
 
 def test_load_json(db_model):
-    model = load_json_model(join(static_model_dir, db_model.id + '.json'))
+    model = load_json_model(join(static_model_dir, db_model.id + ".json"))
     assert model.id == db_model.id
 
 
 # optimize
 
+
 def test_optimize(db_model, pub_model):
-    if db_model.id == 'iYO844':
-        print(('iYO844 is known to have a different growth rate than the '
-               'published model because oxygen metabolites were merged.'))
+    if db_model.id == "iYO844":
+        print(
+            (
+                "iYO844 is known to have a different growth rate than the "
+                "published model because oxygen metabolites were merged."
+            )
+        )
         return
     solution1 = db_model.optimize()
 
@@ -252,14 +287,15 @@ def test_optimize(db_model, pub_model):
 
 # mass balance
 
+
 def _filtered_mass_balance(mb):
-    return {k: v for k, v in six.iteritems(mb) if abs(v) > 1e-6}
+    return {k: v for k, v in mb.items() if abs(v) > 1e-6}
 
 
 def _all_integer_formula_charge(reaction):
     return all(
         not invalid_formula(met.formula)
-            and (met.charge is None or int(met.charge) == met.charge)
+        and (met.charge is None or int(met.charge) == met.charge)
         for met in reaction.metabolites.keys()
     )
 
@@ -269,24 +305,26 @@ def test_mass_balance(db_model, pub_model):
 
     # fix empty-string charges
     for metabolite in pub_model.metabolites:
-        if metabolite.charge == '':
+        if metabolite.charge == "":
             metabolite.charge = None
 
     for r in db_model.reactions:
-        if (re.match(r'EX_.*', r.id)
-                or re.match(r'DM_.*', r.id)
-                or re.match(r'sink_.*', r.id, re.IGNORECASE)
-                or re.match(r'.*biomass.*', r.id, re.IGNORECASE)):
+        if (
+            re.match(r"EX_.*", r.id)
+            or re.match(r"DM_.*", r.id)
+            or re.match(r"sink_.*", r.id, re.IGNORECASE)
+            or re.match(r".*biomass.*", r.id, re.IGNORECASE)
+        ):
             continue
 
-        if db_model.id == 'iEK1008' and r.id == 'SHCHD3':
+        if db_model.id == "iEK1008" and r.id == "SHCHD3":
             # iEK1008 contains both pre2 and dscl with different formulas, so
             # when they get merged as duplicate metabolites, this reaction is
             # no longer mass balanced. Cannot be easily fixed without changing
             # reaction stoichiometries.
             continue
 
-        if db_model.id == 'iYS1720' and r.id == 'URCN_2':
+        if db_model.id == "iYS1720" and r.id == "URCN_2":
             # iYS1720 contains both 4izp and 4iz5pp with different formulas, so
             # when they get merged as duplicate metabolites, this reaction is
             # no longer mass balanced. Cannot be easily fixed without changing
@@ -300,128 +338,162 @@ def test_mass_balance(db_model, pub_model):
         if len(mass_balance) != 0:
             # look for original reaction
             try:
-                pub_reaction = pub_model.reactions.get_by_id(r.notes['original_bigg_ids'][0])
+                pub_reaction = pub_model.reactions.get_by_id(
+                    r.notes["original_bigg_ids"][0]
+                )
             except KeyError:
-                errors.append('{}: Bad mass balance in {} ({}). Not found in pub model.'
-                              .format(db_model.id, r.id, mass_balance))
+                errors.append(
+                    "{}: Bad mass balance in {} ({}). Not found in pub model.".format(
+                        db_model.id, r.id, mass_balance
+                    )
+                )
             else:
                 # check for models where formula do not load
-                if all(x.formula == '' for x in pub_reaction.metabolites):
+                if all(x.formula == "" for x in pub_reaction.metabolites):
                     if STRICT_MASS_BALANCE:
                         # if strict, then warn even if the reaction may have
                         # been unbalanced in the original model
-                        errors.append('{}: Bad mass balance in {} ({}). No formulas in published model.'
-                                      .format(db_model.id, r.id, mass_balance))
+                        errors.append(
+                            "{}: Bad mass balance in {} ({}). No formulas in published model.".format(
+                                db_model.id, r.id, mass_balance
+                            )
+                        )
                 elif _all_integer_formula_charge(pub_reaction) or STRICT_MASS_BALANCE:
                     # Check mass balance in pub model. No error if original
                     # reaction had invalid non-integer charges or formula.
-                    pub_mass_balance = _filtered_mass_balance(pub_reaction.check_mass_balance())
+                    pub_mass_balance = _filtered_mass_balance(
+                        pub_reaction.check_mass_balance()
+                    )
                     # Also check that the formula in the original reaction are not None
-                    any_none_formula = any(met.formula is None for met in pub_reaction.metabolites)
+                    any_none_formula = any(
+                        met.formula is None for met in pub_reaction.metabolites
+                    )
                     if len(pub_mass_balance) == 0 and not any_none_formula:
-                        errors.append('{}: Bad mass balance in {} ({}). Reaction is balanced in published model.'
-                                      .format(db_model.id, r.id, mass_balance))
+                        errors.append(
+                            "{}: Bad mass balance in {} ({}). Reaction is balanced in published model.".format(
+                                db_model.id, r.id, mass_balance
+                            )
+                        )
                     elif STRICT_MASS_BALANCE:
                         # if strict, then warn even if the reaction may have
                         # been unbalanced in the original model
-                        errors.append('{}: Bad mass balance in {} ({}) and in published model ({}).'
-                                        .format(db_model.id, r.id, mass_balance, pub_mass_balance))
+                        errors.append(
+                            "{}: Bad mass balance in {} ({}) and in published model ({}).".format(
+                                db_model.id, r.id, mass_balance, pub_mass_balance
+                            )
+                        )
 
     assert len(errors) == 0
+
 
 # -----------------
 # Common metabolite
 # -----------------
 
+
 def test_pyr(db_model):
-    assert 'pyr_c' in db_model.metabolites
+    assert "pyr_c" in db_model.metabolites
+
 
 # ------------
 # Mapped genes
 # ------------
 
+
 def test_mapped_genes(session, db_model):
     # iRC1080 genes are not mapped to the genome
-    if db_model.id in ['iRC1080', 'iEC1368_DH5a', 'iEC1344_C', 'iAM_Pk459', 'iYS1720']:
+    if db_model.id in ["iRC1080", "iEC1368_DH5a", "iEC1344_C", "iAM_Pk459", "iYS1720"]:
         return
 
     # Count mapped genes
     num_genes = len(db_model.genes)
-    count = (session
-             .query(Gene)
-             .join(ModelGene)
-             .join(Model)
-             .filter(Model.bigg_id == db_model.id)
-             .filter(Gene.mapped_to_genbank == True)
-             .count())
+    count = (
+        session.query(Gene)
+        .join(ModelGene)
+        .join(Model)
+        .filter(Model.bigg_id == db_model.id)
+        .filter(Gene.mapped_to_genbank == True)
+        .count()
+    )
     fraction = float(count) / num_genes
 
     # Most models map greater than 95% of genes, with these exceptions
-    if db_model.id == 'iECDH1ME8569_1439':
+    if db_model.id == "iECDH1ME8569_1439":
         assert fraction > 0.92
-    elif db_model.id == 'iAB_RBC_283':
+    elif db_model.id == "iAB_RBC_283":
         assert fraction > 0.89
-    elif db_model.id == 'iLB1027_lipid':
+    elif db_model.id == "iLB1027_lipid":
         assert fraction > 0.68
     else:
         assert fraction > 0.95
+
 
 # ---------------
 # Specific issues
 # ---------------
 
+
 def test_gene_annotation_iJO1366(session, db_model):
-    if db_model.id != 'iJO1366':
+    if db_model.id != "iJO1366":
         return
-    assert db_model.genes.b1779.annotation['uniprot'] == ['P0A9B2']
-    assert 'old_bigg_id' not in db_model.genes.b1779.annotation
-    assert 'deprecated' not in db_model.genes.b1779.annotation
+    assert db_model.genes.b1779.annotation["uniprot"] == ["P0A9B2"]
+    assert "old_bigg_id" not in db_model.genes.b1779.annotation
+    assert "deprecated" not in db_model.genes.b1779.annotation
 
 
 def test_reaction_annotation_iJO1366(session, db_model):
-    if db_model.id != 'iJO1366':
+    if db_model.id != "iJO1366":
         return
-    assert db_model.reactions.GAPD.annotation['bigg.reaction'] == ['GAPD']
-    assert db_model.reactions.GAPD.annotation['metanetx.reaction'] == ['MNXR100040']
-    assert set(db_model.reactions.GAPD.annotation['ec-code']) == {'1.2.1.59', '1.2.1.12'}
-    assert 'old_bigg_id' not in db_model.reactions.GAPD.annotation
-    assert 'deprecated' not in db_model.reactions.GAPD.annotation
+    assert db_model.reactions.GAPD.annotation["bigg.reaction"] == ["GAPD"]
+    assert db_model.reactions.GAPD.annotation["metanetx.reaction"] == ["MNXR100040"]
+    assert set(db_model.reactions.GAPD.annotation["ec-code"]) == {
+        "1.2.1.59",
+        "1.2.1.12",
+    }
+    assert "old_bigg_id" not in db_model.reactions.GAPD.annotation
+    assert "deprecated" not in db_model.reactions.GAPD.annotation
 
 
 def test_metabolite_annotation_iJO1366(session, db_model):
-    if db_model.id != 'iJO1366':
+    if db_model.id != "iJO1366":
         return
-    assert set(db_model.metabolites.g3p_c.annotation['seed.compound']) == {'cpd00102', 'cpd19005'}
-    assert db_model.metabolites.g3p_c.annotation['bigg.metabolite'] == ['g3p']
-    assert db_model.metabolites.g3p_c.annotation['metanetx.chemical'] == ['MNXM74']
-    assert 'old_bigg_id' not in db_model.metabolites.g3p_c.annotation
-    assert 'deprecated' not in db_model.metabolites.g3p_c.annotation
+    assert set(db_model.metabolites.g3p_c.annotation["seed.compound"]) == {
+        "cpd00102",
+        "cpd19005",
+    }
+    assert db_model.metabolites.g3p_c.annotation["bigg.metabolite"] == ["g3p"]
+    assert db_model.metabolites.g3p_c.annotation["metanetx.chemical"] == ["MNXM74"]
+    assert "old_bigg_id" not in db_model.metabolites.g3p_c.annotation
+    assert "deprecated" not in db_model.metabolites.g3p_c.annotation
 
 
 def test_mass_balance_iAPECO1_1312_PSUDS(session):
-    res_db = (session
-              .query(ModelCompartmentalizedComponent)
-              .join(Model)
-              .join(CompartmentalizedComponent)
-              .join(Component)
-              .join(Compartment)
-              .filter(Model.bigg_id == 'iAPECO1_1312')
-              .filter(Component.bigg_id == 'psd5p')
-              .filter(Compartment.bigg_id == 'c'))
-    assert res_db.one().formula == 'C9H13N2O9P'
+    res_db = (
+        session.query(ModelCompartmentalizedComponent)
+        .join(Model)
+        .join(CompartmentalizedComponent)
+        .join(Component)
+        .join(Compartment)
+        .filter(Model.bigg_id == "iAPECO1_1312")
+        .filter(Component.bigg_id == "psd5p")
+        .filter(Compartment.bigg_id == "c")
+    )
+    assert res_db.one().formula == "C9H13N2O9P"
 
 
 def test_akg_iECIAI1_1343(session):
-    res_db = (session
-              .query(ModelCompartmentalizedComponent)
-              .join(Model)
-              .join(CompartmentalizedComponent)
-              .join(Component)
-              .join(Compartment)
-              .filter(Model.bigg_id == 'iECIAI1_1343')
-              .filter(Component.bigg_id == 'akg')
-              .filter(Compartment.bigg_id == 'p'))
+    res_db = (
+        session.query(ModelCompartmentalizedComponent)
+        .join(Model)
+        .join(CompartmentalizedComponent)
+        .join(Component)
+        .join(Compartment)
+        .filter(Model.bigg_id == "iECIAI1_1343")
+        .filter(Component.bigg_id == "akg")
+        .filter(Compartment.bigg_id == "p")
+    )
     assert res_db.one().formula is None
+
 
 # def test_recon1_gene_names(session):
 #     res_db = (session
@@ -447,17 +519,27 @@ def test_dad_2(session):
     (u'dad_2', u'c', u'iAF1260', u'DADA')]
 
     """
-    res_db = (session
-              .query(Component.bigg_id, Compartment.bigg_id, Model.bigg_id, Reaction.bigg_id)
-              .join(CompartmentalizedComponent, CompartmentalizedComponent.component_id==Component.id)
-              .join(Compartment, Compartment.id==CompartmentalizedComponent.compartment_id)
-              .join(ReactionMatrix, ReactionMatrix.compartmentalized_component_id==CompartmentalizedComponent.id)
-              .join(Reaction)
-              .join(ModelReaction)
-              .join(Model)
-              .filter(Model.bigg_id=='iAF1260')
-              .filter(Reaction.bigg_id == 'DADA')
-              .filter(Component.bigg_id.like('dad_%2'))
-              .all())
+    res_db = (
+        session.query(
+            Component.bigg_id, Compartment.bigg_id, Model.bigg_id, Reaction.bigg_id
+        )
+        .join(
+            CompartmentalizedComponent,
+            CompartmentalizedComponent.component_id == Component.id,
+        )
+        .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
+        .join(
+            ReactionMatrix,
+            ReactionMatrix.compartmentalized_component_id
+            == CompartmentalizedComponent.id,
+        )
+        .join(Reaction)
+        .join(ModelReaction)
+        .join(Model)
+        .filter(Model.bigg_id == "iAF1260")
+        .filter(Reaction.bigg_id == "DADA")
+        .filter(Component.bigg_id.like("dad_%2"))
+        .all()
+    )
     assert len(res_db) == 1
     session.close()
