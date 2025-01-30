@@ -1,20 +1,22 @@
 networks:
   biggr-net:
     name: biggr-net
-    external: true
+    external: false
 
 services:
   biggr-web:
     build: .
     ports:
       - "80:8910"
-    depends_on:
-      biggr-db:
-        condition: service_healthy
+    # depends_on:
+    #   biggr-db:
+    #     condition: service_healthy
     networks:
       - biggr-net
     volumes:
       - /data/biggr-genbank/:/genbank
+      - /data/biggr-metanetx/:/metanetx
+      - /data/biggr-static/:/static
   biggr-db:
     container_name: biggr-postgres
     image: postgres
@@ -23,6 +25,7 @@ services:
       - "5432:5432"
     volumes:
       - /data/biggr-postgres:/var/lib/postgresql/data
+      - /projects/biggr/biggr_models/db/load-extensions.sh:/docker-entrypoint-initdb.d/load-extensions.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 1s

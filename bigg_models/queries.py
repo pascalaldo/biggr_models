@@ -1553,7 +1553,7 @@ def search_for_universal_reactions_count(
 
 
 def search_for_universal_reactions(
-    query_string,
+    query_string: str,
     session,
     page=None,
     size=None,
@@ -1603,7 +1603,7 @@ def search_for_universal_reactions(
             sort_column_object = columns[sort_column]
         except KeyError:
             print("Bad sort_column name: %s" % sort_column)
-            sort_column_object = iter(columns.values()).next()
+            sort_column_object = next(iter(columns.values()))
 
     # set up the query
     query = session.query(Reaction.bigg_id, Reaction.name).filter(

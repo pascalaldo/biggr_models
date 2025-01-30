@@ -1,9 +1,9 @@
 #!/bin/bash
 
-cd $(dirname $0)
+BIN_DIR=$(dirname $0)
 
-./load_metanetx \
-    && ./make_database_indices \
-    && ./make_namespace_downloads \
-    && ./apply_charges_and_formulas \
-    && ./make_all_static_models
+$BIN_DIR/load_metanetx \
+   && $BIN_DIR/make_database_indices \
+   && $BIN_DIR/make_namespace_downloads \
+   && $BIN_DIR/apply_charges_and_formulas \
+#   && $BIN_DIR/make_all_static_models

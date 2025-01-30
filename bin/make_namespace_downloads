@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from cobradb.models import *
+import bigg_models
 from bigg_models.queries import build_reaction_string
 
 from sqlalchemy import func
@@ -14,10 +15,10 @@ import cobra
 from progressbar import ProgressBar
 
 logging.basicConfig(level=logging.INFO)
-logging.info('Making namespace downloads')
+logging.info("Making namespace downloads")
 
 # get directory
-directory = abspath(join(dirname(__file__), '..', 'bigg_models', 'static', 'namespace'))
+directory = abspath(join(dirname(bigg_models.__file__), "static", "namespace"))
 try:
     makedirs(directory)
 except OSError:
@@ -27,84 +28,105 @@ except OSError:
 session = Session()
 
 # Create universal model
-model = cobra.Model('bigg_universal')
+model = cobra.Model("bigg_universal")
 
-#-----------
+# -----------
 # Reactions
-#-----------
+# -----------
 
-logging.info('Querying for reactions')
+logging.info("Querying for reactions")
 reactions = {
-    'header': ['bigg_id', 'name', 'reaction_string', 'model_list',
-               'database_links', 'old_bigg_ids'],
-    'lines': [],
+    "header": [
+        "bigg_id",
+        "name",
+        "reaction_string",
+        "model_list",
+        "database_links",
+        "old_bigg_ids",
+    ],
+    "lines": [],
 }
 
 # Models
-model_db = (session
-            .query(Reaction.bigg_id.label('reaction_bigg_id'),
-                   func.array_agg(Model.bigg_id).label('model_bigg_ids'))
-            .group_by(Reaction)
-            .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
-            .join(Model, Model.id == ModelReaction.model_id)
-            .subquery())
+model_db = (
+    session.query(
+        Reaction.bigg_id.label("reaction_bigg_id"),
+        func.array_agg(Model.bigg_id).label("model_bigg_ids"),
+    )
+    .group_by(Reaction)
+    .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
+    .join(Model, Model.id == ModelReaction.model_id)
+    .subquery()
+)
 
 # Reaction string
-matrix_db = (session
-             .query(Reaction.bigg_id.label('reaction_bigg_id'),
-                    func.array_agg(Component.bigg_id).label('component_bigg_ids'),
-                    func.array_agg(Compartment.bigg_id).label('compartment_bigg_ids'),
-                    func.array_agg(ReactionMatrix.stoichiometry).label('stoichiometries'))
-             .group_by(Reaction)
-             .join(ReactionMatrix,
-                   ReactionMatrix.reaction_id == Reaction.id)
-             .join(CompartmentalizedComponent,
-                   CompartmentalizedComponent.id == ReactionMatrix.compartmentalized_component_id)
-             .join(Component,
-                   Component.id == CompartmentalizedComponent.component_id)
-             .join(Compartment,
-                   Compartment.id == CompartmentalizedComponent.compartment_id)
-             .subquery())
+matrix_db = (
+    session.query(
+        Reaction.bigg_id.label("reaction_bigg_id"),
+        func.array_agg(Component.bigg_id).label("component_bigg_ids"),
+        func.array_agg(Compartment.bigg_id).label("compartment_bigg_ids"),
+        func.array_agg(ReactionMatrix.stoichiometry).label("stoichiometries"),
+    )
+    .group_by(Reaction)
+    .join(ReactionMatrix, ReactionMatrix.reaction_id == Reaction.id)
+    .join(
+        CompartmentalizedComponent,
+        CompartmentalizedComponent.id == ReactionMatrix.compartmentalized_component_id,
+    )
+    .join(Component, Component.id == CompartmentalizedComponent.component_id)
+    .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
+    .subquery()
+)
 
 # External database links
-link_db = (session
-           .query(Reaction.bigg_id.label('reaction_bigg_id'),
-                  func.array_agg(DataSource.name).label('data_source_names'),
-                  func.array_agg(DataSource.url_prefix).label('url_prefixes'),
-                  func.array_agg(Synonym.synonym).label('synonyms'))
-           .group_by(Reaction)
-           .join(Synonym, Synonym.ome_id == Reaction.id)
-           .filter(Synonym.type == 'reaction')
-           .join(DataSource, DataSource.id == Synonym.data_source_id)
-           .subquery())
+link_db = (
+    session.query(
+        Reaction.bigg_id.label("reaction_bigg_id"),
+        func.array_agg(DataSource.name).label("data_source_names"),
+        func.array_agg(DataSource.url_prefix).label("url_prefixes"),
+        func.array_agg(Synonym.synonym).label("synonyms"),
+    )
+    .group_by(Reaction)
+    .join(Synonym, Synonym.ome_id == Reaction.id)
+    .filter(Synonym.type == "reaction")
+    .join(DataSource, DataSource.id == Synonym.data_source_id)
+    .subquery()
+)
 
 # Old database links
-old_id_db = (session
-             .query(Reaction.bigg_id.label('reaction_bigg_id'),
-                    func.array_agg(Synonym.synonym.distinct()).label('synonyms'))
-             .group_by(Reaction)
-             .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
-             .join(OldIDSynonym, OldIDSynonym.ome_id == ModelReaction.id)
-             .filter(OldIDSynonym.type == 'model_reaction')
-             .join(Synonym, Synonym.id == OldIDSynonym.synonym_id)
-             .subquery())
+old_id_db = (
+    session.query(
+        Reaction.bigg_id.label("reaction_bigg_id"),
+        func.array_agg(Synonym.synonym.distinct()).label("synonyms"),
+    )
+    .group_by(Reaction)
+    .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
+    .join(OldIDSynonym, OldIDSynonym.ome_id == ModelReaction.id)
+    .filter(OldIDSynonym.type == "model_reaction")
+    .join(Synonym, Synonym.id == OldIDSynonym.synonym_id)
+    .subquery()
+)
 
 # Tie it all together
-reaction_db = (session
-               .query(Reaction.bigg_id,
-                      Reaction.name,
-                      model_db.c.model_bigg_ids,
-                      matrix_db.c.component_bigg_ids,
-                      matrix_db.c.compartment_bigg_ids,
-                      matrix_db.c.stoichiometries,
-                      link_db.c.data_source_names,
-                      link_db.c.url_prefixes,
-                      link_db.c.synonyms,
-                      old_id_db.c.synonyms)
-               .filter(model_db.c.reaction_bigg_id == Reaction.bigg_id)
-               .filter(matrix_db.c.reaction_bigg_id == Reaction.bigg_id)
-               .filter(link_db.c.reaction_bigg_id == Reaction.bigg_id)
-               .filter(old_id_db.c.reaction_bigg_id == Reaction.bigg_id))
+reaction_db = (
+    session.query(
+        Reaction.bigg_id,
+        Reaction.name,
+        model_db.c.model_bigg_ids,
+        matrix_db.c.component_bigg_ids,
+        matrix_db.c.compartment_bigg_ids,
+        matrix_db.c.stoichiometries,
+        link_db.c.data_source_names,
+        link_db.c.url_prefixes,
+        link_db.c.synonyms,
+        old_id_db.c.synonyms,
+    )
+    .filter(model_db.c.reaction_bigg_id == Reaction.bigg_id)
+    .filter(matrix_db.c.reaction_bigg_id == Reaction.bigg_id)
+    .filter(link_db.c.reaction_bigg_id == Reaction.bigg_id)
+    .filter(old_id_db.c.reaction_bigg_id == Reaction.bigg_id)
+)
+
 
 def _get_met(model, met_id):
     try:
@@ -114,149 +136,205 @@ def _get_met(model, met_id):
         model.add_metabolites([met])
         return met
 
+
 # Add lines
-logging.info('Building download for reactions')
+logging.info("Building download for reactions")
 t = time()
-for (bigg_id, name, model_ids, mets, comps, stoichs, data_names, url_prefixes,
-     synonyms, old_ids) in ProgressBar()(reaction_db.all()):
-    reaction_string = build_reaction_string([{'bigg_id': m, 'compartment_bigg_id': c, 'stoichiometry': s}
-                                             for m, c, s in zip(mets, comps, stoichs)],
-                                            None, None, True, False)
-    links = [(name, f'{prefix}{id}') for name, prefix, id in
-             zip(data_names, url_prefixes, synonyms)
-             if prefix is not None]
-    reactions['lines'].append([
-        bigg_id,
-        name if name is not None else '',
-        reaction_string,
-        '; '.join(model_ids),
-        '; '.join(f'{k}: {v}' for k, v in links),
-        '; '.join(old_ids)
-    ])
+for (
+    bigg_id,
+    name,
+    model_ids,
+    mets,
+    comps,
+    stoichs,
+    data_names,
+    url_prefixes,
+    synonyms,
+    old_ids,
+) in ProgressBar()(reaction_db.all()):
+    reaction_string = build_reaction_string(
+        [
+            {"bigg_id": m, "compartment_bigg_id": c, "stoichiometry": s}
+            for m, c, s in zip(mets, comps, stoichs)
+        ],
+        None,
+        None,
+        True,
+        False,
+    )
+    links = {
+        name: f"{prefix}{id}"
+        for name, prefix, id in zip(data_names, url_prefixes, synonyms)
+        if prefix is not None
+    }
+    reactions["lines"].append(
+        [
+            bigg_id,
+            name if name is not None else "",
+            reaction_string,
+            "; ".join(model_ids),
+            "; ".join(f"{k}: {v}" for k, v in links.items()),
+            "; ".join(old_ids),
+        ]
+    )
 
     # add reaction to model
     reaction = cobra.Reaction(bigg_id)
     reaction.name = name
-    model.add_reaction(reaction)
-    reaction.add_metabolites({_get_met(model, f'{m}_{c}'): s
-                              for m, c, s in zip(mets, comps, stoichs)})
+    model.add_reactions([reaction])
+    reaction.add_metabolites(
+        {_get_met(model, f"{m}_{c}"): s for m, c, s in zip(mets, comps, stoichs)}
+    )
     reaction.annotation = links
-    reaction.notes['original_bigg_ids'] = old_ids
+    reaction.notes["original_bigg_ids"] = old_ids
 
-logging.info(f'Finished in {time() - t:.0f} seconds')
-logging.info('Querying for metabolites')
+logging.info(f"Finished in {time() - t:.0f} seconds")
+logging.info("Querying for metabolites")
 
 # Models
-c_model_db = (session
-              .query(CompartmentalizedComponent,
-                     Component.bigg_id.label('component_bigg_id'),
-                     Compartment.bigg_id.label('compartment_bigg_id'),
-                     func.array_agg(Model.bigg_id).label('model_bigg_ids'))
-              .group_by(CompartmentalizedComponent, Component, Compartment)
-              .join(Component,
-                    Component.id == CompartmentalizedComponent.component_id)
-              .join(Compartment,
-                    Compartment.id == CompartmentalizedComponent.compartment_id)
-              .join(ModelCompartmentalizedComponent,
-                    ModelCompartmentalizedComponent.compartmentalized_component_id == \
-                    CompartmentalizedComponent.id)
-              .join(Model, Model.id == ModelCompartmentalizedComponent.model_id)
-              .subquery())
+c_model_db = (
+    session.query(
+        CompartmentalizedComponent,
+        Component.bigg_id.label("component_bigg_id"),
+        Compartment.bigg_id.label("compartment_bigg_id"),
+        func.array_agg(Model.bigg_id).label("model_bigg_ids"),
+    )
+    .group_by(CompartmentalizedComponent, Component, Compartment)
+    .join(Component, Component.id == CompartmentalizedComponent.component_id)
+    .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
+    .join(
+        ModelCompartmentalizedComponent,
+        ModelCompartmentalizedComponent.compartmentalized_component_id
+        == CompartmentalizedComponent.id,
+    )
+    .join(Model, Model.id == ModelCompartmentalizedComponent.model_id)
+    .subquery()
+)
 
 # External database links
-c_link_db = (session
-             .query(Component.bigg_id.label('component_bigg_id'),
-                    func.array_agg(DataSource.name).label('data_source_names'),
-                    func.array_agg(DataSource.url_prefix).label('url_prefixes'),
-                    func.array_agg(Synonym.synonym).label('synonyms'))
-             .group_by(Component)
-             .join(Synonym, Synonym.ome_id == Component.id)
-             .filter(Synonym.type == 'component')
-             .join(DataSource, DataSource.id == Synonym.data_source_id)
-             .subquery())
+c_link_db = (
+    session.query(
+        Component.bigg_id.label("component_bigg_id"),
+        func.array_agg(DataSource.name).label("data_source_names"),
+        func.array_agg(DataSource.url_prefix).label("url_prefixes"),
+        func.array_agg(Synonym.synonym).label("synonyms"),
+    )
+    .group_by(Component)
+    .join(Synonym, Synonym.ome_id == Component.id)
+    .filter(Synonym.type == "component")
+    .join(DataSource, DataSource.id == Synonym.data_source_id)
+    .subquery()
+)
 
 # Old database links
-c_old_id_db = (session
-               .query(CompartmentalizedComponent,
-                      Component.bigg_id.label('component_bigg_id'),
-                      Compartment.bigg_id.label('compartment_bigg_id'),
-                      func.array_agg(Synonym.synonym.distinct()).label('synonyms'))
-               .group_by(CompartmentalizedComponent, Component, Compartment)
-               .join(Component,
-                     Component.id == CompartmentalizedComponent.component_id)
-               .join(Compartment,
-                     Compartment.id == CompartmentalizedComponent.compartment_id)
-               .join(ModelCompartmentalizedComponent,
-                     ModelCompartmentalizedComponent.compartmentalized_component_id == \
-                     CompartmentalizedComponent.id)
-               .join(OldIDSynonym, OldIDSynonym.ome_id == ModelCompartmentalizedComponent.id)
-               .filter(OldIDSynonym.type == 'model_compartmentalized_component')
-               .join(Synonym, Synonym.id == OldIDSynonym.synonym_id)
-               .subquery())
+c_old_id_db = (
+    session.query(
+        CompartmentalizedComponent,
+        Component.bigg_id.label("component_bigg_id"),
+        Compartment.bigg_id.label("compartment_bigg_id"),
+        func.array_agg(Synonym.synonym.distinct()).label("synonyms"),
+    )
+    .group_by(CompartmentalizedComponent, Component, Compartment)
+    .join(Component, Component.id == CompartmentalizedComponent.component_id)
+    .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
+    .join(
+        ModelCompartmentalizedComponent,
+        ModelCompartmentalizedComponent.compartmentalized_component_id
+        == CompartmentalizedComponent.id,
+    )
+    .join(OldIDSynonym, OldIDSynonym.ome_id == ModelCompartmentalizedComponent.id)
+    .filter(OldIDSynonym.type == "model_compartmentalized_component")
+    .join(Synonym, Synonym.id == OldIDSynonym.synonym_id)
+    .subquery()
+)
 
 # Tie it all together
-component_db = (session
-                .query(Component.bigg_id,
-                       Compartment.bigg_id,
-                       Component.name,
-                       c_model_db.c.model_bigg_ids,
-                       c_link_db.c.data_source_names,
-                       c_link_db.c.url_prefixes,
-                       c_link_db.c.synonyms,
-                       c_old_id_db.c.synonyms)
-                .join(CompartmentalizedComponent,
-                      CompartmentalizedComponent.component_id == Component.id)
-                .join(Compartment,
-                      Compartment.id == CompartmentalizedComponent.compartment_id)
-                .filter(c_model_db.c.component_bigg_id == Component.bigg_id)
-                .filter(c_model_db.c.compartment_bigg_id == Compartment.bigg_id)
-                .filter(c_link_db.c.component_bigg_id == Component.bigg_id)
-                .filter(c_old_id_db.c.component_bigg_id == Component.bigg_id)
-                .filter(c_old_id_db.c.compartment_bigg_id == Compartment.bigg_id))
+component_db = (
+    session.query(
+        Component.bigg_id,
+        Compartment.bigg_id,
+        Component.name,
+        c_model_db.c.model_bigg_ids,
+        c_link_db.c.data_source_names,
+        c_link_db.c.url_prefixes,
+        c_link_db.c.synonyms,
+        c_old_id_db.c.synonyms,
+    )
+    .join(
+        CompartmentalizedComponent,
+        CompartmentalizedComponent.component_id == Component.id,
+    )
+    .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
+    .filter(c_model_db.c.component_bigg_id == Component.bigg_id)
+    .filter(c_model_db.c.compartment_bigg_id == Compartment.bigg_id)
+    .filter(c_link_db.c.component_bigg_id == Component.bigg_id)
+    .filter(c_old_id_db.c.component_bigg_id == Component.bigg_id)
+    .filter(c_old_id_db.c.compartment_bigg_id == Compartment.bigg_id)
+)
 
 # Add lines
-logging.info('Building download for metabolites')
+logging.info("Building download for metabolites")
 t = time()
 metabolites = {
-    'header': ['bigg_id', 'universal_bigg_id', 'name', 'model_list',
-               'database_links', 'old_bigg_ids'],
-    'lines': [],
+    "header": [
+        "bigg_id",
+        "universal_bigg_id",
+        "name",
+        "model_list",
+        "database_links",
+        "old_bigg_ids",
+    ],
+    "lines": [],
 }
-for (bigg_id, compartment_id, name, model_ids, data_names, url_prefixes,
-     synonyms, old_ids) in ProgressBar()(component_db.all()):
-    compartmentalized_id = f'{bigg_id}_{compartment_id}'
-    c_links = [(name, f'{prefix}{id}') for name, prefix, id in
-               zip(data_names, url_prefixes, synonyms)
-               if prefix is not None]
-    metabolites['lines'].append([
-        compartmentalized_id,
-        bigg_id,
-        name if name is not None else '',
-        '; '.join(model_ids),
-        '; '.join(f'{k}: {v}' for k, v in c_links),
-        '; '.join(old_ids)
-    ])
+for (
+    bigg_id,
+    compartment_id,
+    name,
+    model_ids,
+    data_names,
+    url_prefixes,
+    synonyms,
+    old_ids,
+) in ProgressBar()(component_db.all()):
+    compartmentalized_id = f"{bigg_id}_{compartment_id}"
+    c_links = {
+        name: f"{prefix}{id}"
+        for name, prefix, id in zip(data_names, url_prefixes, synonyms)
+        if prefix is not None
+    }
+    metabolites["lines"].append(
+        [
+            compartmentalized_id,
+            bigg_id,
+            name if name is not None else "",
+            "; ".join(model_ids),
+            "; ".join(f"{k}: {v}" for k, v in c_links.items()),
+            "; ".join(old_ids),
+        ]
+    )
 
     # Annotate metabolites in model
     try:
         metabolite = model.metabolites.get_by_id(compartmentalized_id)
     except KeyError:
-        logging.warning(f'Could not find metabolite {compartmentalized_id}')
+        logging.warning(f"Could not find metabolite {compartmentalized_id}")
     else:
         metabolite.name = name
         metabolite.annotation = c_links
-        metabolite.notes['original_bigg_ids'] = old_ids
+        metabolite.notes["original_bigg_ids"] = old_ids
 
-logging.info(f'Finished in {time() - t:.0f} seconds')
-logging.info('Saving files')
+logging.info(f"Finished in {time() - t:.0f} seconds")
+logging.info("Saving files")
 
-for filename, data in [('bigg_models_reactions.txt', reactions),
-                       ('bigg_models_metabolites.txt', metabolites)]:
-    with open(join(directory, filename), 'w') as f:
-        f.write('\t'.join(data['header']) + '\n')
-        f.write('\n'.join(['\t'.join(line) for line in data['lines']]))
+for filename, data in [
+    ("bigg_models_reactions.txt", reactions),
+    ("bigg_models_metabolites.txt", metabolites),
+]:
+    with open(join(directory, filename), "w") as f:
+        f.write("\t".join(data["header"]) + "\n")
+        f.write("\n".join(["\t".join(line) for line in data["lines"]]))
 
-cobra.io.save_json_model(model, join(directory, 'universal_model.json'))
+cobra.io.save_json_model(model, join(directory, "universal_model.json"))
 
 session.close()
-logging.info('Done making namespace downloads')
+logging.info("Done making namespace downloads")

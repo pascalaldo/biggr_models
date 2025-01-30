@@ -17,7 +17,7 @@ files = {
     # XREF <tab> MNX_ID <tab> Evidence <tab> Description
     # bigg:10fthf <tab> MNXM237 <tab> inferred <tab> 10-Formyltetrahydrofolate
     "chem_prop": "chem_prop.tsv",
-    # MNX_ID <tab> Description <tab> Formula <tab> Charge <tab> Mass <tab> InChi <tab> SMILES <tab> Source
+    # ID <tab> name <tab> reference <tab> formula <tab> charge <tab> mass <tab> InChI <tab> InChIKey <tab>  SMILES
     "comp_xref": "comp_xref.tsv",
     # XREF <tab> MNX_ID <tab> Description
     # 'comp_prop': 'comp_prop.tsv',
@@ -35,6 +35,7 @@ db_translation = {
     "metabolite": {
         "biopath": "biopath.molecule",
         "chebi": lambda val: ("chebi", "CHEBI:%s" % val),
+        "CHEBI": lambda val: ("chebi", "CHEBI:%s" % val),
         "kegg": lambda val: (
             ("kegg.drug", val)
             if val.startswith("D")
@@ -57,7 +58,7 @@ db_translation = {
 }
 
 # directory to store the MetaNetX files
-data_dir = abspath(join(dirname(__file__), "..", "temp_data"))
+data_dir = abspath("/metanetx")
 
 # make the temp directory
 try:
@@ -94,7 +95,7 @@ def main():
 
 def add_prefix(loc):
     """Add the MetaNetX url prefix."""
-    return "http://www.metanetx.org/cgi-bin/mnxget/mnxref/%s" % loc.lstrip("/")
+    return "https://www.metanetx.org/cgi-bin/mnxget/mnxref/%s" % loc.lstrip("/")
 
 
 def download_file(filename):
@@ -184,9 +185,11 @@ def add_inchi_keys(file_key, chemical_xref):
                 continue
             split_line = [x.strip() for x in line.split("\t")]
             # no inchi
-            inchi_key = split_line[8].strip()
+            inchi_key = split_line[7].strip()
             if inchi_key == "" or inchi_key == "NA":
                 continue
+            if inchi_key.startswith("InChIKey="):
+                inchi_key = inchi_key[9:]
             inchi_keys[split_line[0]] = inchi_key
 
     for bigg_id, val in chemical_xref.items():
@@ -231,7 +234,7 @@ def add_ec_numbers(file_key, reaction_xref):
 def parse_xref(file_key, ref_type):
     """Read an xref file and generate a dict like this:
 
-    { bigg_id: { external_db_tranlated: [values] } }
+    { bigg_id: { external_db_translated: [values] } }
 
     """
 
@@ -246,10 +249,17 @@ def parse_xref(file_key, ref_type):
             split_line = [x.strip() for x in line.split("\t")]
             strip_line = [x.strip() for x in split_line[0].split(":", 1)]
             try:
-                ref, val = strip_line[:2]
+                full_ref, val = strip_line[:2]
             except:
                 continue
+            full_ref = full_ref.split(".", 1)
+            ref = full_ref[0]
             if ref == "bigg":
+                try:
+                    if full_ref[1] != ref_type:
+                        continue
+                except:
+                    pass
                 bigg_to_metanetx[val] = split_line[1]
             else:
                 # look for the db in the translation dict

@@ -7,5 +7,7 @@ from bigg_models.server import directory
 from cobradb import settings
 
 # make sure the indices are ready
-print('Creating pg_trgm extension and indices')
-os.system('psql -d %s -f %s' % (settings.postgres_database, join(directory, 'setup.sql')))
+print("Creating pg_trgm extension and indices")
+os.system(
+    f"PGPASSWORD=\"{settings.postgres_password}\" psql -h {settings.postgres_host} -p {settings.postgres_port} -d {settings.postgres_database} -U {settings.postgres_user} -f {join(directory, 'db_management', 'setup.sql')}"
+)

@@ -19,7 +19,7 @@ DEBUG = False
 
 def get_model_polisher():
     """Return the path to ModelPolisher."""
-    path = abspath(join(dirname(__file__), "..", "bin", "ModelPolisher-1.7.jar"))
+    path = settings.model_polisher
     if not isfile(path):
         raise Exception("Could not find ModelPolisher: %s" % path)
     if not isfile(settings.java):
@@ -30,16 +30,16 @@ def get_model_polisher():
 def make_all_static_models():
     """Write static models for all models in the database."""
     # delete static model dir
-    try:
-        shutil.rmtree(static_dir)
-    except OSError:
-        pass
-
-    # make the directories
-    try:
-        makedirs(static_dir)
-    except OSError:
-        pass
+    # try:
+    #     shutil.rmtree(static_dir)
+    # except OSError:
+    #     pass
+    #
+    # # make the directories
+    # try:
+    #     makedirs(static_dir)
+    # except OSError:
+    #     pass
 
     failed_models = []
     model_polisher_path = get_model_polisher()
