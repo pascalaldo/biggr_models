@@ -2,8 +2,24 @@
 
 BIN_DIR=$(dirname $0)
 
-$BIN_DIR/load_metanetx \
-   && $BIN_DIR/make_database_indices \
-   && $BIN_DIR/make_namespace_downloads \
-   && $BIN_DIR/apply_charges_and_formulas \
-#   && $BIN_DIR/make_all_static_models
+echo "Initializing database and model downloads."
+
+# if [ $? -eq 0 ]; then
+#    $BIN_DIR/load_metanetx
+# fi
+#
+# if [ $? -eq 0 ]; then
+#    $BIN_DIR/make_database_indices
+# fi
+#
+# if [ $? -eq 0 ]; then
+#    $BIN_DIR/make_namespace_downloads
+# fi
+#
+# if [ $? -eq 0 ]; then
+#    $BIN_DIR/apply_charges_and_formulas
+# fi
+#
+# if [ $? -eq 0 ]; then
+#    $BIN_DIR/make_all_static_models
+# fi

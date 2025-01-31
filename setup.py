@@ -22,6 +22,9 @@ setup(
             "static/js/*",
             "static/lib/*",
             "static/lib/tablesorter/*",
+            "static/lib/tablesorter/addons/*",
+            "static/lib/tablesorter/addons/pager/*",
+            "static/lib/tablesorter/addons/pager/icons/*",
             "templates/*",
             "db_management/*",
         ]

@@ -26,7 +26,7 @@ files = {
     # XREF <tab> MNX_ID
     # bigg:10FTHF5GLUtl <tab> MNXR1
     "reac_prop": "reac_prop.tsv",
-    # MNX_ID <tab> Equation <tab> Description <tab> Balance <tab> EC <tab> Source
+    # ID <tab> mnx_equation <tab> reference <tab> classifs(EC) <tab> is_balanced <tab> is_transport
 }
 
 # translation table for MetaNetX databases to those already in BiGG Models
@@ -212,7 +212,7 @@ def add_ec_numbers(file_key, reaction_xref):
                 continue
             split_line = [x.strip() for x in line.split("\t")]
             # no ec number
-            if split_line[4].strip() == "":
+            if split_line[3].strip() == "":
                 continue
             for ec in [x.strip() for x in split_line[4].split(";")]:
                 # ec_numbers[MNX_ID] = EC

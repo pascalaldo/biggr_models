@@ -11,7 +11,7 @@ ln -s /static/namespace $BIGG_MODELS_DIR/static/namespace
 
 bin/run
 
-if [ $? -eq 0 ];then
+if [ $? -eq 0 ]; then
 	python -m bigg_models.server --port=8910 --processes=6
 fi
 
