@@ -1,4 +1,4 @@
-from bigg_models.queries import general
+from bigg_models.queries import utils
 from cobradb.models import (
     EscherMap,
     EscherMapMatrix,
@@ -65,6 +65,6 @@ def json_for_map(map_name, session):
         session.query(EscherMap.map_data).filter(EscherMap.map_name == map_name).first()
     )
     if result_db is None:
-        raise general.NotFoundError("Could not find Escher map %s" % map_name)
+        raise utils.NotFoundError("Could not find Escher map %s" % map_name)
 
     return result_db[0].decode("utf8")

@@ -1,16 +1,18 @@
-from bigg_models.handlers import general
-from bigg_models import queries
+from bigg_models.handlers import utils
+from bigg_models.queries import reaction_queries, utils as query_utils
 import re
 from cobradb.parse import hash_metabolite_dictionary
 
 
 # reactions
-class UniversalReactionListHandler(general.PageableHandler):
+class UniversalReactionListHandler(utils.PageableHandler):
     def get(self):
         kwargs = self._get_pager_args(default_sort_column="bigg_id")
 
-        # run the queries
-        raw_results = general.safe_query(queries.get_universal_reactions, **kwargs)
+        # run the reaction_queries
+        raw_results = utils.safe_query(
+            reaction_queries.get_universal_reactions, **kwargs
+        )
 
         if "include_link_urls" in self.request.query_arguments:
             raw_results = [
@@ -22,15 +24,17 @@ class UniversalReactionListHandler(general.PageableHandler):
             ]
         result = {
             "results": [dict(x, model_bigg_id="Universal") for x in raw_results],
-            "results_count": general.safe_query(queries.get_universal_reactions_count),
+            "results_count": utils.safe_query(
+                reaction_queries.get_universal_reactions_count
+            ),
         }
 
         self.write(result)
         self.finish()
 
 
-class UniversalReactionListDisplayHandler(general.BaseHandler):
-    template = general.env.get_template("list_display.html")
+class UniversalReactionListDisplayHandler(utils.BaseHandler):
+    template = utils.env.get_template("list_display.html")
 
     def get(self):
         dictionary = {
@@ -42,15 +46,15 @@ class UniversalReactionListDisplayHandler(general.BaseHandler):
         self.finish()
 
 
-class UniversalReactionHandler(general.BaseHandler):
-    template = general.env.get_template("universal_reaction.html")
+class UniversalReactionHandler(utils.BaseHandler):
+    template = utils.env.get_template("universal_reaction.html")
 
     def get(self, reaction_bigg_id):
         try:
-            result = general.safe_query(
-                queries.get_reaction_and_models, reaction_bigg_id
+            result = utils.safe_query(
+                reaction_queries.get_reaction_and_models, reaction_bigg_id
             )
-        except queries.RedirectError as e:
+        except query_utils.RedirectError as e:
             self.redirect(
                 re.sub(self.request.path, "%s$" % reaction_bigg_id, e.args[0])
             )
@@ -58,12 +62,12 @@ class UniversalReactionHandler(general.BaseHandler):
             self.return_result(result)
 
 
-class ReactionListHandler(general.PageableHandler):
+class ReactionListHandler(utils.PageableHandler):
     def get(self, model_bigg_id):
         kwargs = self._get_pager_args(default_sort_column="bigg_id")
 
-        raw_results = general.safe_query(
-            queries.get_model_reactions, model_bigg_id, **kwargs
+        raw_results = utils.safe_query(
+            reaction_queries.get_model_reactions, model_bigg_id, **kwargs
         )
         # add the URL
         if "include_link_urls" in self.request.query_arguments:
@@ -80,8 +84,8 @@ class ReactionListHandler(general.PageableHandler):
             ]
         result = {
             "results": raw_results,
-            "results_count": general.safe_query(
-                queries.get_model_reactions_count,
+            "results_count": utils.safe_query(
+                reaction_queries.get_model_reactions_count,
                 model_bigg_id,
             ),
         }
@@ -90,8 +94,8 @@ class ReactionListHandler(general.PageableHandler):
         self.finish()
 
 
-class ReactionListDisplayHandler(general.BaseHandler):
-    template = general.env.get_template("list_display.html")
+class ReactionListDisplayHandler(utils.BaseHandler):
+    template = utils.env.get_template("list_display.html")
 
     def get(self, model_bigg_id):
         results = {
@@ -101,29 +105,29 @@ class ReactionListDisplayHandler(general.BaseHandler):
         self.return_result(results)
 
 
-class ReactionHandler(general.BaseHandler):
-    template = general.env.get_template("reaction.html")
+class ReactionHandler(utils.BaseHandler):
+    template = utils.env.get_template("reaction.html")
 
     def get(self, model_bigg_id, reaction_bigg_id):
-        results = general.safe_query(
-            queries.get_model_reaction, model_bigg_id, reaction_bigg_id
+        results = utils.safe_query(
+            reaction_queries.get_model_reaction, model_bigg_id, reaction_bigg_id
         )
         self.return_result(results)
 
 
-class ReactionWithStoichHandler(general.BaseHandler):
+class ReactionWithStoichHandler(utils.BaseHandler):
     def get(self):
         metabolite_dict = {
             k: float(v[0]) for k, v in self.request.query_arguments.items()
         }
         hash = hash_metabolite_dictionary(metabolite_dict)
-        session = queries.Session()
+        session = utils.Session()
         try:
             results = {
-                "results": [queries.reaction_with_hash(hash, session)],
+                "results": [reaction_queries.reaction_with_hash(hash, session)],
                 "results_count": 1,
             }
-        except queries.NotFoundError:
+        except query_utils.NotFoundError:
             results = {"results": [], "results_count": 0}
         session.close()
         self.write(results)

@@ -1,4 +1,4 @@
-from bigg_models.queries import general, old_ids
+from bigg_models.queries import utils, id_queries
 from cobradb.util import ref_tuple_to_str
 from cobradb.models import (
     Chromosome,
@@ -84,7 +84,7 @@ def get_model_genes(
     )
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -119,7 +119,7 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         .first()
     )
     if result_db is None:
-        raise general.NotFoundError(
+        raise utils.NotFoundError(
             "Gene %s not found in model %s" % (gene_bigg_id, model_bigg_id)
         )
 
@@ -139,9 +139,9 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         {"bigg_id": r[0], "gene_reaction_rule": r[1], "name": r[2]} for r in reaction_db
     ]
 
-    synonym_db = old_ids._get_db_links_for_model_gene(gene_bigg_id, session)
+    synonym_db = id_queries._get_db_links_for_model_gene(gene_bigg_id, session)
 
-    old_id_results = old_ids._get_old_ids_for_model_gene(
+    old_id_results = id_queries._get_old_ids_for_model_gene(
         gene_bigg_id, model_bigg_id, session
     )
 

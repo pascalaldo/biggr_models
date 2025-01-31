@@ -1,4 +1,4 @@
-from bigg_models.queries import general
+from bigg_models.queries import utils
 
 from cobradb.models import (
     Component,
@@ -47,7 +47,7 @@ def search_for_universal_reactions_count(
     )
 
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Reaction)
+        query = utils._add_multistrain_filter(session, query, Reaction)
 
     return query.count()
 
@@ -114,10 +114,10 @@ def search_for_universal_reactions(
     )
 
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Reaction)
+        query = utils._add_multistrain_filter(session, query, Reaction)
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -193,7 +193,7 @@ def search_for_reactions(
     )
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -205,18 +205,6 @@ def search_for_reactions(
         {"bigg_id": x[0], "model_bigg_id": x[1], "organism": x[2], "name": x[3]}
         for x in query
     ]
-
-
-def reaction_with_hash(hash, session):
-    """Find the reaction with the given hash."""
-    res = (
-        session.query(Reaction.bigg_id, Reaction.name)
-        .filter(Reaction.reaction_hash == hash)
-        .first()
-    )
-    if res is None:
-        raise general.NotFoundError
-    return {"bigg_id": res[0], "model_bigg_id": "universal", "name": res[1]}
 
 
 def search_for_universal_metabolites_count(
@@ -237,7 +225,7 @@ def search_for_universal_metabolites_count(
     )
 
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Component)
+        query = utils._add_multistrain_filter(session, query, Component)
 
     return query.count()
 
@@ -304,10 +292,10 @@ def search_for_universal_metabolites(
     )
 
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Component)
+        query = utils._add_multistrain_filter(session, query, Component)
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -433,7 +421,7 @@ def search_for_metabolites(
         )
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -480,7 +468,7 @@ def search_for_genes_count(
     )
 
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Gene)
+        query = utils._add_multistrain_filter(session, query, Gene)
 
     # limit the models
     if limit_models:
@@ -564,10 +552,10 @@ def search_for_genes(
     )
 
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Gene)
+        query = utils._add_multistrain_filter(session, query, Gene)
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -596,7 +584,7 @@ def search_for_models_count(query_string, session, multistrain_off):
         )
     )
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Model)
+        query = utils._add_multistrain_filter(session, query, Model)
     return query.count()
 
 
@@ -677,10 +665,10 @@ def search_for_models(
     )
 
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Model)
+        query = utils._add_multistrain_filter(session, query, Model)
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 

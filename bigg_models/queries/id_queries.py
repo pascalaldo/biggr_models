@@ -41,6 +41,10 @@ def _get_db_links_for_reaction(reaction_bigg_id, session):
     return _compile_db_links(result_db)
 
 
+def _get_db_links_for_model_reaction(reaction_bigg_id, session):
+    return _get_db_links_for_reaction(reaction_bigg_id, session)
+
+
 def _get_old_ids_for_reaction(reaction_bigg_id, session):
     result_db = (
         session.query(Synonym.synonym)
@@ -49,6 +53,21 @@ def _get_old_ids_for_reaction(reaction_bigg_id, session):
         .filter(OldIDSynonym.type == "model_reaction")
         .join(Reaction)
         .filter(Reaction.bigg_id == reaction_bigg_id)
+        .distinct()
+    )
+    return [x[0] for x in result_db]
+
+
+def _get_old_ids_for_model_reaction(model_bigg_id, reaction_bigg_id, session):
+    result_db = (
+        session.query(Synonym.synonym)
+        .join(OldIDSynonym)
+        .join(ModelReaction, ModelReaction.id == OldIDSynonym.ome_id)
+        .filter(OldIDSynonym.type == "model_reaction")
+        .join(Reaction)
+        .join(Model)
+        .filter(Reaction.bigg_id == reaction_bigg_id)
+        .filter(Model.bigg_id == model_bigg_id)
         .distinct()
     )
     return [x[0] for x in result_db]

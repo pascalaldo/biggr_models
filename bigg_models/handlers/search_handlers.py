@@ -1,12 +1,11 @@
-from bigg_models.handlers import general
-from bigg_models import queries
+from bigg_models.handlers import utils
+from bigg_models.queries import search_queries, model_queries
 import simplejson as json
 
-from cobradb.parse import hash_metabolite_dictionary
 from tornado.web import HTTPError
 
 
-class SearchHandler(general.BaseHandler):
+class SearchHandler(utils.BaseHandler):
     def get(self):
         # get arguments
         query_string = self.get_argument("query")
@@ -21,8 +20,8 @@ class SearchHandler(general.BaseHandler):
         sort_direction = "ascending"
 
         # get the sorting column
-        columns = general._parse_col_arg(self.get_argument("columns", None))
-        sort_column, sort_direction = general._get_col_name(
+        columns = utils._parse_col_arg(self.get_argument("columns", None))
+        sort_column, sort_direction = utils._get_col_name(
             self.request.query_arguments,
             columns,
             sort_column,
@@ -30,12 +29,12 @@ class SearchHandler(general.BaseHandler):
         )
 
         # run the queries
-        session = queries.Session()
+        session = utils.Session()
         result = None
 
         if search_type == "reactions":
             # reactions
-            raw_results = queries.search_for_universal_reactions(
+            raw_results = search_queries.search_for_universal_reactions(
                 query_string,
                 session,
                 page,
@@ -58,7 +57,7 @@ class SearchHandler(general.BaseHandler):
                 "results": [
                     dict(x, model_bigg_id="Universal", organism="") for x in raw_results
                 ],
-                "results_count": queries.search_for_universal_reactions_count(
+                "results_count": search_queries.search_for_universal_reactions_count(
                     query_string,
                     session,
                     multistrain_off,
@@ -66,7 +65,7 @@ class SearchHandler(general.BaseHandler):
             }
 
         elif search_type == "metabolites":
-            raw_results = queries.search_for_universal_metabolites(
+            raw_results = search_queries.search_for_universal_metabolites(
                 query_string,
                 session,
                 page,
@@ -90,7 +89,7 @@ class SearchHandler(general.BaseHandler):
                 "results": [
                     dict(x, model_bigg_id="Universal", organism="") for x in raw_results
                 ],
-                "results_count": queries.search_for_universal_metabolites_count(
+                "results_count": search_queries.search_for_universal_metabolites_count(
                     query_string,
                     session,
                     multistrain_off,
@@ -98,7 +97,7 @@ class SearchHandler(general.BaseHandler):
             }
 
         elif search_type == "genes":
-            raw_results = queries.search_for_genes(
+            raw_results = search_queries.search_for_genes(
                 query_string,
                 session,
                 page,
@@ -122,7 +121,7 @@ class SearchHandler(general.BaseHandler):
 
             result = {
                 "results": raw_results,
-                "results_count": queries.search_for_genes_count(
+                "results_count": search_queries.search_for_genes_count(
                     query_string,
                     session,
                     multistrain_off=multistrain_off,
@@ -130,7 +129,7 @@ class SearchHandler(general.BaseHandler):
             }
 
         elif search_type == "models":
-            raw_results = queries.search_for_models(
+            raw_results = search_queries.search_for_models(
                 query_string,
                 session,
                 page,
@@ -157,7 +156,7 @@ class SearchHandler(general.BaseHandler):
 
             result = {
                 "results": raw_results,
-                "results_count": queries.search_for_models_count(
+                "results_count": search_queries.search_for_models_count(
                     query_string,
                     session,
                     multistrain_off,
@@ -172,8 +171,8 @@ class SearchHandler(general.BaseHandler):
         self.finish()
 
 
-class SearchDisplayHandler(general.BaseHandler):
-    template = general.env.get_template("list_display.html")
+class SearchDisplayHandler(utils.BaseHandler):
+    template = utils.env.get_template("list_display.html")
 
     def get(self):
         data = {
@@ -189,12 +188,12 @@ class SearchDisplayHandler(general.BaseHandler):
         self.finish()
 
 
-class AdvancedSearchHandler(general.BaseHandler):
-    template = general.env.get_template("advanced_search.html")
+class AdvancedSearchHandler(utils.BaseHandler):
+    template = utils.env.get_template("advanced_search.html")
 
     def get(self):
-        model_list = general.safe_query(queries.get_model_list)
-        database_sources = general.safe_query(queries.get_database_sources)
+        model_list = utils.safe_query(model_queries.get_model_list)
+        database_sources = utils.safe_query(search_queries.get_database_sources)
 
         self.write(
             self.template.render(
@@ -204,20 +203,20 @@ class AdvancedSearchHandler(general.BaseHandler):
         self.finish()
 
 
-class AdvancedSearchExternalIDHandler(general.BaseHandler):
-    template = general.env.get_template("list_display.html")
+class AdvancedSearchExternalIDHandler(utils.BaseHandler):
+    template = utils.env.get_template("list_display.html")
 
     def post(self):
         query_string = self.get_argument("query", "")
         database_source = self.get_argument("database_source", "")
-        session = queries.Session()
-        metabolites = queries.get_metabolites_for_database_id(
+        session = utils.Session()
+        metabolites = search_queries.get_metabolites_for_database_id(
             session, query_string, database_source
         )
-        reactions = queries.get_reactions_for_database_id(
+        reactions = search_queries.get_reactions_for_database_id(
             session, query_string, database_source
         )
-        genes = queries.get_genes_for_database_id(
+        genes = search_queries.get_genes_for_database_id(
             session, query_string, database_source
         )
         session.close()
@@ -236,20 +235,20 @@ class AdvancedSearchExternalIDHandler(general.BaseHandler):
         self.finish()
 
 
-class AdvancedSearchResultsHandler(general.BaseHandler):
-    template = general.env.get_template("list_display.html")
+class AdvancedSearchResultsHandler(utils.BaseHandler):
+    template = utils.env.get_template("list_display.html")
 
     def post(self):
         query_strings = [
             x.strip() for x in self.get_argument("query", "").split(",") if x != ""
         ]
         # run the queries
-        session = queries.Session()
+        session = utils.Session()
 
         def checkbox_arg(name):
             return self.get_argument(name, None) == "on"
 
-        all_models = queries.get_model_list(session)
+        all_models = model_queries.get_model_list(session)
         model_list = [m for m in all_models if checkbox_arg(m)]
         include_metabolites = checkbox_arg("include_metabolites")
         include_reactions = checkbox_arg("include_reactions")
@@ -261,15 +260,15 @@ class AdvancedSearchResultsHandler(general.BaseHandler):
         # genes
         for query_string in query_strings:
             if include_genes:
-                gene_results += queries.search_for_genes(
+                gene_results += search_queries.search_for_genes(
                     query_string, session, limit_models=model_list
                 )
             if include_reactions:
-                reaction_results += queries.search_for_reactions(
+                reaction_results += search_queries.search_for_reactions(
                     query_string, session, limit_models=model_list
                 )
             if include_metabolites:
-                metabolite_results += queries.search_for_metabolites(
+                metabolite_results += search_queries.search_for_metabolites(
                     query_string, session, limit_models=model_list
                 )
         result = {
@@ -287,11 +286,11 @@ class AdvancedSearchResultsHandler(general.BaseHandler):
         self.finish()
 
 
-class AdvancedSearchSequences(general.BaseHandler):
+class AdvancedSearchSequences(utils.BaseHandler):
     def post(self):
         reaction_bigg_id = self.get_argument("query", "")
-        session = queries.Session()
-        results = queries.sequences_for_reaction(reaction_bigg_id, session)
+        session = utils.Session()
+        results = search_queries.sequences_for_reaction(reaction_bigg_id, session)
         session.close()
         self.set_header("Content-Type", "application/octet-stream")
         self.write(json.dumps(results))

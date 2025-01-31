@@ -1,4 +1,4 @@
-from bigg_models.queries import escher_maps, general, old_ids
+from bigg_models.queries import escher_map_queries, utils, id_queries
 
 from cobradb.models import (
     CompartmentalizedComponent,
@@ -67,7 +67,7 @@ def get_universal_metabolites(
     query = session.query(Component.bigg_id, Component.name)
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -168,7 +168,7 @@ def get_model_metabolites(
     )
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -200,11 +200,9 @@ def get_metabolite(met_bigg_id, session):
             .first()
         )
         if res_db:
-            raise general.RedirectError(res_db[1].bigg_id)
+            raise utils.RedirectError(res_db[1].bigg_id)
         else:
-            raise general.NotFoundError(
-                "No Component found with BiGG ID " + met_bigg_id
-            )
+            raise utils.NotFoundError("No Component found with BiGG ID " + met_bigg_id)
 
     comp_comp_db = (
         session.query(
@@ -231,8 +229,8 @@ def get_metabolite(met_bigg_id, session):
     charges = list({y for y in (x[4] for x in comp_comp_db) if y is not None})
 
     # database links and old ids
-    db_link_results = old_ids._get_db_links_for_metabolite(met_bigg_id, session)
-    old_id_results = old_ids._get_old_ids_for_metabolite(met_bigg_id, session)
+    db_link_results = id_queries._get_db_links_for_metabolite(met_bigg_id, session)
+    old_id_results = id_queries._get_old_ids_for_metabolite(met_bigg_id, session)
 
     return {
         "bigg_id": result_db[0],
@@ -290,7 +288,7 @@ def get_model_comp_metabolite(met_bigg_id, compartment_bigg_id, model_bigg_id, s
         .first()
     )
     if result_db is None:
-        raise general.NotFoundError(
+        raise utils.NotFoundError(
             "Component %s in compartment %s not in model %s"
             % (met_bigg_id, compartment_bigg_id, model_bigg_id)
         )
@@ -304,16 +302,16 @@ def get_model_comp_metabolite(met_bigg_id, compartment_bigg_id, model_bigg_id, s
         .distinct()
     )
     model_db = get_model_list_for_metabolite(met_bigg_id, session)
-    m_escher_maps = escher_maps.get_escher_maps_for_metabolite(
+    m_escher_maps = escher_map_queries.get_escher_maps_for_metabolite(
         met_bigg_id, compartment_bigg_id, model_bigg_id, session
     )
     model_result = [x for x in model_db if x["bigg_id"] != model_bigg_id]
 
-    db_link_results = old_ids._get_db_links_for_model_comp_metabolite(
+    db_link_results = id_queries._get_db_links_for_model_comp_metabolite(
         met_bigg_id, session
     )
 
-    old_id_results = old_ids._get_old_ids_for_model_comp_metabolite(
+    old_id_results = id_queries._get_old_ids_for_model_comp_metabolite(
         met_bigg_id, compartment_bigg_id, model_bigg_id, session
     )
 

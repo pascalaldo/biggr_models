@@ -1,4 +1,4 @@
-from bigg_models.queries import escher_maps, general, old_ids
+from bigg_models.queries import escher_map_queries, utils, id_queries
 from cobradb.models import (
     Compartment,
     CompartmentalizedComponent,
@@ -13,11 +13,19 @@ from cobradb.models import (
     ReactionMatrix,
 )
 from cobradb.util import make_reaction_copy_id
-from sqlalchemy import desc, asc, func, or_, and_, not_
+from sqlalchemy import func
 
-# -------------------------------------------------------------------------------
-# Reactions
-# -------------------------------------------------------------------------------
+
+def reaction_with_hash(hash, session):
+    """Find the reaction with the given hash."""
+    res = (
+        session.query(Reaction.bigg_id, Reaction.name)
+        .filter(Reaction.reaction_hash == hash)
+        .first()
+    )
+    if res is None:
+        raise utils.NotFoundError
+    return {"bigg_id": res[0], "model_bigg_id": "universal", "name": res[1]}
 
 
 def get_universal_reactions_count(session):
@@ -73,7 +81,7 @@ def get_universal_reactions(
     query = session.query(Reaction.bigg_id, Reaction.name)
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -150,7 +158,7 @@ def get_model_reactions(
     )
 
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
@@ -222,19 +230,19 @@ def get_reaction_and_models(reaction_bigg_id, session):
             .first()
         )
         if res_db:
-            raise general.RedirectError(res_db[1].bigg_id)
+            raise utils.RedirectError(res_db[1].bigg_id)
         else:
-            raise general.NotFoundError(
+            raise utils.NotFoundError(
                 "No Reaction found with BiGG ID " + reaction_bigg_id
             )
 
-    db_link_results = general._get_db_links_for_reaction(reaction_bigg_id, session)
-    old_id_results = general._get_old_ids_for_reaction(reaction_bigg_id, session)
+    db_link_results = id_queries._get_db_links_for_reaction(reaction_bigg_id, session)
+    old_id_results = id_queries._get_old_ids_for_reaction(reaction_bigg_id, session)
 
     # metabolites
     metabolite_db = _get_metabolite_list_for_reaction(reaction_bigg_id, session)
 
-    reaction_string = general.build_reaction_string(metabolite_db, -1000, 1000, False)
+    reaction_string = utils.build_reaction_string(metabolite_db, -1000, 1000, False)
     return {
         "bigg_id": result_db[0][0],
         "name": result_db[0][1],
@@ -307,7 +315,7 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     )
     db_count = model_reaction_db.count()
     if db_count == 0:
-        raise general.NotFoundError(
+        raise utils.NotFoundError(
             "Reaction %s not found in model %s" % (reaction_bigg_id, model_bigg_id)
         )
 
@@ -319,24 +327,24 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     model_result = [x for x in model_db if x != model_bigg_id]
 
     # database_links
-    db_link_results = general._get_db_links_for_model_reaction(
+    db_link_results = id_queries._get_db_links_for_model_reaction(
         reaction_bigg_id, session
     )
 
     # old identifiers
-    old_id_results = old_ids._get_old_ids_for_model_reaction(
+    old_id_results = id_queries._get_old_ids_for_model_reaction(
         model_bigg_id, reaction_bigg_id, session
     )
 
     # escher maps
-    r_escher_maps = escher_maps.get_escher_maps_for_reaction(
+    r_escher_maps = escher_map_queries.get_escher_maps_for_reaction(
         reaction_bigg_id, model_bigg_id, session
     )
 
     result_list = []
     for result_db in model_reaction_db:
         gene_db = _get_gene_list_for_model_reaction(result_db[2], session)
-        reaction_string = general.build_reaction_string(
+        reaction_string = utils.build_reaction_string(
             metabolite_db, result_db[4], result_db[5], False
         )
         exported_reaction_id = (

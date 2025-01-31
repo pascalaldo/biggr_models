@@ -1,6 +1,6 @@
 from cobradb.models import Session
-from bigg_models import queries, __api_version__ as api_v
-
+from bigg_models import __api_version__ as api_v
+from bigg_models.queries import search_queries, escher_map_queries, utils as query_utils
 import simplejson as json
 from tornado.web import (
     RequestHandler,
@@ -65,7 +65,7 @@ def safe_query(func, *args, **kwargs):
     kwargs["session"] = session
     try:
         return func(*args, **kwargs)
-    except queries.NotFoundError as e:
+    except query_utils.NotFoundError as e:
         raise HTTPError(status_code=404, reason=e.args[0])
     except ValueError as e:
         raise HTTPError(status_code=400, reason=e.args[0])
@@ -174,14 +174,16 @@ class PageableHandler(BaseHandler):
 class AutocompleteHandler(BaseHandler):
     def get(self):
         query_string = self.get_argument("query")
-        result_array = safe_query(queries.search_ids_fast, query_string, limit=15)
+        result_array = safe_query(
+            search_queries.search_ids_fast, query_string, limit=15
+        )
         self.write(result_array)
         self.finish()
 
 
 class EscherMapJSONHandler(BaseHandler):
     def get(self, map_name):
-        map_json = safe_query(queries.json_for_map, map_name)
+        map_json = safe_query(escher_map_queries.json_for_map, map_name)
 
         self.write(map_json)
         # need to do this because map_json is a string
@@ -199,7 +201,7 @@ class WebAPIHandler(BaseHandler):
 
 class APIVersionHandler(BaseHandler):
     def get(self):
-        result = safe_query(queries.database_version)
+        result = safe_query(query_utils.database_version)
         self.return_result(result)
 
 

@@ -1,13 +1,13 @@
-from bigg_models.handlers import general
-from bigg_models import queries
+from bigg_models.handlers import utils
+from bigg_models.queries import gene_queries
 
 
-class GeneListHandler(general.PageableHandler):
+class GeneListHandler(utils.PageableHandler):
     def get(self, model_bigg_id):
         kwargs = self._get_pager_args(default_sort_column="bigg_id")
 
-        raw_results = general.safe_query(
-            queries.get_model_genes, model_bigg_id, **kwargs
+        raw_results = utils.safe_query(
+            gene_queries.get_model_genes, model_bigg_id, **kwargs
         )
 
         # add the URL
@@ -23,16 +23,16 @@ class GeneListHandler(general.PageableHandler):
             ]
         result = {
             "results": raw_results,
-            "results_count": general.safe_query(
-                queries.get_model_genes_count, model_bigg_id
+            "results_count": utils.safe_query(
+                gene_queries.get_model_genes_count, model_bigg_id
             ),
         }
         self.write(result)
         self.finish()
 
 
-class GeneListDisplayHandler(general.BaseHandler):
-    template = general.env.get_template("list_display.html")
+class GeneListDisplayHandler(utils.BaseHandler):
+    template = utils.env.get_template("list_display.html")
 
     def get(self, model_bigg_id):
         data = {
@@ -43,9 +43,11 @@ class GeneListDisplayHandler(general.BaseHandler):
         self.finish()
 
 
-class GeneHandler(general.BaseHandler):
-    template = general.env.get_template("gene.html")
+class GeneHandler(utils.BaseHandler):
+    template = utils.env.get_template("gene.html")
 
     def get(self, model_bigg_id, gene_bigg_id):
-        result = general.safe_query(queries.get_model_gene, gene_bigg_id, model_bigg_id)
+        result = utils.safe_query(
+            gene_queries.get_model_gene, gene_bigg_id, model_bigg_id
+        )
         self.return_result(result)

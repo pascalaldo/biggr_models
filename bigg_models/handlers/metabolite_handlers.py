@@ -1,16 +1,18 @@
-from bigg_models.handlers import general
-from bigg_models import queries
+from bigg_models.handlers import utils
+from bigg_models.queries import metabolite_queries, utils as query_utils
 
 from cobradb.parse import split_compartment
 import re
 
 
-class UniversalMetaboliteListHandler(general.PageableHandler):
+class UniversalMetaboliteListHandler(utils.PageableHandler):
     def get(self):
         # get arguments
         kwargs = self._get_pager_args(default_sort_column="bigg_id")
 
-        raw_results = general.safe_query(queries.get_universal_metabolites, **kwargs)
+        raw_results = utils.safe_query(
+            metabolite_queries.get_universal_metabolites, **kwargs
+        )
 
         # add links and universal
         if "include_link_urls" in self.request.query_arguments:
@@ -25,8 +27,8 @@ class UniversalMetaboliteListHandler(general.PageableHandler):
             ]
         result = {
             "results": [dict(x, model_bigg_id="Universal") for x in raw_results],
-            "results_count": general.safe_query(
-                queries.get_universal_metabolites_count
+            "results_count": utils.safe_query(
+                metabolite_queries.get_universal_metabolites_count
             ),
         }
 
@@ -34,8 +36,8 @@ class UniversalMetaboliteListHandler(general.PageableHandler):
         self.finish()
 
 
-class UniversalMetaboliteListDisplayHandler(general.BaseHandler):
-    template = general.env.get_template("list_display.html")
+class UniversalMetaboliteListDisplayHandler(utils.BaseHandler):
+    template = utils.env.get_template("list_display.html")
 
     def get(self):
         data = {
@@ -47,25 +49,25 @@ class UniversalMetaboliteListDisplayHandler(general.BaseHandler):
         self.finish()
 
 
-class UniversalMetaboliteHandler(general.BaseHandler):
-    template = general.env.get_template("universal_metabolite.html")
+class UniversalMetaboliteHandler(utils.BaseHandler):
+    template = utils.env.get_template("universal_metabolite.html")
 
     def get(self, met_bigg_id):
         try:
-            result = general.safe_query(queries.get_metabolite, met_bigg_id)
-        except queries.RedirectError as e:
+            result = utils.safe_query(metabolite_queries.get_metabolite, met_bigg_id)
+        except query_utils.RedirectError as e:
             self.redirect(re.sub(self.request.path, "%s$" % met_bigg_id, e.args[0]))
         else:
             self.return_result(result)
 
 
-class MetaboliteListHandler(general.PageableHandler):
+class MetaboliteListHandler(utils.PageableHandler):
     def get(self, model_bigg_id):
         kwargs = self._get_pager_args(default_sort_column="bigg_id")
 
-        # run the queries
-        raw_results = general.safe_query(
-            queries.get_model_metabolites, model_bigg_id, **kwargs
+        # run the metabolite_queries
+        raw_results = utils.safe_query(
+            metabolite_queries.get_model_metabolites, model_bigg_id, **kwargs
         )
         # add the URL
         if "include_link_urls" in self.request.query_arguments:
@@ -82,8 +84,8 @@ class MetaboliteListHandler(general.PageableHandler):
             ]
         result = {
             "results": raw_results,
-            "results_count": general.safe_query(
-                queries.get_model_metabolites_count,
+            "results_count": utils.safe_query(
+                metabolite_queries.get_model_metabolites_count,
                 model_bigg_id,
             ),
         }
@@ -92,8 +94,8 @@ class MetaboliteListHandler(general.PageableHandler):
         self.finish()
 
 
-class MetabolitesListDisplayHandler(general.BaseHandler):
-    template = general.env.get_template("list_display.html")
+class MetabolitesListDisplayHandler(utils.BaseHandler):
+    template = utils.env.get_template("list_display.html")
 
     def get(self, model_bigg_id):
         data = {
@@ -104,13 +106,13 @@ class MetabolitesListDisplayHandler(general.BaseHandler):
         self.finish()
 
 
-class MetaboliteHandler(general.BaseHandler):
-    template = general.env.get_template("metabolite.html")
+class MetaboliteHandler(utils.BaseHandler):
+    template = utils.env.get_template("metabolite.html")
 
     def get(self, model_bigg_id, comp_met_id):
         met_bigg_id, compartment_bigg_id = split_compartment(comp_met_id)
-        results = general.safe_query(
-            queries.get_model_comp_metabolite,
+        results = utils.safe_query(
+            metabolite_queries.get_model_comp_metabolite,
             met_bigg_id,
             compartment_bigg_id,
             model_bigg_id,

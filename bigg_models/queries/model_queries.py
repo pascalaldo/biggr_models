@@ -1,14 +1,10 @@
-from bigg_models.queries import general, escher_maps
+from bigg_models.queries import utils, escher_map_queries
 
 from cobradb.util import ref_tuple_to_str
 from cobradb import settings
 from cobradb.models import (
-    CompartmentalizedComponent,
-    Component,
-    Compartment,
     DatabaseVersion,
     Genome,
-    ModelCompartmentalizedComponent,
     Model,
     ModelCount,
     Publication,
@@ -23,7 +19,7 @@ def get_models_count(session, multistrain_off, **kwargs):
     """Return the number of models in the database."""
     query = session.query(Model)
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Model)
+        query = utils._add_multistrain_filter(session, query, Model)
     return query.count()
 
 
@@ -86,10 +82,10 @@ def get_models(
     ).join(ModelCount, ModelCount.model_id == Model.id)
     print(str(query))
     if multistrain_off:
-        query = general._add_multistrain_filter(session, query, Model)
+        query = utils._add_multistrain_filter(session, query, Model)
     print(str(query))
     # order and limit
-    query = general._apply_order_limit_offset(
+    query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
     print(str(query))
@@ -125,7 +121,7 @@ def get_model_and_counts(
         .first()
     )
     if model_db is None:
-        raise general.NotFoundError("No Model found with BiGG ID " + model_bigg_id)
+        raise utils.NotFoundError("No Model found with BiGG ID " + model_bigg_id)
 
     # genome ref
     if model_db[2] is None:
@@ -133,7 +129,9 @@ def get_model_and_counts(
     else:
         genome_name = model_db[2].accession_value
         genome_ref_string = ref_tuple_to_str(model_db[2].accession_type, genome_name)
-    m_escher_maps = escher_maps.get_escher_maps_for_model(model_db[0].id, session)
+    m_escher_maps = escher_map_queries.get_escher_maps_for_model(
+        model_db[0].id, session
+    )
     result = {
         "model_bigg_id": model_db[0].bigg_id,
         "published_filename": model_db[0].published_filename,
@@ -188,5 +186,5 @@ def get_model_json_string(model_bigg_id):
         with open(fpath, "r") as f:
             data = f.read()
     except IOError as e:
-        raise general.NotFoundError(e.message)
+        raise utils.NotFoundError(e.message)
     return data
