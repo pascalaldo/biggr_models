@@ -5,17 +5,19 @@ WORKDIR /app
 
 # Install dependencies
 
-RUN wget https://github.com/draeger-lab/ModelPolisher/releases/download/1.7/ModelPolisher-1.7.jar
+# RUN wget https://github.com/draeger-lab/ModelPolisher/releases/download/1.7/ModelPolisher-1.7.jar
 
+#RUN apt-get update && apt-get install -y \
+#  libxml2-dev postgresql-client openjdk-17-jre
 RUN apt-get update && apt-get install -y \
-  libxml2-dev postgresql-client openjdk-17-jre
+  libxml2-dev postgresql-client
 
 COPY requirements.txt /app/
 RUN pip install -r requirements.txt
 
 RUN git clone https://github.com/pascalaldo/bigg_models_data.git bigg_models_data
 
-RUN git clone https://github.com/pascalaldo/cobradb.git cobradb
+RUN git clone -b optimizations https://github.com/pascalaldo/cobradb.git cobradb
 WORKDIR /app/cobradb
 RUN python setup.py install
 WORKDIR /app

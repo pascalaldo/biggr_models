@@ -56,7 +56,7 @@ def get_models(
     """
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Model.bigg_id),
+        "bigg_id": func.lower(Model.id),
         "organism": func.lower(Model.organism),
         "metabolite_count": ModelCount.metabolite_count,
         "reaction_count": ModelCount.reaction_count,
@@ -74,7 +74,7 @@ def get_models(
 
     # set up the query
     query = session.query(
-        Model.bigg_id,
+        Model.id,
         Model.organism,
         ModelCount.metabolite_count,
         ModelCount.reaction_count,
@@ -117,7 +117,7 @@ def get_model_and_counts(
         .outerjoin(Genome, Genome.id == Model.genome_id)
         .outerjoin(PublicationModel, PublicationModel.model_id == Model.id)
         .outerjoin(Publication, Publication.id == PublicationModel.publication_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .first()
     )
     if model_db is None:
@@ -133,7 +133,7 @@ def get_model_and_counts(
         model_db[0].id, session
     )
     result = {
-        "model_bigg_id": model_db[0].bigg_id,
+        "model_bigg_id": model_db[0].id,
         "published_filename": model_db[0].published_filename,
         "organism": getattr(model_db[2], "organism", None),
         "genome_name": genome_name,
@@ -173,7 +173,7 @@ def get_model_and_counts(
 
 def get_model_list(session):
     """Return a list of all models, for advanced search."""
-    model_list = session.query(Model.bigg_id).order_by(Model.bigg_id)
+    model_list = session.query(Model.id).order_by(Model.id)
     list = [x[0] for x in model_list]
     list.sort()
     return list

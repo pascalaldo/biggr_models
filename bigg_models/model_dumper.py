@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from bigg_models.server import static_model_dir as static_dir
+from bigg_models.handlers.utils import static_model_dir as static_dir
 
 from cobradb.models import *
 from cobradb.model_dumping import dump_model

@@ -20,7 +20,7 @@ def get_model_genes_count(model_bigg_id, session):
         session.query(Gene)
         .join(ModelGene)
         .join(Model)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .count()
     )
 
@@ -63,7 +63,7 @@ def get_model_genes(
     columns = {
         "bigg_id": func.lower(Gene.bigg_id),
         "name": func.lower(Gene.name),
-        "model_bigg_id": func.lower(Model.bigg_id),
+        "model_bigg_id": func.lower(Model.id),
         "organism": func.lower(Model.organism),
     }
 
@@ -77,10 +77,10 @@ def get_model_genes(
 
     # set up the query
     query = (
-        session.query(Gene.bigg_id, Gene.name, Model.bigg_id, Model.organism)
+        session.query(Gene.bigg_id, Gene.name, Model.id, Model.organism)
         .join(ModelGene, ModelGene.gene_id == Gene.id)
         .join(Model, Model.id == ModelGene.model_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
     )
 
     # order and limit
@@ -101,7 +101,7 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
             Gene.name,
             Gene.leftpos,
             Gene.rightpos,
-            Model.bigg_id,
+            Model.id,
             Gene.strand,
             Chromosome.ncbi_accession,
             Genome.accession_type,
@@ -115,7 +115,7 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         .outerjoin(Genome, Genome.id == Model.genome_id)
         .outerjoin(Chromosome, Chromosome.id == Gene.chromosome_id)
         .filter(Gene.bigg_id == gene_bigg_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .first()
     )
     if result_db is None:
@@ -124,7 +124,7 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         )
 
     reaction_db = (
-        session.query(Reaction.bigg_id, ModelReaction.gene_reaction_rule, Reaction.name)
+        session.query(Reaction.id, ModelReaction.gene_reaction_rule, Reaction.name)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
         .join(
@@ -132,18 +132,20 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         )
         .join(ModelGene, ModelGene.id == GeneReactionMatrix.model_gene_id)
         .join(Gene, Gene.id == ModelGene.gene_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .filter(Gene.bigg_id == gene_bigg_id)
     )
     reaction_results = [
         {"bigg_id": r[0], "gene_reaction_rule": r[1], "name": r[2]} for r in reaction_db
     ]
 
-    synonym_db = id_queries._get_db_links_for_model_gene(gene_bigg_id, session)
+    # synonym_db = id_queries._get_db_links_for_model_gene(gene_bigg_id, session)
+    synonym_db = {}
 
-    old_id_results = id_queries._get_old_ids_for_model_gene(
-        gene_bigg_id, model_bigg_id, session
-    )
+    # old_id_results = id_queries._get_old_ids_for_model_gene(
+    #     gene_bigg_id, model_bigg_id, session
+    # )
+    old_id_results = []
 
     return {
         "bigg_id": result_db[0],

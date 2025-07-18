@@ -36,7 +36,7 @@ def _get_db_links_for_reaction(reaction_bigg_id, session):
         .join(Synonym)
         .join(Reaction, Reaction.id == Synonym.ome_id)
         .filter(Synonym.type == "reaction")
-        .filter(Reaction.bigg_id == reaction_bigg_id)
+        .filter(Reaction.id == reaction_bigg_id)
     )
     return _compile_db_links(result_db)
 
@@ -52,7 +52,7 @@ def _get_old_ids_for_reaction(reaction_bigg_id, session):
         .join(ModelReaction, ModelReaction.id == OldIDSynonym.ome_id)
         .filter(OldIDSynonym.type == "model_reaction")
         .join(Reaction)
-        .filter(Reaction.bigg_id == reaction_bigg_id)
+        .filter(Reaction.id == reaction_bigg_id)
         .distinct()
     )
     return [x[0] for x in result_db]
@@ -66,8 +66,8 @@ def _get_old_ids_for_model_reaction(model_bigg_id, reaction_bigg_id, session):
         .filter(OldIDSynonym.type == "model_reaction")
         .join(Reaction)
         .join(Model)
-        .filter(Reaction.bigg_id == reaction_bigg_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Reaction.id == reaction_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .distinct()
     )
     return [x[0] for x in result_db]
@@ -95,35 +95,36 @@ def _get_old_ids_for_model_gene(gene_bigg_id, model_bigg_id, session):
         .join(Gene)
         .join(Model)
         .filter(Gene.bigg_id == gene_bigg_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .distinct()
     )
     return [x[0] for x in result_db]
 
 
 def _get_db_links_for_metabolite(met_bigg_id, session):
-    result_db_1 = (
-        session.query(
-            DataSource.bigg_id, DataSource.name, DataSource.url_prefix, Synonym.synonym
-        )
-        .join(Synonym)
-        .join(Component, Component.id == Synonym.ome_id)
-        .filter(Synonym.type == "component")
-        .filter(Component.bigg_id == met_bigg_id)
-    )
-    result_db_2 = (
-        session.query(
-            DataSource.bigg_id, DataSource.name, DataSource.url_prefix, Synonym.synonym
-        )
-        .join(Synonym)
-        .join(
-            CompartmentalizedComponent, CompartmentalizedComponent.id == Synonym.ome_id
-        )
-        .filter(Synonym.type == "compartmentalized_component")
-        .join(Component, Component.id == CompartmentalizedComponent.component_id)
-        .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
-        .filter(Component.bigg_id == met_bigg_id)
-    )
+    # result_db_1 = (
+    #     session.query(
+    #         DataSource.bigg_id, DataSource.name, DataSource.url_prefix, Synonym.synonym
+    #     )
+    #     .join(Synonym)
+    #     .join(Component, Component.id == Synonym.ome_id)
+    #     .filter(Synonym.type == "component")
+    #     .filter(Component.id == met_bigg_id)
+    # )
+    # result_db_2 = (
+    #     session.query(
+    #         DataSource.bigg_id, DataSource.name, DataSource.url_prefix, Synonym.synonym
+    #     )
+    #     .join(Synonym)
+    #     .join(
+    #         CompartmentalizedComponent, CompartmentalizedComponent.id == Synonym.ome_id
+    #     )
+    #     .filter(Synonym.type == "compartmentalized_component")
+    #     .join(Component, Component.id == CompartmentalizedComponent.component_id)
+    #     .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
+    #     .filter(Component.id == met_bigg_id)
+    # )
+    result_db_1, result_db_2 = [], []
     return _compile_db_links(chain(result_db_1, result_db_2))
 
 
@@ -139,7 +140,7 @@ def _get_old_ids_for_metabolite(met_bigg_id, session):
         .filter(Synonym.type == "component")
         .join(CompartmentalizedComponent)
         .join(Component)
-        .filter(Component.bigg_id == met_bigg_id)
+        .filter(Component.id == met_bigg_id)
         .distinct()
     )
     return [x[0] for x in result_db]
@@ -165,9 +166,9 @@ def _get_old_ids_for_model_comp_metabolite(
         .join(Compartment)
         .join(Component)
         .join(Model)
-        .filter(Component.bigg_id == met_bigg_id)
-        .filter(Compartment.bigg_id == compartment_bigg_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Component.id == met_bigg_id)
+        .filter(Compartment.id == compartment_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .distinct()
     )
     return [x[0] for x in result_db]

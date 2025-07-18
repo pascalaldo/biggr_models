@@ -16,16 +16,17 @@ from cobradb.util import make_reaction_copy_id
 from sqlalchemy import func
 
 
-def reaction_with_hash(hash, session):
-    """Find the reaction with the given hash."""
-    res = (
-        session.query(Reaction.bigg_id, Reaction.name)
-        .filter(Reaction.reaction_hash == hash)
-        .first()
-    )
-    if res is None:
-        raise utils.NotFoundError
-    return {"bigg_id": res[0], "model_bigg_id": "universal", "name": res[1]}
+# def reaction_with_hash(hash, session):
+#     """Find the reaction with the given hash."""
+#     res = (
+#         session.query(Reaction.id, Reaction.name)
+#         .filter(Reaction.reaction_hash == hash)
+#         .first()
+#     )
+#     if res is None:
+#         raise utils.NotFoundError
+#     return {"bigg_id": res[0], "model_bigg_id": "universal", "name": res[1]}
+#
 
 
 def get_universal_reactions_count(session):
@@ -64,7 +65,7 @@ def get_universal_reactions(
     """
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Reaction.bigg_id),
+        "bigg_id": func.lower(Reaction.id),
         "name": func.lower(Reaction.name),
     }
 
@@ -78,7 +79,7 @@ def get_universal_reactions(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(Reaction.bigg_id, Reaction.name)
+    query = session.query(Reaction.id, Reaction.name)
 
     # order and limit
     query = utils._apply_order_limit_offset(
@@ -94,7 +95,7 @@ def get_model_reactions_count(model_bigg_id, session):
         session.query(Reaction)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .count()
     )
 
@@ -135,9 +136,9 @@ def get_model_reactions(
     """
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Reaction.bigg_id),
+        "bigg_id": func.lower(Reaction.id),
         "name": func.lower(Reaction.name),
-        "model_bigg_id": func.lower(Model.bigg_id),
+        "model_bigg_id": func.lower(Model.id),
         "organism": func.lower(Model.organism),
     }
 
@@ -151,10 +152,10 @@ def get_model_reactions(
             sort_column_object = next(iter(columns.values()))
     # set up the query
     query = (
-        session.query(Reaction.bigg_id, Reaction.name, Model.bigg_id, Model.organism)
+        session.query(Reaction.id, Reaction.name, Model.id, Model.organism)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
     )
 
     # order and limit
@@ -171,9 +172,10 @@ def get_model_reactions(
 def _get_metabolite_list_for_reaction(reaction_id, session):
     result_db = (
         session.query(
-            Component.bigg_id,
-            ReactionMatrix.stoichiometry,
-            Compartment.bigg_id,
+            Component.id,
+            CompartmentalizedComponent.id,
+            ReactionMatrix.coefficient,
+            Compartment.id,
             Component.name,
         )
         # Metabolite -> ReactionMatrix
@@ -191,50 +193,57 @@ def _get_metabolite_list_for_reaction(reaction_id, session):
         # -> Compartment
         .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
         # filter
-        .filter(Reaction.bigg_id == reaction_id)
+        .filter(Reaction.id == reaction_id)
         .all()
     )
     return [
         {
-            "bigg_id": x[0],
-            "stoichiometry": x[1],
-            "compartment_bigg_id": x[2],
-            "name": x[3],
+            "base_bigg_id": x[0],
+            "bigg_id": x[1],
+            "coefficient": x[2],
+            "compartment_bigg_id": x[3],
+            "name": x[4],
         }
         for x in result_db
     ]
 
 
 def get_reaction_and_models(reaction_bigg_id, session):
+    reaction_db = (
+        session.query(Reaction).filter(Reaction.id == reaction_bigg_id).first()
+    )
+    if not reaction_db:
+        raise utils.NotFoundError("No Reaction found with BiGG ID " + reaction_bigg_id)
+
     result_db = (
         session.query(
-            Reaction.bigg_id,
+            Reaction.id,
             Reaction.name,
-            Reaction.pseudoreaction,
-            Model.bigg_id,
+            Model.id,
             Model.organism,
         )
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
-        .filter(Reaction.bigg_id == reaction_bigg_id)
+        .filter(Reaction.id == reaction_bigg_id)
         .distinct()
         .all()
     )
-    if len(result_db) == 0:
-        # Look for a result with a deprecated ID
-        res_db = (
-            session.query(DeprecatedID, Reaction)
-            .filter(DeprecatedID.type == "reaction")
-            .filter(DeprecatedID.deprecated_id == reaction_bigg_id)
-            .join(Reaction, Reaction.id == DeprecatedID.ome_id)
-            .first()
-        )
-        if res_db:
-            raise utils.RedirectError(res_db[1].bigg_id)
-        else:
-            raise utils.NotFoundError(
-                "No Reaction found with BiGG ID " + reaction_bigg_id
-            )
+    # if len(result_db) == 0:
+    #     # Look for a result with a deprecated ID
+    #     # res_db = (
+    #     #     session.query(DeprecatedID, Reaction)
+    #     #     .filter(DeprecatedID.type == "reaction")
+    #     #     .filter(DeprecatedID.deprecated_id == reaction_bigg_id)
+    #     #     .join(Reaction, Reaction.id == DeprecatedID.ome_id)
+    #     #     .first()
+    #     # )
+    #     res_db = None
+    #     if res_db:
+    #         raise utils.RedirectError(res_db[1].id)
+    #     else:
+    #         raise utils.NotFoundError(
+    #             "No Reaction found with BiGG ID " + reaction_bigg_id
+    #         )
 
     db_link_results = id_queries._get_db_links_for_reaction(reaction_bigg_id, session)
     old_id_results = id_queries._get_old_ids_for_reaction(reaction_bigg_id, session)
@@ -244,25 +253,25 @@ def get_reaction_and_models(reaction_bigg_id, session):
 
     reaction_string = utils.build_reaction_string(metabolite_db, -1000, 1000, False)
     return {
-        "bigg_id": result_db[0][0],
-        "name": result_db[0][1],
-        "pseudoreaction": result_db[0][2],
+        "bigg_id": reaction_db.id,
+        "name": reaction_db.name,
+        "pseudoreaction": False,
         "database_links": db_link_results,
         "old_identifiers": old_id_results,
         "metabolites": metabolite_db,
         "reaction_string": reaction_string,
         "models_containing_reaction": [
-            {"bigg_id": x[3], "organism": x[4]} for x in result_db
+            {"bigg_id": x[2], "organism": x[3]} for x in result_db
         ],
     }
 
 
 def get_reactions_for_model(model_bigg_id, session):
     result_db = (
-        session.query(Reaction.bigg_id, Reaction.name, Model.organism)
+        session.query(Reaction.id, Reaction.name, Model.organism)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
-        .filter(Model.bigg_id == model_bigg_id)
+        .filter(Model.id == model_bigg_id)
         .all()
     )
     return [{"bigg_id": x[0], "name": x[1], "organism": x[2]} for x in result_db]
@@ -280,10 +289,10 @@ def _get_gene_list_for_model_reaction(model_reaction_id, session):
 
 def get_model_list_for_reaction(reaction_bigg_id, session):
     result = (
-        session.query(Model.bigg_id)
+        session.query(Model.id)
         .join(ModelReaction, ModelReaction.model_id == Model.id)
         .join(Reaction, Reaction.id == ModelReaction.reaction_id)
-        .filter(Reaction.bigg_id == reaction_bigg_id)
+        .filter(Reaction.id == reaction_bigg_id)
         .distinct()
         .all()
     )
@@ -297,21 +306,20 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     """
     model_reaction_db = (
         session.query(
-            Reaction.bigg_id,
+            Reaction.id,
             Reaction.name,
             ModelReaction.id,
             ModelReaction.gene_reaction_rule,
             ModelReaction.lower_bound,
             ModelReaction.upper_bound,
             ModelReaction.objective_coefficient,
-            Reaction.pseudoreaction,
             ModelReaction.copy_number,
             ModelReaction.subsystem,
         )
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
-        .filter(Model.bigg_id == model_bigg_id)
-        .filter(Reaction.bigg_id == reaction_bigg_id)
+        .filter(Model.id == model_bigg_id)
+        .filter(Reaction.id == reaction_bigg_id)
     )
     db_count = model_reaction_db.count()
     if db_count == 0:
@@ -348,7 +356,7 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
             metabolite_db, result_db[4], result_db[5], False
         )
         exported_reaction_id = (
-            make_reaction_copy_id(reaction_bigg_id, result_db[8])
+            make_reaction_copy_id(reaction_bigg_id, result_db[7])
             if db_count > 1
             else reaction_bigg_id
         )
@@ -359,8 +367,8 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
                 "upper_bound": result_db[5],
                 "objective_coefficient": result_db[6],
                 "genes": gene_db,
-                "copy_number": result_db[8],
-                "subsystem": result_db[9],
+                "copy_number": result_db[7],
+                "subsystem": result_db[8],
                 "exported_reaction_id": exported_reaction_id,
                 "reaction_string": reaction_string,
             }
@@ -370,7 +378,7 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
         "count": len(result_list),
         "bigg_id": reaction_bigg_id,
         "name": model_reaction_db[0][1],
-        "pseudoreaction": model_reaction_db[0][7],
+        "pseudoreaction": False,
         "model_bigg_id": model_bigg_id,
         "metabolites": metabolite_db,
         "database_links": db_link_results,
@@ -382,4 +390,4 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
 
 
 def get_reaction(reaction_bigg_id, session):
-    return session.query(Reaction).filter(Reaction.bigg_id == reaction_bigg_id).first()
+    return session.query(Reaction).filter(Reaction.id == reaction_bigg_id).first()

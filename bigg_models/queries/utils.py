@@ -163,33 +163,37 @@ def build_reaction_string(
     post_reaction_string = ""
     pre_reaction_string = ""
     for met in metabolite_list:
-        if float(met["stoichiometry"]) < 0:
-            if float(met["stoichiometry"]) != -1:
+        if float(met["coefficient"]) < 0:
+            if float(met["coefficient"]) != -1:
                 pre_reaction_string += (
-                    "{}".format(abs(met["stoichiometry"]))
+                    "{}".format(abs(met["coefficient"]))
                     + " "
                     + met["bigg_id"]
-                    + "_"
-                    + met["compartment_bigg_id"]
+                    # + "_"
+                    # + met["compartment_bigg_id"]
                     + " + "
                 )
             else:
                 pre_reaction_string += (
-                    met["bigg_id"] + "_" + met["compartment_bigg_id"] + " + "
+                    # met["bigg_id"] + "_" + met["compartment_bigg_id"] + " + "
+                    met["bigg_id"]
+                    + " + "
                 )
-        if float(met["stoichiometry"]) > 0:
-            if float(met["stoichiometry"]) != 1:
+        if float(met["coefficient"]) > 0:
+            if float(met["coefficient"]) != 1:
                 post_reaction_string += (
-                    "{}".format(abs(met["stoichiometry"]))
+                    "{}".format(abs(met["coefficient"]))
                     + " "
                     + met["bigg_id"]
-                    + "_"
-                    + met["compartment_bigg_id"]
+                    # + "_"
+                    # + met["compartment_bigg_id"]
                     + " + "
                 )
             else:
                 post_reaction_string += (
-                    met["bigg_id"] + "_" + met["compartment_bigg_id"] + " + "
+                    # met["bigg_id"] + "_" + met["compartment_bigg_id"] + " + "
+                    met["bigg_id"]
+                    + " + "
                 )
 
     both_arrow = " &#8652; " if html else " <-> "
