@@ -16,9 +16,9 @@ services:
     networks:
       - biggr-net
     volumes:
-      - ${HOME}/Downloads/data/biggr-genbank/:/genbank
-      - ${HOME}/Downloads/data/biggr-metanetx/:/metanetx
-      - ${HOME}/Downloads/data/biggr-static/:/static
+      - /data/biggr-genbank/:/genbank
+      - /data/biggr-metanetx/:/metanetx
+      - /data/biggr-static/:/static
   biggr-web-dev:
     profiles:
       - dev
@@ -33,19 +33,19 @@ services:
     networks:
       - biggr-net
     volumes:
-      - ${HOME}/Downloads/data/biggr-genbank/:/genbank
-      - ${HOME}/Downloads/data/biggr-metanetx/:/metanetx
-      - ${HOME}/Downloads/data/biggr-static/:/static
+      - /data/biggr-genbank/:/genbank
+      - /data/biggr-metanetx/:/metanetx
+      - /data/biggr-static/:/static
       - ./:/server
   biggr-db:
     container_name: biggr-postgres
     image: postgres
     restart: always
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - ${HOME}/Downloads/data/biggr-postgres:/var/lib/postgresql/data
-      - ./db/load-extensions.sh:/docker-entrypoint-initdb.d/load-extensions.sh
+      - /data/biggr-postgres:/var/lib/postgresql/data
+      - /projects/biggr/biggr_models/db/load-extensions.sh:/docker-entrypoint-initdb.d/load-extensions.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 1s
