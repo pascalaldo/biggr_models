@@ -9,11 +9,51 @@ from cobradb.models import (
     ModelGene,
     ModelReaction,
     Reaction,
+    GenomeRegion
 )
 
 from sqlalchemy import func
 
 
+def get_gene_ids_for_gene_name(name, session):
+    """Get the gene ids for a gene name."""
+    return (
+        session.query(Gene.id)
+        .filter(func.lower(Gene.name) == func.lower(name))
+        .all()
+    )
+
+def get_genes(gene_ids, session):
+    """Get the genes for a list of gene ids."""
+    rows = (
+        session.query(Gene.id, Gene.bigg_id, Gene.name, Gene.locus_tag, Gene.mapped_to_genbank)
+        .filter(Gene.id.in_(list(gene_ids)))
+        .all()
+    )
+
+    return [dict(r._mapping) for r in rows]
+
+def get_genome_region_for_gene_id(ids, session):
+    """Get the genome region for a gene id."""
+    rows = (
+        session.query(
+            GenomeRegion.id,
+            GenomeRegion.chromosome_id,
+            GenomeRegion.bigg_id,
+            GenomeRegion.leftpos,
+            GenomeRegion.rightpos,
+            GenomeRegion.strand,
+            GenomeRegion.type,
+            GenomeRegion.dna_sequence,
+            GenomeRegion.protein_sequence,
+        )
+        .filter(GenomeRegion.id.in_(list(ids)))
+        .all()
+    )
+
+    return [dict(r._mapping) for r in rows]
+
+    
 def get_model_genes_count(model_bigg_id, session):
     """Get the number of gene for the given model."""
     return (
