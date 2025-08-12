@@ -7,6 +7,7 @@ from bigg_models.handlers import (
     metabolite_handlers,
     model_handlers,
     search_handlers,
+    db_interop_handlers,
 )
 from os import path
 from tornado.web import RedirectHandler
@@ -161,6 +162,18 @@ def get_routes():
             r"/multiecoli/?$",
             RedirectHandler,
             {"url": "http://bigg1.ucsd.edu/multiecoli"},
+        ),
+        (
+            r"/interop-query/query-by-gene/?$", 
+            db_interop_handlers.QueryByGeneHandler
+        ),
+        (
+            r"/interop-query/query-by-strain/?$", 
+            db_interop_handlers.QueryByStrainHandler
+        ),
+        (  
+            r"/interop-query/query-by-pair/?$", 
+            db_interop_handlers.QueryByPairHandler
         ),
     ]
     return routes
