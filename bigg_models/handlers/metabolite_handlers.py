@@ -117,4 +117,10 @@ class MetaboliteHandler(utils.BaseHandler):
             compartment_bigg_id,
             model_bigg_id,
         )
+        results["breadcrumbs"] = [
+            ("Home", "/"),
+            (model_bigg_id, f"/models/{model_bigg_id}/"),
+            ("Metabolites", f"/models/{model_bigg_id}/metabolites/"),
+            (comp_met_id, f"/models/{model_bigg_id}/metabolites/{comp_met_id}"),
+        ]
         self.return_result(results)

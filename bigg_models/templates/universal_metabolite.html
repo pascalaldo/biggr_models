@@ -18,18 +18,7 @@
       {% if default_component is not none %}
         <h4>Default Component</h4>
         <p>{{default_component['id']}} ({{default_component['formula']}})</p>
-    <div class="container">
-      <div class="row"><div class="col-12"><h4>Reference</h4></div></div>
-      <div class="row">
-        <div class="col-lg-4"><h5>Identifier</h5>{{reference['id']}}</div>
-        <div class="col-lg-8"><h5>Name</h5>{{reference['name']}}</div>
-      </div>
-      <div class="row">
-        <div class="col-lg-3"><h5>Type</h5>{{reference['type']}}</div>
-        <div class="col-lg-3"><h5>Charge</h5>{{reference['charge']}}</div>
-        <div class="col-lg-6"><h5>Formula</h5>{{reference['formula']}}</div>
-      </div>
-    </div>
+        {% include "reference_metabolite_ui.html" %}
       {% endif %}
 
       <h4>Variants of <i>{{bigg_id}}</i>:</h4>
