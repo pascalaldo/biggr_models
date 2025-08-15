@@ -1,1 +1,8 @@
+$enable-shadows: true;
+$card-box-shadow: 0 8px 12px rgba(13,13,18,.04);
+$card-border-radius: 4px;
+
+$list-group-item-padding-y: 0.3rem;
+$list-group-item-padding-x: 0.6rem;
+
 @import "../../node_modules/bootstrap/scss/bootstrap";

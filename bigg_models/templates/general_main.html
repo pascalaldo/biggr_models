@@ -1,3 +1,19 @@
+{% macro formatted_comp_comp(comp_comp_id) -%}
+{% set spl1 = comp_comp_id.rsplit('_', maxsplit=1) %}
+{% set spl2 = spl1[1].rsplit(':', maxsplit=1) %}
+{% set universal_id = spl1[0] %}
+{% set compartment_id = spl2[0] %}
+{% set charge = spl2[1] %}
+<span class="text-body-emphasis">{{universal_id}}</span><span
+	class="fw-normal text-body-tertiary">_{{compartment_id}}</span><span
+	class="fw-normal fst-italic text-body-tertiary">:{{charge}}</span>
+{%- endmacro%}
+{% macro formatted_reference(reference_id) -%}
+{% set spl1 = reference_id.rsplit(':', maxsplit=1) %}
+{% set namespace = spl1[0] %}
+{% set ref_id = spl1[1] %}
+<span class="fw-normal text-body-secondary">{{namespace}}:</span><span class="text-body-emphasis">{{ref_id}}</span>
+{%- endmacro%}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="auto">
 
@@ -6,7 +22,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="description" content="">
 	<meta name="author" content="Pascal Pieters">
-	<title>BiGGr</title>
+	<title>{% block title %}BiGGr{% endblock %}</title>
 	<script src="/static/js/color-modes.js"></script>
 	<meta name="theme-color" content="#712cf9">
 	{% include "general_style.html" %}

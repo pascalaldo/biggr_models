@@ -106,9 +106,9 @@ $(function() {
                             } else {
                                 this_val = this_row[col];
                                 // add compartment if present
-                                if (col == 'bigg_id' && 'compartment_bigg_id' in this_row)
-                                    this_val = this_val + '_' + this_row['compartment_bigg_id'];
-                                // make links
+                                //if (col == 'bigg_id' && 'compartment_bigg_id' in this_row)
+                                //    this_val = this_val + '_' + this_row['compartment_bigg_id'];
+                                //// make links
                                 if ('link_urls' in this_row && col in this_row['link_urls'])
                                     this_val = ('<a href="' + this_row['link_urls'][col] + '">' +
                                                 this_val + '</a>');

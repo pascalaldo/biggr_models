@@ -2,7 +2,9 @@ from bigg_models.queries import escher_map_queries, utils, id_queries
 from cobradb.models import (
     Compartment,
     CompartmentalizedComponent,
+    UniversalCompartmentalizedComponent,
     Component,
+    UniversalComponent,
     DeprecatedID,
     Gene,
     GeneReactionMatrix,
@@ -11,6 +13,8 @@ from cobradb.models import (
     ModelReaction,
     Reaction,
     ReactionMatrix,
+    UniversalReaction,
+    UniversalReactionMatrix,
 )
 from cobradb.util import make_reaction_copy_id
 from sqlalchemy import func
@@ -65,8 +69,8 @@ def get_universal_reactions(
     """
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Reaction.id),
-        "name": func.lower(Reaction.name),
+        "bigg_id": func.lower(UniversalReaction.id),
+        "name": func.lower(UniversalReaction.name),
     }
 
     if sort_column is None:
@@ -79,7 +83,7 @@ def get_universal_reactions(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(Reaction.id, Reaction.name)
+    query = session.query(UniversalReaction.id, UniversalReaction.name)
 
     # order and limit
     query = utils._apply_order_limit_offset(
@@ -136,8 +140,8 @@ def get_model_reactions(
     """
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Reaction.id),
-        "name": func.lower(Reaction.name),
+        "bigg_id": func.lower(UniversalReaction.id),
+        "name": func.lower(UniversalReaction.name),
         "model_bigg_id": func.lower(Model.id),
         "organism": func.lower(Model.organism),
     }
@@ -152,7 +156,10 @@ def get_model_reactions(
             sort_column_object = next(iter(columns.values()))
     # set up the query
     query = (
-        session.query(Reaction.id, Reaction.name, Model.id, Model.organism)
+        session.query(
+            UniversalReaction.id, UniversalReaction.name, Model.id, Model.organism
+        )
+        .join(Reaction, Reaction.universal_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
         .filter(Model.id == model_bigg_id)
@@ -172,28 +179,27 @@ def get_model_reactions(
 def _get_metabolite_list_for_reaction(reaction_id, session):
     result_db = (
         session.query(
-            Component.id,
-            CompartmentalizedComponent.id,
-            ReactionMatrix.coefficient,
-            Compartment.id,
-            Component.name,
-        )
-        # Metabolite -> ReactionMatrix
-        .join(
-            CompartmentalizedComponent,
-            CompartmentalizedComponent.component_id == Component.id,
+            UniversalComponent.id,
+            UniversalCompartmentalizedComponent.id,
+            UniversalReactionMatrix.coefficient,
+            UniversalCompartmentalizedComponent.compartment_id,
+            UniversalComponent.name,
         )
         .join(
-            ReactionMatrix,
-            ReactionMatrix.compartmentalized_component_id
-            == CompartmentalizedComponent.id,
+            UniversalCompartmentalizedComponent,
+            UniversalCompartmentalizedComponent.universal_component_id
+            == UniversalComponent.id,
         )
-        # -> Reaction> Model
-        .join(Reaction, Reaction.id == ReactionMatrix.reaction_id)
-        # -> Compartment
-        .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
-        # filter
-        .filter(Reaction.id == reaction_id)
+        .join(
+            UniversalReactionMatrix,
+            UniversalReactionMatrix.universal_compartmentalized_component_id
+            == UniversalCompartmentalizedComponent.id,
+        )
+        .join(
+            UniversalReaction,
+            UniversalReaction.id == UniversalReactionMatrix.universal_id,
+        )
+        .filter(UniversalReaction.id == reaction_id)
         .all()
     )
     return [
@@ -210,21 +216,24 @@ def _get_metabolite_list_for_reaction(reaction_id, session):
 
 def get_reaction_and_models(reaction_bigg_id, session):
     reaction_db = (
-        session.query(Reaction).filter(Reaction.id == reaction_bigg_id).first()
+        session.query(UniversalReaction)
+        .filter(UniversalReaction.id == reaction_bigg_id)
+        .first()
     )
     if not reaction_db:
         raise utils.NotFoundError("No Reaction found with BiGG ID " + reaction_bigg_id)
 
     result_db = (
         session.query(
-            Reaction.id,
-            Reaction.name,
+            UniversalReaction.id,
+            UniversalReaction.name,
             Model.id,
             Model.organism,
         )
+        .join(Reaction, Reaction.universal_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
-        .filter(Reaction.id == reaction_bigg_id)
+        .filter(UniversalReaction.id == reaction_bigg_id)
         .distinct()
         .all()
     )
@@ -245,9 +254,11 @@ def get_reaction_and_models(reaction_bigg_id, session):
     #             "No Reaction found with BiGG ID " + reaction_bigg_id
     #         )
 
-    db_link_results = id_queries._get_db_links_for_reaction(reaction_bigg_id, session)
-    old_id_results = id_queries._get_old_ids_for_reaction(reaction_bigg_id, session)
-
+    # db_link_results = id_queries._get_db_links_for_reaction(reaction_bigg_id, session)
+    # old_id_results = id_queries._get_old_ids_for_reaction(reaction_bigg_id, session)
+    #
+    db_link_results = {}
+    old_id_results = []
     # metabolites
     metabolite_db = _get_metabolite_list_for_reaction(reaction_bigg_id, session)
 
@@ -306,8 +317,8 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     """
     model_reaction_db = (
         session.query(
-            Reaction.id,
-            Reaction.name,
+            UniversalReaction.id,
+            UniversalReaction.name,
             ModelReaction.id,
             ModelReaction.gene_reaction_rule,
             ModelReaction.lower_bound,
@@ -316,10 +327,11 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
             ModelReaction.copy_number,
             ModelReaction.subsystem,
         )
+        .join(Reaction, Reaction.universal_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
         .filter(Model.id == model_bigg_id)
-        .filter(Reaction.id == reaction_bigg_id)
+        .filter(UniversalReaction.id == reaction_bigg_id)
     )
     db_count = model_reaction_db.count()
     if db_count == 0:
@@ -335,19 +347,23 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     model_result = [x for x in model_db if x != model_bigg_id]
 
     # database_links
-    db_link_results = id_queries._get_db_links_for_model_reaction(
-        reaction_bigg_id, session
-    )
-
-    # old identifiers
-    old_id_results = id_queries._get_old_ids_for_model_reaction(
-        model_bigg_id, reaction_bigg_id, session
-    )
-
-    # escher maps
-    r_escher_maps = escher_map_queries.get_escher_maps_for_reaction(
-        reaction_bigg_id, model_bigg_id, session
-    )
+    # db_link_results = id_queries._get_db_links_for_model_reaction(
+    #     reaction_bigg_id, session
+    # )
+    #
+    # # old identifiers
+    # old_id_results = id_queries._get_old_ids_for_model_reaction(
+    #     model_bigg_id, reaction_bigg_id, session
+    # )
+    #
+    # # escher maps
+    # r_escher_maps = escher_map_queries.get_escher_maps_for_reaction(
+    #     reaction_bigg_id, model_bigg_id, session
+    # )
+    #
+    db_link_results = {}
+    old_id_results = []
+    r_escher_maps = []
 
     result_list = []
     for result_db in model_reaction_db:

@@ -2,38 +2,40 @@
 {% block title %}BiGG Metabolite {{bigg_id}}_{{compartment_bigg_id}} in {{model_bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
-  <div class="col-md-6">
-    <div class="card mb-3 border-secondary bg-body-tertiary">
+  <div class="col-12">
+    <div class="card mb-3 bg-body-tertiary">
       <div class="row g-0">
-        <div class="col-md-4">
+        <div class="col-md-2">
           <img src="/static/assets/molecule.svg" class="img-fluid p-4 w-100 h-100" alt="Small Molecule">
         </div>
-        <div class="col-md-8">
+        <div class="col-md-4">
           <div class="card-body">
-            <h2 class="card-title">{{bigg_id}}</h2>
+            <h5 class="card-title">{{formatted_comp_comp(bigg_id)}}</h5>
             {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
           </div>
           <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
-            <li class="list-group-item border-secondary bg-body-tertiary"><i>Model:</i> {{model_bigg_id}}                                   </li>
-            <li class="list-group-item border-secondary bg-body-tertiary"><i>Compartment:</i> {{compartment_bigg_id}} - {{compartment_name}}</li>
-            <li class="list-group-item border-secondary bg-body-tertiary"><i>Charge:</i> {{charge}}</li>
-            <li class="list-group-item border-secondary bg-body-tertiary"><i>Formula:</i> {{formula}}</li>
+            <li class="list-group-item bg-body-tertiary"><i>Model:</i> {{model_bigg_id}}                                   </li>
+            <li class="list-group-item bg-body-tertiary"><i>Compartment:</i> {{compartment_bigg_id}} - {{compartment_name}}</li>
+            <li class="list-group-item bg-body-tertiary"><i>Charge:</i> {{charge}}</li>
+            <li class="list-group-item bg-body-tertiary"><i>Formula:</i> {{formula}}</li>
           </ul>
+        </div>
+        <div class="col-md-6">
+          {% include "reference_metabolite_ui.html" %}
         </div>
       </div>
     </div>
   </div>
-  {% include "reference_metabolite_ui.html" %}
   <div class="col-md-8">
     <div class="card mb-3">
       <div class="card-header">
         <h5 class="mb-0">Reactions in model</h5>
       </div>
       <div class="card-body p-1">
-        <table class="table">
+        <table class="table table-hover">
           <thead>
             <tr>
-              <th class="fw-normal fst-italic">&nbsp;</th>
+              <th class="fw-normal fst-italic" style="width: 1.2em;">&nbsp;</th>
               <th class="fw-normal fst-italic">BiGG ID</th>
               <th class="fw-normal fst-italic">Name</th>
             </tr>
@@ -41,13 +43,12 @@
           <tbody>
             {% for reaction in reactions %}
             <tr>
-              <td><img src="/static/assets/reaction.svg" style="height: 1em;" /></td>
-              <td>
-                <a href="/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}">
-                  {{reaction['bigg_id']}}
-                </a>
-              </td>
-              <td>{{reaction['name']}}</td>
+              {% set link_start -%}
+                <a href="/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}" class="d-block">
+              {%- endset %}
+                <td>{{link_start}}<img src="/static/assets/reaction.svg" style="height: 1em;" /></a></td>
+              <td>{{link_start}}{{reaction['bigg_id']}}</a></td>
+              <td>{{link_start}}{{reaction['name']}}</a></td>
             </tr>
             {% endfor %}
           </tbody>

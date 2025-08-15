@@ -109,12 +109,8 @@
                 {% for values in results[type] %}
                   <tr class ='rowlink'>
                     <td>
-                      {% if type == 'metabolites' and 'compartment_bigg_id' not in values %}
+                      {% if type == 'metabolites' %}
                         <a href="/models/universal/{{type}}/{{values['bigg_id']}}">{{values['bigg_id']}}</a>
-                      {% elif type == 'metabolites' %}
-                        <a href="/models/{{values['model_bigg_id']}}/{{type}}/{{values['bigg_id']}}_{{values['compartment_bigg_id']}}">
-                          {{values['bigg_id']}}_{{values['compartment_bigg_id']}}
-                        </a>
                       {% else %}
                         <a href="/models/{{values['model_bigg_id']}}/{{type}}/{{values['bigg_id']}}">{{values['bigg_id']}}</a>
                       {% endif %}

@@ -58,6 +58,12 @@ class UniversalMetaboliteHandler(utils.BaseHandler):
         except query_utils.RedirectError as e:
             self.redirect(re.sub(self.request.path, "%s$" % met_bigg_id, e.args[0]))
         else:
+            result["breadcrumbs"] = [
+                ("Home", "/"),
+                ("Universal", None),
+                ("Metabolites", f"/models/universal/metabolites/"),
+                (met_bigg_id, f"/models/universal/metabolites/{met_bigg_id}"),
+            ]
             self.return_result(result)
 
 
@@ -75,7 +81,7 @@ class MetaboliteListHandler(utils.PageableHandler):
                 dict(
                     x,
                     link_urls={
-                        "bigg_id": "/models/{model_bigg_id}/metabolites/{bigg_id}_{compartment_bigg_id}".format(
+                        "bigg_id": "/models/{model_bigg_id}/metabolites/{bigg_id}".format(
                             **x
                         )
                     },
@@ -110,11 +116,9 @@ class MetaboliteHandler(utils.BaseHandler):
     template = utils.env.get_template("metabolite.html")
 
     def get(self, model_bigg_id, comp_met_id):
-        met_bigg_id, compartment_bigg_id = split_compartment(comp_met_id)
         results = utils.safe_query(
             metabolite_queries.get_model_comp_metabolite,
-            met_bigg_id,
-            compartment_bigg_id,
+            comp_met_id,
             model_bigg_id,
         )
         results["breadcrumbs"] = [

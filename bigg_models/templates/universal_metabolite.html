@@ -1,102 +1,78 @@
-{% extends "parent_display.html" %}
+{% extends "general_main.html" %}
 {% block title %}BiGG Metabolite {{bigg_id}}{% endblock %}
-{% block description %}Universal BiGG metabolite {{bigg_id}}. {{name}}.{% endblock %}
-{% block content %}
+{% block body %}
 
-  <div class="row">
-    <div class="col-lg-8">
-      <h1>
-        <span class="light">Universal metabolite: </span>
-        <span>{{bigg_id}}</span>
-      </h1>
+<div class="row">
 
-      <hr/>
-
-      <h4>Descriptive name:</h4>
-      <p>{% if name is not none %}{{name}}{% endif %}</p>
-    
-      {% if default_component is not none %}
-        <h4>Default Component</h4>
-        <p>{{default_component['id']}} ({{default_component['formula']}})</p>
-        {% include "reference_metabolite_ui.html" %}
-      {% endif %}
-
-      <h4>Variants of <i>{{bigg_id}}</i>:</h4>
-      <div class="panel panel-default">
-        <div class="table table-hover">
-          <div class="table-header">
-            <div class="table-row">
-              <div class="table-cell" style="width: 25%">BiGG ID</div>
-              <div class="table-cell" style="width: 10%">Charge</div>
-              <div class="table-cell" style="width: 40%">Name</div>
-              <div class="table-cell" style="width: 25%">Reference ID</div>
-            </div>
-          </div>
-          <div class="table-body">
-            {% for c in components %}
-            <a href="#">
-            <div class="table-row" {% if c['default'] %}style="background-color: #f5f5f5;"{% endif %}>
-                <div class="table-cell" style="width: 25%">
-                  {{c['id']}}
-                </div>
-                <div class="table-cell" style="width: 10%">
-                  {{c['charge']}}
-                </div>
-                <div class="table-cell" style="width: 40%">
-                  {% if c['name'] is none %}-{% else %}{{c['name']}}{% endif %}
-                </div>
-                <div class="table-cell" style="width: 25%">
-                  {% for r in c['reference_id'] %}
-                    {{r}} 
-                  {% endfor %}
-                </div>
-              </div>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-body">
+            <h5 class="card-title">Universal: {{bigg_id}}</h5>
+            {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
-
-
-      <h4><i>{{bigg_id}}</i> in BiGG models:</h4>
-      <div class="panel panel-default">
-        <div class="table table-hover">
-          <div class="table-header">
-            <div class="table-row">
-              <div class="table-cell" style="width: 50%">Organism</div>
-              <div class="table-cell" style="width: 25%">Model</div>
-              <div class="table-cell" style="width: 25%">Compartmentalized BiGG ID</div>
-            </div>
-          </div>
-          <div class="table-body">
-            {% for c in compartments_in_models %}
-            <a href="/models/{{c['model_bigg_id']}}/metabolites/{{bigg_id}}_{{c['bigg_id']}}">
-              <div class="table-row">
-                <div class="table-cell" style="width: 50%">
-                  {% if c['organism'] is none %}-{% else %}{{c['organism']}}{% endif %}
-                </div>
-                <div class="table-cell" style="width: 25%">
-                  {{c['model_bigg_id']}}
-                </div>
-                <div class="table-cell" style="width: 25%">
-                  {{bigg_id}}_{{c['bigg_id']}}
-                </div>
-              </div>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      {% include 'comments.html' %}
-
     </div>
-
-    <!-- Side bar -->
-    <div class="col-lg-4">
-      {% include 'database_links.html' %}
-      {% include 'old_identifiers.html' %}
-    </div>
-
   </div>
+
+
+  <div class="col-12">
+    <div class="card mb-3 bg-body-tertiary">
+      <div class="row g-0">
+        <div class="col-md-2">
+          <img src="/static/assets/molecule.svg" class="img-fluid p-4 w-100 h-100" alt="Small Molecule">
+        </div>
+        <div class="col-md-4">
+          <div class="card-body">
+            <h5 class="card-title">{{default_component['id']}}</h5>
+            {% if default_component['name'] is not none %}<p class="card-text">{{default_component['name']}}</p>{% endif %}
+          </div>
+          <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
+            <li class="list-group-item bg-body-tertiary"><i>Charge:</i> {{default_component['charge']}}</li>
+            <li class="list-group-item bg-body-tertiary"><i>Formula:</i> {{default_component['formula']}}</li>
+          </ul>
+        </div>
+        <div class="col-md-6">
+          {% include "reference_metabolite_ui.html" %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="col-md-8">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">In BiGGr Models</h5>
+      </div>
+      <div class="card-body p-1">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="fw-normal fst-italic">Organism</th>
+              <th class="fw-normal fst-italic">Model</th>
+              <th class="fw-normal fst-italic">BiGG ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in compartments_in_models %}
+            <tr>
+              <td>
+                {% if c['organism'] is none %}-{% else %}{{c['organism']}}{% endif %}
+              </td>
+              <td>
+                {{c['model_bigg_id']}}
+              </td>
+              <td>
+                <a href="/models/{{c['model_bigg_id']}}/metabolites/{{c['bigg_id']}}">
+                  {{c['bigg_id']}}
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
+
