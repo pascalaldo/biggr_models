@@ -26,3 +26,6 @@ flycheck_*
 bigg.code-workspace
 .env
 *.ini
+node_modules/
+package-lock.json
+package.json

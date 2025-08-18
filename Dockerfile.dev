@@ -23,6 +23,4 @@ WORKDIR /server
 
 RUN apt-get install -y nodejs npm
 RUN npm install -g sass
-RUN npm install bootstrap@5.3.7
-
 CMD ["bin/server-entrypoint-dev.sh"]

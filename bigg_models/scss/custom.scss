@@ -5,4 +5,7 @@ $card-border-radius: 4px;
 $list-group-item-padding-y: 0.3rem;
 $list-group-item-padding-x: 0.6rem;
 
+.table-no-bottom-border > tbody > tr:last-of-type > td {
+  border-bottom: none;
+}
 @import "../../node_modules/bootstrap/scss/bootstrap";

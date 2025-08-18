@@ -4,14 +4,15 @@ mkdir -p /static/models/
 mkdir -p /static/multistrain/
 mkdir -p /static/namespace/
 
-BIGG_MODELS_DIR=`python -c "import bigg_models; print(bigg_models.__file__)" | xargs dirname`
-ln -s /static/models $BIGG_MODELS_DIR/static/models
-ln -s /static/multistrain $BIGG_MODELS_DIR/static/multistrain
-ln -s /static/namespace $BIGG_MODELS_DIR/static/namespace
+ln -s /static/models bigg_models/static/models
+ln -s /static/multistrain bigg_models/static/multistrain
+ln -s /static/namespace bigg_models/static/namespace
 
 bin/run
 
-sass $BIGG_MODELS_DIR/scss/custom.scss $BIGG_MODELS_DIR/static/css/custom.css
+npm install bootstrap@5.3.7
+
+sass --quiet --update --watch bigg_models/scss/custom.scss bigg_models/static/css/custom.css &
 
 cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js bigg_models/static/js/
 

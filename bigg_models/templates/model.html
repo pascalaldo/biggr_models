@@ -1,131 +1,73 @@
-{% extends "parent_display.html" %}
+{% extends "general_main.html" %}
 {% block title %}BiGG Model {{model_bigg_id}}{% endblock %}
-{% block description %}The BiGG Model {{model_bigg_id}} of {{organism}}.{% endblock %}
-{% block content %}
+{% block body %}
 
-  <div class="row">
-    <div class="col-lg-8">
-      <h1><span class="light">Model: </span>{{model_bigg_id}}</h1>
-      <hr>
-      {% if organism is not none %}
-        <h4>Organism: </h4>
-        <p>{{organism}}</p>
-      {% endif %}
-
-      <h4>Genome:</h4>
-      <p>
-        {% if genome_name is none %}
-          Model is not mapped to a genome annotation.
-        {% else %}
-          <a href="/genomes/{{genome_ref_string}}">{{genome_name}}</a>
-        {% endif %}
-      </p>
-
-      <h4>Model metrics: </h4>
-      <div class="panel panel-default">
-        <div class="table table-hover">
-          <div class="table-header">
-            <div class="table-row">
-              <div class="table-cell" style="width: 50%">Component</div>
-              <div class="table-cell" style="width: 50%">Count</div>
-            </div>
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-3 bg-body-tertiary">
+      <div class="row g-0">
+        <div class="col-md-4">
+          <img src="/static/assets/molecule.svg" class="img-fluid p-4 w-100 h-100" alt="Model">
+        </div>
+        <div class="col-md-8">
+          <div class="card-body">
+            <h5 class="card-title">{{model_bigg_id}}</h5>
+            <p class="card-text">{{organism}}</p>
           </div>
-          <div class="table-body">
-            <a href="/models/{{model_bigg_id}}/metabolites">
-              <div class="table-row">
-                <div class="table-cell" style="width: 50%">Metabolites</div>
-                <div class="table-cell" style="width: 50%">{{metabolite_count}}</div>
-              </div>
-            </a>
-            <a href="/models/{{model_bigg_id}}/reactions">
-              <div class="table-row">
-                <div class="table-cell" style="width: 50%">Reactions</div>
-                <div class="table-cell" style="width: 50%">{{reaction_count}}</div>
-              </div>
-            </a>
-            <a href="/models/{{model_bigg_id}}/genes">
-              <div class="table-row">
-                <div class="table-cell" style="width: 50%">Genes</div>
-                <div class="table-cell" style="width: 50%">{{gene_count}}</div>
-              </div>
-            </a>
-          </div>
+          <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
+            <li class="list-group-item bg-body-tertiary">
+              {% if genome_name is none %}
+              Model is not mapped to a genome.
+              {% else %}
+              <i>Genome:</i> <a href="/genomes/{{genome_ref_string}}" class="stretched-link">{{genome_name}}</a>
+              {% endif %}
+            </li>
+            {% if reference_type == 'pmid' %}
+            {%- set pmid_link -%}https://www.ncbi.nlm.nih.gov/pubmed/{{reference_id}}{%- endset -%}
+            <li class="list-group-item bg-body-tertiary">
+              <i>Publication PMID:</i> {{external_link(reference_id, pmid_link)}}
+            </li>
+            {% elif reference_type == 'doi' %}
+            {%- set doi_link -%}https://dx.doi.org/{{reference_id}}{%- endset -%}
+            <li class="list-group-item bg-body-tertiary">
+              <i>Publication DOI:</i> {{external_link(reference_id, doi_link)}}
+            </li>
+            {% endif %}
+          </ul>
         </div>
       </div>
-
-      <h4 style="margin-top: 35px">Download COBRA model from the BiGG Database:</h4>
-      <div class="downloads">
-        {% include 'sbml_link.html' %}
-        <br/>
-        {% include 'json_link.html' %}
-        <br/>
-        {% include 'mat_link.html' %}
-        <br/>
-
-        <div class="last-update">
-          Downloads last updated {{last_updated}} &nbsp;&nbsp; | &nbsp;&nbsp;
-          <a href="/license#license">BiGG License</a>
-        </div>
-      </div>
-
-      {% if model_bigg_id in ['iCN718', 'iYL1228', 'STM_v1_0'] %}
-      <h4 style="margin-top: 35px">Download multi-strain models for {{model_bigg_id}}:</h4>
-      <div class="downloads">
-        <p>
-          Download multi-strain models generated from {{model_bigg_id}}. This COBRA
-          model was used to generate draft models for specific related
-          strains of interest, as described by
-          {{'<a href="http://www.ncbi.nlm.nih.gov/pubmed/29692801" target="_blank">Norsigian et al. (2018) <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>' if model_bigg_id == 'iCN718' else
-          '<a href="http://www.ncbi.nlm.nih.gov/pubmed/30218022" target="_blank">Seif et al. (2018) <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>' if model_bigg_id == 'STM_v1_0' else
-          '<a href="http://www.ncbi.nlm.nih.gov/pubmed/31179245" target="_blank">Norsigian et al. (2019) <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a>'}}. Download the associated
-          {{'74' if model_bigg_id == 'iCN718' else '415' if model_bigg_id == 'STM_v1_0' else '22'}}
-          models here:
-        </p>
-        <a href="/static/multistrain/{{model_bigg_id}}_multistrain.zip"
-          data-toggle="tooltip"
-          data-trigger="hover"
-          data-title="{{multistrain_size}}"
-        >
-          {{model_bigg_id}}_multistrain.zip
-        </a>
-      </div>
-      {% endif %}
-
-      <br/>
-
-      {% if reference_type == 'pmid' %}
-        Publication PMID:&nbsp;
-        <a href="http://www.ncbi.nlm.nih.gov/pubmed/{{reference_id}}" target="_blank">
-          {{reference_id}}
-          <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span>
-        </a>
-      {% elif reference_type == 'doi' %}
-        Publication DOI:&nbsp;
-        <a href="http://dx.doi.org/{{reference_id}}" target="_blank">
-          {{reference_id}}
-          <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span>
-        </a>
-      {% endif %}
-
-      {% if escher_maps|count > 0 %}
-        {% include 'escher_div.html' %}
-
-        <h4 style="margin-top: 35px">Download Escher maps as JSON</h4>
-        <ul>
-          {% for map_name in escher_maps|map(attribute='map_name') %}
-          <li><a href="/escher_map_json/{{map_name}}" download="{{map_name}}.json">{{map_name}}.json</a></li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-
-      {% include 'comments.html' %}
-
     </div>
-
   </div>
 
-  {% if escher_maps|count > 0 %}
-    {% set escher_script_type = 'model' %}
-    {% include 'escher_script.html' %}
-  {% endif %}
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="card-title">Model Metrics</h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush rounded-3">
+          <li class="list-group-item">
+              <i>Metabolites:</i> <a href="/models/{{model_bigg_id}}/metabolites" class="stretched-link">{{metabolite_count}}</a>
+          </li>
+          <li class="list-group-item">
+              <i>Reactions:</i> <a href="/models/{{model_bigg_id}}/reactions" class="stretched-link">{{reaction_count}}</a>
+          </li>
+          <li class="list-group-item">
+              <i>Genes:</i> <a href="/models/{{model_bigg_id}}/genes" class="stretched-link">{{gene_count}}</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="card-title">Download</h5>
+      </div>
+      <div class="card-body">
+        Not implemented yet.
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

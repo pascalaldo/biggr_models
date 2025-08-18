@@ -61,8 +61,8 @@ class UniversalMetaboliteHandler(utils.BaseHandler):
             result["breadcrumbs"] = [
                 ("Home", "/"),
                 ("Universal", None),
-                ("Metabolites", f"/models/universal/metabolites/"),
-                (met_bigg_id, f"/models/universal/metabolites/{met_bigg_id}"),
+                ("Metabolites", f"/universal/metabolites/"),
+                (met_bigg_id, f"/universal/metabolites/{met_bigg_id}"),
             ]
             self.return_result(result)
 

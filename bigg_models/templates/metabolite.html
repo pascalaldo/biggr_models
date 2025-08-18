@@ -1,5 +1,5 @@
 {% extends "general_main.html" %}
-{% block title %}BiGG Metabolite {{bigg_id}}_{{compartment_bigg_id}} in {{model_bigg_id}}{% endblock %}
+{% block title %}BiGG Metabolite {{bigg_id}} in {{model_bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
   <div class="col-12">
@@ -31,8 +31,8 @@
       <div class="card-header">
         <h5 class="mb-0">Reactions in model</h5>
       </div>
-      <div class="card-body p-1">
-        <table class="table table-hover">
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 table-no-bottom-border">
           <thead>
             <tr>
               <th class="fw-normal fst-italic" style="width: 1.2em;">&nbsp;</th>
@@ -43,12 +43,10 @@
           <tbody>
             {% for reaction in reactions %}
             <tr>
-              {% set link_start -%}
-                <a href="/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}" class="d-block">
-              {%- endset %}
-                <td>{{link_start}}<img src="/static/assets/reaction.svg" style="height: 1em;" /></a></td>
-              <td>{{link_start}}{{reaction['bigg_id']}}</a></td>
-              <td>{{link_start}}{{reaction['name']}}</a></td>
+              {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
+              <td><a href="{{link}}" class="d-block"><img src="/static/assets/reaction.svg" style="height: 1em;" /></a></td>
+              <td><a href="{{link}}" class="d-block">{{reaction['bigg_id']}}</a></td>
+              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
             </tr>
             {% endfor %}
           </tbody>

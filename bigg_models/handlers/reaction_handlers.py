@@ -34,7 +34,7 @@ class UniversalReactionListHandler(utils.PageableHandler):
 
 
 class UniversalReactionListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("listview.html")
 
     def get(self):
         dictionary = {
@@ -59,6 +59,16 @@ class UniversalReactionHandler(utils.BaseHandler):
                 re.sub(self.request.path, "%s$" % reaction_bigg_id, e.args[0])
             )
         else:
+            result["breadcrumbs"] = [
+                ("Home", "/"),
+                ("Universal", None),
+                ("Reactions", f"/universal/reactions/"),
+                (
+                    reaction_bigg_id,
+                    f"/universal/metabolites/{reaction_bigg_id}",
+                ),
+            ]
+
             self.return_result(result)
 
 
@@ -112,6 +122,17 @@ class ReactionHandler(utils.BaseHandler):
         results = utils.safe_query(
             reaction_queries.get_model_reaction, model_bigg_id, reaction_bigg_id
         )
+
+        results["breadcrumbs"] = [
+            ("Home", "/"),
+            (model_bigg_id, f"/models/{model_bigg_id}/"),
+            ("Reactions", f"/models/{model_bigg_id}/reactions/"),
+            (
+                reaction_bigg_id,
+                f"/models/{model_bigg_id}/metabolites/{reaction_bigg_id}",
+            ),
+        ]
+
         self.return_result(results)
 
 

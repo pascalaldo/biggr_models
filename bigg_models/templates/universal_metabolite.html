@@ -22,7 +22,7 @@
         </div>
         <div class="col-md-4">
           <div class="card-body">
-            <h5 class="card-title">{{default_component['id']}}</h5>
+            <h5 class="card-title">{{formatted_comp(default_component['id'])}}</h5>
             {% if default_component['name'] is not none %}<p class="card-text">{{default_component['name']}}</p>{% endif %}
           </div>
           <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
@@ -43,8 +43,8 @@
       <div class="card-header">
         <h5 class="mb-0">In BiGGr Models</h5>
       </div>
-      <div class="card-body p-1">
-        <table class="table">
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 table-no-bottom-border">
           <thead>
             <tr>
               <th class="fw-normal fst-italic">Organism</th>
@@ -54,16 +54,19 @@
           </thead>
           <tbody>
             {% for c in compartments_in_models %}
+            {%- set link -%}/models/{{c['model_bigg_id']}}/metabolites/{{c['bigg_id']}}{%- endset -%}
             <tr>
               <td>
                 {% if c['organism'] is none %}-{% else %}{{c['organism']}}{% endif %}
               </td>
               <td>
-                {{c['model_bigg_id']}}
+                <a href="{{link}}" class="d-block text-reset text-decoration-none">
+                  {{c['model_bigg_id']}}
+                </a>
               </td>
               <td>
-                <a href="/models/{{c['model_bigg_id']}}/metabolites/{{c['bigg_id']}}">
-                  {{c['bigg_id']}}
+                <a href="{{link}}" class="d-block">
+                  {{formatted_comp_comp(c['bigg_id'])}}
                 </a>
               </td>
             </tr>

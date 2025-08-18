@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg width="24" height="24" viewBox="0 0 6.35 6.35" version="1.1" id="svg1" inkscape:version="1.4 (e7c3feb1, 2024-10-09)" sodipodi:docname="reaction.svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview id="namedview1" pagecolor="#ffffff" bordercolor="#666666" borderopacity="1.0" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:document-units="mm" inkscape:zoom="10.24" inkscape:cx="7.5195312" inkscape:cy="26.464844" inkscape:window-width="1904" inkscape:window-height="960" inkscape:window-x="0" inkscape:window-y="25" inkscape:window-maximized="0" inkscape:current-layer="g1" />
+  <defs id="defs1" />
+  <g inkscape:label="Layer 1" inkscape:groupmode="layer" id="layer1">
+    <g id="g1" transform="matrix(1.6874335,0,0,1.6874335,-2.342075,-2.5369146)">
+      <path style="fill:none;stroke:#0082ff;stroke-width:0.396875;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1" d="M 3.9817766,2.4091461 4.6116048,3.1067779 H 1.4809138" id="path2" sodipodi:nodetypes="ccc" />
+      <path style="fill:none;stroke:#0082ff;stroke-width:0.396875;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1" d="M 2.5572367,4.6131414 1.9274085,3.9155096 h 3.130691" id="path1" sodipodi:nodetypes="ccc" />
+    </g>
+  </g>
+</svg>

@@ -4,9 +4,20 @@
 {% set universal_id = spl1[0] %}
 {% set compartment_id = spl2[0] %}
 {% set charge = spl2[1] %}
-<span class="text-body-emphasis">{{universal_id}}</span><span
-	class="fw-normal text-body-tertiary">_{{compartment_id}}</span><span
-	class="fw-normal fst-italic text-body-tertiary">:{{charge}}</span>
+<span class="fw-semibold">{{universal_id}}</span><span class="fw-normal opacity-75">_{{compartment_id}}</span><span
+	class="fw-normal fst-italic opacity-75 small">:{{charge}}</span>
+{%- endmacro%}
+{% macro formatted_universal_comp_comp(comp_comp_id) -%}
+{% set spl1 = comp_comp_id.rsplit('_', maxsplit=1) %}
+{% set universal_id = spl1[0] %}
+{% set compartment_id = spl1[1] %}
+<span class="fw-semibold">{{universal_id}}</span><span class="fw-normal opacity-75">_{{compartment_id}}</span>
+{%- endmacro%}
+{% macro formatted_comp(comp_id) -%}
+{% set spl1 = comp_id.rsplit(':', maxsplit=1) %}
+{% set universal_id = spl1[0] %}
+{% set charge = spl1[1] %}
+<span class="fw-semibold">{{universal_id}}</span><span class="fw-normal fst-italic opacity-75">:{{charge}}</span>
 {%- endmacro%}
 {% macro formatted_reference(reference_id) -%}
 {% set spl1 = reference_id.rsplit(':', maxsplit=1) %}
@@ -14,6 +25,14 @@
 {% set ref_id = spl1[1] %}
 <span class="fw-normal text-body-secondary">{{namespace}}:</span><span class="text-body-emphasis">{{ref_id}}</span>
 {%- endmacro%}
+{% macro external_link(text, href, classes="") -%}
+<a class="icon-link icon-link-hover {{classes}}" href="{{href}}" target="_blank">{{text}}
+	<svg xmlns="http://www.w3.org/2000/svg" class="bi" viewBox="0 0 16 16" aria-hidden="true">
+		<path
+			d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z" />
+	</svg>
+</a>
+{%- endmacro %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="auto">
 
@@ -26,6 +45,7 @@
 	<script src="/static/js/color-modes.js"></script>
 	<meta name="theme-color" content="#712cf9">
 	{% include "general_style.html" %}
+	{% block head %}{% endblock %}
 </head>
 
 <body>

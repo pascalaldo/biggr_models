@@ -4,6 +4,7 @@ from cobradb.models import (
     CompartmentalizedComponent,
     UniversalCompartmentalizedComponent,
     Component,
+    ComponentReferenceMapping,
     UniversalComponent,
     DeprecatedID,
     Gene,
@@ -13,11 +14,14 @@ from cobradb.models import (
     ModelReaction,
     Reaction,
     ReactionMatrix,
+    ReferenceReaction,
+    ReferenceReactionParticipant,
+    ReferenceCompound,
     UniversalReaction,
     UniversalReactionMatrix,
 )
 from cobradb.util import make_reaction_copy_id
-from sqlalchemy import func
+from sqlalchemy import func, asc
 
 
 # def reaction_with_hash(hash, session):
@@ -176,7 +180,7 @@ def get_model_reactions(
     ]
 
 
-def _get_metabolite_list_for_reaction(reaction_id, session):
+def _get_metabolite_and_reference_list_for_universal_reaction(reaction_id, session):
     result_db = (
         session.query(
             UniversalComponent.id,
@@ -184,6 +188,9 @@ def _get_metabolite_list_for_reaction(reaction_id, session):
             UniversalReactionMatrix.coefficient,
             UniversalCompartmentalizedComponent.compartment_id,
             UniversalComponent.name,
+            ReferenceCompound,
+            ComponentReferenceMapping,
+            ReferenceReactionParticipant,
         )
         .join(
             UniversalCompartmentalizedComponent,
@@ -199,7 +206,24 @@ def _get_metabolite_list_for_reaction(reaction_id, session):
             UniversalReaction,
             UniversalReaction.id == UniversalReactionMatrix.universal_id,
         )
+        .join(
+            ComponentReferenceMapping,
+            ComponentReferenceMapping.universal_id == UniversalComponent.id,
+        )
+        .join(
+            ReferenceCompound,
+            ReferenceCompound.id == ComponentReferenceMapping.reference_id,
+        )  # TODO: Does this work when there is no reference?
+        .join(ReferenceReaction, ReferenceReaction.id == UniversalReaction.reference_id)
+        .join(
+            ReferenceReactionParticipant,
+            (ReferenceReactionParticipant.reaction_id == ReferenceReaction.id)
+            & (ReferenceReactionParticipant.compound_id == ReferenceCompound.id),
+        )
         .filter(UniversalReaction.id == reaction_id)
+        .order_by(
+            asc(UniversalReactionMatrix.coefficient > 0), asc(UniversalComponent.id)
+        )
         .all()
     )
     return [
@@ -207,8 +231,76 @@ def _get_metabolite_list_for_reaction(reaction_id, session):
             "base_bigg_id": x[0],
             "bigg_id": x[1],
             "coefficient": x[2],
+            "coefficient_int_or_float": int(x[2]) if x[2].is_integer() else x[2],
             "compartment_bigg_id": x[3],
             "name": x[4],
+            "reference_mapping": x[6],
+            "reference": x[5],
+            "reference_participant": x[7],
+        }
+        for x in result_db
+    ]
+
+
+def _get_metabolite_and_reference_list_for_reaction(reaction_id, session):
+    result_db = (
+        session.query(
+            Component.id,
+            CompartmentalizedComponent.id,
+            UniversalReactionMatrix.coefficient,
+            CompartmentalizedComponent.compartment_id,
+            Component.name,
+            ReferenceCompound,
+            ComponentReferenceMapping,
+            ReferenceReactionParticipant,
+        )
+        .join(
+            CompartmentalizedComponent,
+            CompartmentalizedComponent.component_id == Component.id,
+        )
+        .join(
+            ReactionMatrix,
+            ReactionMatrix.compartmentalized_component_id
+            == CompartmentalizedComponent.id,
+        )
+        .join(
+            UniversalReactionMatrix,
+            UniversalReactionMatrix.id == ReactionMatrix.reaction_matrix_id,
+        )
+        .join(
+            Reaction,
+            Reaction.id == ReactionMatrix.reaction_id,
+        )
+        .join(
+            ComponentReferenceMapping,
+            ComponentReferenceMapping.component_id == Component.id,
+        )
+        .join(
+            ReferenceCompound,
+            ReferenceCompound.id == ComponentReferenceMapping.reference_id,
+        )  # TODO: Does this work when there is no reference?
+        .join(UniversalReaction, UniversalReaction.id == Reaction.universal_id)
+        .join(ReferenceReaction, ReferenceReaction.id == UniversalReaction.reference_id)
+        .join(
+            ReferenceReactionParticipant,
+            (ReferenceReactionParticipant.reaction_id == ReferenceReaction.id)
+            & (ReferenceReactionParticipant.compound_id == ReferenceCompound.id),
+        )
+        .filter(Reaction.id == reaction_id)
+        .order_by(asc(UniversalReactionMatrix.coefficient > 0), asc(Component.id))
+        .all()
+    )
+    return [
+        {
+            "base_bigg_id": x[0],
+            "bigg_id": x[1],
+            "coefficient": x[2],
+            "coefficient_int_or_float": int(x[2]) if x[2].is_integer() else x[2],
+            "compartment_bigg_id": x[3],
+            "name": x[4],
+            "reference_mapping": x[6],
+            "reference": x[5],
+            "reference_participant": x[7],
         }
         for x in result_db
     ]
@@ -237,6 +329,9 @@ def get_reaction_and_models(reaction_bigg_id, session):
         .distinct()
         .all()
     )
+
+    reference_db = get_reference_for_reaction(reaction_bigg_id, session)
+
     # if len(result_db) == 0:
     #     # Look for a result with a deprecated ID
     #     # res_db = (
@@ -260,7 +355,9 @@ def get_reaction_and_models(reaction_bigg_id, session):
     db_link_results = {}
     old_id_results = []
     # metabolites
-    metabolite_db = _get_metabolite_list_for_reaction(reaction_bigg_id, session)
+    metabolite_db = _get_metabolite_and_reference_list_for_universal_reaction(
+        reaction_bigg_id, session
+    )
 
     reaction_string = utils.build_reaction_string(metabolite_db, -1000, 1000, False)
     return {
@@ -274,6 +371,7 @@ def get_reaction_and_models(reaction_bigg_id, session):
         "models_containing_reaction": [
             {"bigg_id": x[2], "organism": x[3]} for x in result_db
         ],
+        "reference": reference_db,
     }
 
 
@@ -310,6 +408,16 @@ def get_model_list_for_reaction(reaction_bigg_id, session):
     return [{"bigg_id": x[0]} for x in result]
 
 
+def get_reference_for_reaction(reaction_bigg_id, session):
+    result = (
+        session.query(ReferenceReaction)
+        .join(UniversalReaction, UniversalReaction.reference_id == ReferenceReaction.id)
+        .filter(UniversalReaction.id == reaction_bigg_id)
+        .first()
+    )
+    return result
+
+
 def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     """Get details about this reaction in the given model. Returns multiple
     results when the reaction appears in the model multiple times.
@@ -317,6 +425,7 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     """
     model_reaction_db = (
         session.query(
+            Reaction.id,
             UniversalReaction.id,
             UniversalReaction.name,
             ModelReaction.id,
@@ -327,10 +436,9 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
             ModelReaction.copy_number,
             ModelReaction.subsystem,
         )
-        .join(Reaction, Reaction.universal_id == UniversalReaction.id)
+        .join(UniversalReaction, Reaction.universal_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
-        .join(Model, Model.id == ModelReaction.model_id)
-        .filter(Model.id == model_bigg_id)
+        .filter(ModelReaction.model_id == model_bigg_id)
         .filter(UniversalReaction.id == reaction_bigg_id)
     )
     db_count = model_reaction_db.count()
@@ -339,12 +447,19 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
             "Reaction %s not found in model %s" % (reaction_bigg_id, model_bigg_id)
         )
 
+    reaction_id = model_reaction_db[0][0]
+
     # metabolites
-    metabolite_db = _get_metabolite_list_for_reaction(reaction_bigg_id, session)
+    metabolite_db = _get_metabolite_and_reference_list_for_reaction(
+        reaction_id, session
+    )
 
     # models
     model_db = get_model_list_for_reaction(reaction_bigg_id, session)
     model_result = [x for x in model_db if x != model_bigg_id]
+
+    # reference
+    reference_db = get_reference_for_reaction(reaction_bigg_id, session)
 
     # database_links
     # db_link_results = id_queries._get_db_links_for_model_reaction(
@@ -367,24 +482,24 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
 
     result_list = []
     for result_db in model_reaction_db:
-        gene_db = _get_gene_list_for_model_reaction(result_db[2], session)
+        gene_db = _get_gene_list_for_model_reaction(result_db[3], session)
         reaction_string = utils.build_reaction_string(
-            metabolite_db, result_db[4], result_db[5], False
+            metabolite_db, result_db[5], result_db[6], False, format_met="comp_comp"
         )
         exported_reaction_id = (
-            make_reaction_copy_id(reaction_bigg_id, result_db[7])
+            make_reaction_copy_id(reaction_bigg_id, result_db[8])
             if db_count > 1
             else reaction_bigg_id
         )
         result_list.append(
             {
-                "gene_reaction_rule": result_db[3],
-                "lower_bound": result_db[4],
-                "upper_bound": result_db[5],
-                "objective_coefficient": result_db[6],
+                "gene_reaction_rule": result_db[4],
+                "lower_bound": result_db[5],
+                "upper_bound": result_db[6],
+                "objective_coefficient": result_db[7],
                 "genes": gene_db,
-                "copy_number": result_db[7],
-                "subsystem": result_db[8],
+                "copy_number": result_db[8],
+                "subsystem": result_db[9],
                 "exported_reaction_id": exported_reaction_id,
                 "reaction_string": reaction_string,
             }
@@ -393,6 +508,7 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     return {
         "count": len(result_list),
         "bigg_id": reaction_bigg_id,
+        "universal_bigg_id": model_reaction_db[0][1],
         "name": model_reaction_db[0][1],
         "pseudoreaction": False,
         "model_bigg_id": model_bigg_id,
@@ -402,6 +518,7 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
         "other_models_with_reaction": model_result,
         "escher_maps": r_escher_maps,
         "results": result_list,
+        "reference": reference_db,
     }
 
 
