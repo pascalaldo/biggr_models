@@ -8,4 +8,13 @@ $list-group-item-padding-x: 0.6rem;
 .table-no-bottom-border > tbody > tr:last-of-type > td {
   border-bottom: none;
 }
+
+$card-title-spacer-y: 0;
+
+// $primary: rgb(0, 153, 255);
+// $primary: rgb(19, 152, 240);
+$info: rgb(51, 122, 183);
+$warning: rgb(196, 75, 21);
+$primary: rgb(40, 141, 228);
+
 @import "../../node_modules/bootstrap/scss/bootstrap";

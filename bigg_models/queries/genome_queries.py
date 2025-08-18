@@ -32,6 +32,6 @@ def get_genome_and_models(genome_ref_string, session):
             genome_db.accession_type, genome_db.accession_value
         ),
         "organism": genome_db.organism,
-        "models": [x.bigg_id for x in models_db],
+        "models": [x.id for x in models_db],
         "chromosomes": [x.ncbi_accession for x in chromosomes_db],
     }

@@ -34,7 +34,7 @@ class ModelListHandler(utils.PageableHandler):
 
 
 class ModelsListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("listview.html")
 
     def get(self):
         template_data = {"results": {"models": "ajax"}}

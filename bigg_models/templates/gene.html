@@ -1,75 +1,87 @@
-{% extends "parent_display.html" %}
+{% extends "general_main.html" %}
 {% block title %}BiGG Gene {{bigg_id}}{% endblock %}
-{% block description %}Gene {{bigg_id}} ({{name}}) in {{model_bigg_id}}.{% endblock %}
-{% block content %}
-  <div class="row">
-    <div class="col-lg-8">
-      <h1><span class="light">Gene: </span>{{bigg_id}}</h1>
-
-      <hr>
-
-      <h4>Descriptive name: </h4>
-      <p>{% if name is not none %}{{name}}{% endif %}</p>
-
-      <h4>Model: </h4>
-      <p><a href="/models/{{model_bigg_id}}">{{model_bigg_id}}</a></p>
-
-      {% if mapped_to_genbank %}
-        <h4>Position: </h4>
-        <p>Left: {{leftpos}} – Right: {{rightpos}}</p>
-
-        <h4>Strand: </h4>
-        <p>{% if strand == '-' %}Minus{% elif strand == '+' %}Plus{% endif %}</p>
-
-        <h4>Chromosome: </h4>
-        <p><a href="/genomes/{{genome_ref_string}}#{{chromosome_ncbi_accession}}">{{chromosome_ncbi_accession}}</a></p>
-
-        {% if dna_sequence is not none %}
-          <h4>DNA Sequence</h4>
-          <p class="sequence">{{dna_sequence}}</p>
-        {% endif %}
-
-        {% if protein_sequence is not none %}
-          <h4>Protein Sequence</h4>
-          <p class="sequence">{{protein_sequence}}</p>
-        {% endif %}
-
-      {% else %}
-        <h4>Chromosome: </h4>
-        <p>Gene is not mapped to a genome annotation.</p>
-      {% endif %}
-
-      <h4> Associated reactions: </h4>
-      <div class="panel panel-default">
-        <div class="table table-hover">
-          <div class="table-header">
-            <div class="table-row">
-              <div class="table-cell" style="width: 20%">BiGG ID</div>
-              <div class="table-cell" style="width: 40%">Name</div>
-              <div class="table-cell" style="width: 40%">Gene reaction rule</div>
-            </div>
+{% block body %}
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-3 bg-body-tertiary">
+      <div class="row g-0">
+        <div class="col-md-4">
+          <img src="/static/assets/molecule.svg" class="img-fluid p-4 w-100 h-100" alt="Gene">
+        </div>
+        <div class="col-md-8">
+          <div class="card-body">
+            <h5 class="card-title">{{bigg_id}}</h5>
+            {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
           </div>
-          <div>
-            {% for reaction in reactions %}
-            <a href="/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}">
-              <div class="table-row">
-                <div class="table-cell" style="width: 20%">{{reaction['bigg_id']}}</div>
-                <div class="table-cell" style="width: 40%">{{reaction['name']}}</div>
-                <div class="table-cell" style="width: 40%">{{reaction['gene_reaction_rule']}}</div>
-              </div>
-            </a>
-            {% endfor %}
-          </div>
+          <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
+            <li class="list-group-item bg-body-tertiary"><i>Model:</i> <a href="/models/{{model_bigg_id}}" class="stretched-link">{{model_bigg_id}}</a></li>
+            {% if mapped_to_genbank %}
+            <li class="list-group-item bg-body-tertiary"><i>Position:</i> {{leftpos}} – {{rightpos}}</li>
+            <li class="list-group-item bg-body-tertiary"><i>Strand:</i> {% if strand == '-' %}Minus{% elif strand == '+' %}Plus{% endif %}</li>
+            <li class="list-group-item bg-body-tertiary"><i>Chromosome:</i> <a href="/genomes/{{genome_ref_string}}#{{chromosome_ncbi_accession}}" class="stretched-link">{{chromosome_ncbi_accession}}</a></li>
+            {% endif %}
+          </ul>
         </div>
       </div>
-
-      {% include 'comments.html' %}
-
     </div>
-
-    <!-- Side bar -->
-    <div class="col-lg-4">
-      {% include 'database_links.html' %}
-      {% include 'old_identifiers.html' %}
+  </div>
+  {% if protein_sequence is not none %}
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="card-title">
+          Protein Sequence
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="user-select-all font-monospace small lh-sm">{{protein_sequence}}</div>
+      </div>
     </div>
+  </div>
+  {% endif %}
+  {% if dna_sequence is not none %}
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="card-title">
+          DNA Sequence
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="user-select-all font-monospace small lh-sm">{{dna_sequence}}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Associated reactions</h5>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 table-no-bottom-border">
+          <thead>
+            <tr>
+              <th class="fw-normal fst-italic" style="width: 1.2em;">&nbsp;</th>
+              <th class="fw-normal fst-italic">BiGG ID</th>
+              <th class="fw-normal fst-italic">Name</th>
+              <th class="fw-normal fst-italic">Gene reaction rule</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for reaction in reactions %}
+            <tr>
+              {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
+              <td><a href="{{link}}" class="d-block"><img src="/static/assets/reaction.svg" style="height: 1em;" /></a></td>
+              <td><a href="{{link}}" class="d-block">{{reaction['bigg_id']}}</a></td>
+              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
+              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['gene_reaction_rule']}}</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
