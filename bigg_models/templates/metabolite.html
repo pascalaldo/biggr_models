@@ -1,32 +1,23 @@
 {% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
 {% block title %}BiGG Metabolite {{bigg_id}} in {{model_bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
   <div class="col-12">
-    <div class="card mb-3 bg-body-tertiary">
-      <div class="row g-0">
-        <div class="col-md-2">
-          <img src="/static/assets/molecule.svg" class="img-fluid p-4 w-100 h-100" alt="Small Molecule">
-        </div>
-        <div class="col-md-4">
-          <div class="card-body">
-            <h5 class="card-title">{{formatted_comp_comp(bigg_id)}}</h5>
-            {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
-          </div>
-          <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
-            <li class="list-group-item bg-body-tertiary"><i>Model:</i> <a href="/models/{{model_bigg_id}}" class="stretched-link">{{model_bigg_id}}</a></li>
-            <li class="list-group-item bg-body-tertiary"><i>Compartment:</i> {{compartment_bigg_id}} - {{compartment_name}}</li>
-            <li class="list-group-item bg-body-tertiary"><i>Charge:</i> {{charge}}</li>
-            <li class="list-group-item bg-body-tertiary"><i>Formula:</i> {{formula}}</li>
-          </ul>
-        </div>
-        <div class="col-md-6">
-          {% include "reference_metabolite_ui.html" %}
-        </div>
+    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", reference) %}
+      <div class="card-body">
+        <h5 class="card-title">{{general.formatted_comp_comp(bigg_id)}}</h5>
+        {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
-    </div>
+      <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
+        <li class="list-group-item bg-body-tertiary"><i>Model:</i> <a href="/models/{{model_bigg_id}}" class="stretched-link">{{model_bigg_id}}</a></li>
+        <li class="list-group-item bg-body-tertiary"><i>Compartment:</i> {{compartment_bigg_id}} - {{compartment_name}}</li>
+        <li class="list-group-item bg-body-tertiary"><i>Charge:</i> {{charge}}</li>
+        <li class="list-group-item bg-body-tertiary"><i>Formula:</i> {{formula}}</li>
+      </ul>
+    {% endcall %}
   </div>
-  <div class="col-md-8">
+  <div class="col-12">
     <div class="card mb-3">
       <div class="card-header">
         <h5 class="mb-0">Reactions in model</h5>
@@ -44,7 +35,7 @@
             {% for reaction in reactions %}
             <tr>
               {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
-              <td><a href="{{link}}" class="d-block"><img src="/static/assets/reaction.svg" style="height: 1em;" /></a></td>
+              <td><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#reaction_S" style="height: 1em;" /></a></td>
               <td><a href="{{link}}" class="d-block">{{reaction['bigg_id']}}</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
             </tr>

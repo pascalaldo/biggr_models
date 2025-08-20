@@ -63,4 +63,10 @@ class ModelHandler(utils.BaseHandler):
             static_model_dir=utils.static_model_dir,
             static_multistrain_dir=utils.static_multistrain_dir,
         )
+        result["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (model_bigg_id, f"/models/{model_bigg_id}"),
+        ]
+
         self.return_result(result)

@@ -1,0 +1,33 @@
+{% macro item_card(icon_id, alt_text, accent=False) %}
+<div class="card mb-3{% if accent %} bg-body-tertiary{% endif %}">
+	<div class="row g-0">
+		<div class="col-3">
+			<img src="/static/assets/iconset.svg#{{icon_id}}" class="img-fluid p-0 w-100 h-100" alt="{{alt_text}}">
+		</div>
+		<div class="col-9">
+			{{ caller() }}
+		</div>
+	</div>
+</div>
+{% endmacro %}
+
+{% macro item_and_reference(icon_id, alt_text, reference_include, reference) %}
+<div class="card mb-3 bg-body-tertiary">
+	<div class="row g-0">
+		<div class="col-12 col-lg-7">
+			<div class="row g-0">
+				<div class="col-3">
+					<img src="/static/assets/iconset.svg#{{icon_id}}" class="img-fluid p-0 w-100 h-100" alt="{{alt_text}}">
+				</div>
+				<div class="col-9">
+					{{ caller() }}
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-lg-5 d-flex">
+			{% include reference_include %}
+		</div>
+	</div>
+</div>
+</div>
+{% endmacro %}

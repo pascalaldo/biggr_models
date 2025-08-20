@@ -125,6 +125,7 @@ class ReactionHandler(utils.BaseHandler):
 
         results["breadcrumbs"] = [
             ("Home", "/"),
+            ("Models", "/models/"),
             (model_bigg_id, f"/models/{model_bigg_id}/"),
             ("Reactions", f"/models/{model_bigg_id}/reactions/"),
             (

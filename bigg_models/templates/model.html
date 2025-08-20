@@ -1,15 +1,11 @@
 {% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
 {% block title %}BiGG Model {{model_bigg_id}}{% endblock %}
 {% block body %}
 
 <div class="row">
   <div class="col-md-6">
-    <div class="card mb-3 bg-body-tertiary">
-      <div class="row g-0">
-        <div class="col-md-4">
-          <img src="/static/assets/molecule.svg" class="img-fluid p-4 w-100 h-100" alt="Model">
-        </div>
-        <div class="col-md-8">
+    {% call cards.item_card("model_L", "Model", True) %}
           <div class="card-body">
             <h5 class="card-title">{{model_bigg_id}}</h5>
             <p class="card-text">{{organism}}</p>
@@ -25,18 +21,16 @@
             {% if reference_type == 'pmid' %}
             {%- set pmid_link -%}https://www.ncbi.nlm.nih.gov/pubmed/{{reference_id}}{%- endset -%}
             <li class="list-group-item bg-body-tertiary">
-              <i>Publication PMID:</i> {{external_link(reference_id, pmid_link)}}
+              <i>Publication PMID:</i> {{general.external_link(reference_id, pmid_link)}}
             </li>
             {% elif reference_type == 'doi' %}
             {%- set doi_link -%}https://dx.doi.org/{{reference_id}}{%- endset -%}
             <li class="list-group-item bg-body-tertiary">
-              <i>Publication DOI:</i> {{external_link(reference_id, doi_link)}}
+              <i>Publication DOI:</i> {{general.external_link(reference_id, doi_link)}}
             </li>
             {% endif %}
           </ul>
-        </div>
-      </div>
-    </div>
+    {% endcall %}
   </div>
 
   <div class="col-md-6">

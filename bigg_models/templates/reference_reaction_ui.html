@@ -1,21 +1,14 @@
-<div class="card m-2">
-	<div class="row g-0">
-		<div class="col-md-4">
-			<img src="/static/assets/reference_small_molecule.svg" class="img-fluid p-4 w-100 h-100"
-				alt="Reaction">
-		</div>
-		<div class="col-md-8">
-			<div class="card-body">
-				<h5 class="card-title">{{formatted_reference(reference['id'])}}</h5>
-				{% if reference['name'] is not none %}<p class="card-text">{{reference['name']}}</p>{%
-				endif %}
-				<p class="card-text">{{reference['equation']}}</p>
-				{% if reference['id'].startswith('RHEA:') %}
-				{% set rhea_link -%}http://identifiers.org/{{reference['id']}}{%- endset %}
-				<p class="card-text">{{external_link("View on rhea-db.org", rhea_link)}}
-				</p>
-				{% endif %}
-			</div>
-		</div>
+{% import "general_macros.html" as general %}
+<div class="card m-2 w-100">
+	<div class="card-body">
+		<h5 class="card-title">{{general.formatted_reference(reference['id'])}}</h5>
+		{% if reference['name'] is not none %}<p class="card-text">{{reference['name']}}</p>{%
+		endif %}
+		<p class="card-text">{{reference['equation']}}</p>
+		{% if reference['id'].startswith('RHEA:') %}
+		{% set rhea_link -%}http://identifiers.org/{{reference['id']}}{%- endset %}
+		<p class="card-text">{{general.external_link("View on rhea-db.org", rhea_link)}}
+		</p>
+		{% endif %}
 	</div>
 </div>

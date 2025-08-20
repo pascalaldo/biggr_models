@@ -1,29 +1,20 @@
 {% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
 {% block title %}BiGG Reaction {{bigg_id}} in {{model_bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
   <div class="col-12">
-    <div class="card mb-3 bg-body-tertiary">
-      <div class="row g-0">
-        <div class="col-md-2">
-          <img src="/static/assets/molecule.svg" class="img-fluid p-4 w-100 h-100" alt="Reaction">
-        </div>
-        <div class="col-md-4">
-          <div class="card-body">
-            <h5 class="card-title">{{bigg_id}}</h5>
-            {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
-          </div>
-          <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
-            <li class="list-group-item bg-body-tertiary">{{results[0]['reaction_string']}}</li>
-            <li class="list-group-item bg-body-tertiary"><i>Model:</i> <a href="/models/{{model_bigg_id}}" class="stretched-link">{{model_bigg_id}}</a></li>
-            <li class="list-group-item bg-body-tertiary"><i>Universal Reaction:</i> <a href="/universal/reactions/{{universal_bigg_id}}" class="stretched-link">{{universal_bigg_id}}</a></li>
-          </ul>
-        </div>
-        <div class="col-md-6">
-          {% include "reference_reaction_ui.html" %}
-        </div>
+    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", reference) %}
+      <div class="card-body">
+        <h5 class="card-title">{{bigg_id}}</h5>
+        {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
-    </div>
+      <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
+        <li class="list-group-item bg-body-tertiary">{{results[0]['reaction_string']}}</li>
+        <li class="list-group-item bg-body-tertiary"><i>Model:</i> <a href="/models/{{model_bigg_id}}" class="stretched-link">{{model_bigg_id}}</a></li>
+        <li class="list-group-item bg-body-tertiary"><i>Universal Reaction:</i> <a href="/universal/reactions/{{universal_bigg_id}}" class="stretched-link">{{universal_bigg_id}}</a></li>
+      </ul>
+    {% endcall %}
   </div>
   <div class="col-12">
     <div class="card mb-3">
@@ -48,11 +39,11 @@
             <tr>
               {% set link -%}/models/{{model_bigg_id}}/metabolites/{{metabolite['bigg_id']}}{%- endset %}
               {% set ref_n = metabolite['reference_participant']['reference_n'] %}
-              <td><a href="{{link}}" class="d-block"><img src="/static/assets/{%- if metabolite["coefficient"] < 0 -%}substrate_logo{%- else -%}product_logo{%- endif -%}.svg" style="height: 1em;" /></a></td>
+              <td><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#{%- if metabolite["coefficient"] < 0 -%}reaction_substrate_S{%- else -%}reaction_product_S{%- endif -%}" style="height: 1em;" /></a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['coefficient_int_or_float']}}</a></td>
-              <td><a href="{{link}}" class="d-block">{{formatted_comp_comp(metabolite['bigg_id'])}}</a></td>
+              <td><a href="{{link}}" class="d-block">{{general.formatted_comp_comp(metabolite['bigg_id'])}}</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['name']}}</a></td>
-              <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{{formatted_reference(metabolite['reference']['id'])}}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
+              <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{{general.formatted_reference(metabolite['reference']['id'])}}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['reference_participant']['coefficient']}} [{{metabolite['reference_participant']['side']}}]</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['reference_participant']['compartment']}}</a></td>
             </tr>

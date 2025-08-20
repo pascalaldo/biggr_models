@@ -1,25 +1,18 @@
-<div class="card m-2">
-	<div class="row g-0">
-		<div class="col-md-4">
-			<img src="/static/assets/reference_molecule.svg" class="img-fluid p-4 w-100 h-100"
-				alt="Small Molecule">
-		</div>
-		<div class="col-md-8">
-			<div class="card-body">
-				<h5 class="card-title">{{formatted_reference(reference['id'])}}</h5>
-				<p class="card-text">{{reference['name']}}</p>
-			</div>
-			<ul class="list-group list-group-flush rounded-3">
-				<li class="list-group-item"><i>Type:</i> {{reference['type']}}</li>
-				<li class="list-group-item"><i>Charge:</i> {{reference['charge']}}</li>
-				<li class="list-group-item"><i>Formula:</i> {{reference['formula']}}</li>
-				{% if reference['id'].startswith('CHEBI:') %}
-				{% set chebi_link -%}http://identifiers.org/{{reference['id']}}{%- endset %}
-				<p class="list-group-item">{{external_link("View on ChEBI", chebi_link)}}
-				</p>
-				{% endif %}
-
-			</ul>
-		</div>
+{% import "general_macros.html" as general %}
+<div class="card m-2 w-100">
+	<div class="card-body">
+		<h5 class="card-title">{{general.formatted_reference(reference['id'])}}</h5>
+		<p class="card-text">{{reference['name']}}</p>
 	</div>
+	<ul class="list-group list-group-flush rounded-3-end">
+		<li class="list-group-item"><i>Type:</i> {{reference['type']}}</li>
+		<li class="list-group-item"><i>Charge:</i> {{reference['charge']}}</li>
+		<li class="list-group-item"><i>Formula:</i> {{reference['formula']}}</li>
+		{% if reference['id'].startswith('CHEBI:') %}
+		{% set chebi_link -%}http://identifiers.org/{{reference['id']}}{%- endset %}
+		<li class="list-group-item">{{general.external_link("View on ChEBI", chebi_link)}}
+		</li>
+		{% endif %}
+
+	</ul>
 </div>
