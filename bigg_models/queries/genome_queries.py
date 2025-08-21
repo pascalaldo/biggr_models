@@ -1,16 +1,52 @@
+from bigg_models.queries import utils
 from cobradb.util import ref_tuple_to_str, ref_str_to_tuple
 from cobradb.models import Genome, Chromosome, Model
+from sqlalchemy import func
 
 
-def get_genome_list(session):
-    genome_db = session.query(Genome)
+def get_genomes_count(session, **kwargs):
+    """Return the number of models in the database."""
+    query = session.query(Genome)
+    return query.count()
+
+
+def get_genomes(
+    session,
+    page=None,
+    size=None,
+    sort_column=None,
+    sort_direction="ascending",
+    multistrain_off=False,
+):
+    # get the sort column
+    columns = {
+        "name": func.lower(Genome.accession_value),
+        "organism": func.lower(Model.organism),
+        "genome_type": func.lower(Genome.accession_type),
+    }
+
+    if sort_column is None:
+        sort_column_object = None
+    else:
+        try:
+            sort_column_object = columns[sort_column]
+        except KeyError:
+            print("Bad sort_column name: %s" % sort_column)
+            sort_column_object = next(iter(columns.values()))
+
+    query = session.query(Genome)
+    query = utils._apply_order_limit_offset(
+        query, sort_column_object, sort_direction, page, size
+    )
+
     return [
         {
             "name": x.accession_value,
             "genome_ref_string": ref_tuple_to_str(x.accession_type, x.accession_value),
+            "genome_type": x.accession_type,
             "organism": x.organism,
         }
-        for x in genome_db
+        for x in query
     ]
 
 

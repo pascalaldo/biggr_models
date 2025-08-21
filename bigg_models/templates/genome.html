@@ -1,69 +1,69 @@
-{% extends "parent_display.html" %}
+{% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
 {% block title %}BiGG Genome {{name}}{% endblock %}
-{% block description %}Genome {{name}} of {{organism}} in BiGG Models.{% endblock %}
-{% block content %}
-
-  <h1>
-    <span class="light">Genome: </span>{{name}}
-  </h1>
-
-  <hr/>
-
-  <h4>Organism: </h4>
-  <p>{{organism}}</p>
-
-  <h4>
-    Models with this genome:
-    {% with question_title='Models with this genome'%}
-      {% with question_text='A list of models that are mapped to this genome. Genes in the models are mapped to individual chromosomes.'%}
-        {% include 'question_mark.html' %}
-      {% endwith %}
-    {% endwith %}
-  </h4>
-  <div class="panel panel-default">
-    <div class="table table-hover">
-      <div class="table-header">
-        <div class="table-row">
-          <div class="table-cell" style="width: 100%">BiGG ID</div>
-        </div>
+{% block body %}
+<div class="row">
+  <div class="col-md-4">
+    {% call cards.item_card("genome_L", "Genome", accent=True) %}
+      <div class="card-body">
+      <h5 class="card-title">{{name}}</h5>
       </div>
-      <div class="table-body">
-        {% for model in models %}
-        <a  href="/models/{{model}}">
-          <div class="table-row">
-            <div class="table-cell style="width: 100%">
-              {{model}}
-            </div>
-          </div>
-        </a>
-        {% endfor %}
+      {% call cards.flush_list_group(accent=True) %}
+        {{ cards.flush_list_group_item("Organism", organism, accent=True) }}
+      {% endcall %}
+    {% endcall %}
+  </div>
+  <div class="col-md-4">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Associated models</h5>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 table-no-bottom-border">
+          <thead>
+            <tr>
+              <th class="fw-normal fst-italic" style="width: 1.2em;">&nbsp;</th>
+              <th class="fw-normal fst-italic">BiGG ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for model in models %}
+            <tr>
+              {% set link -%}/models/{{model}}{%- endset %}
+              <td><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#model_S" style="height: 1em;" /></a></td>
+              <td><a href="{{link}}" class="d-block">{{model}}</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
-
-  <h4>Chromosomes:</h4>
-  <div class="panel panel-default">
-    <div class="table table-hover">
-      <div class="table-header">
-        <div class="table-row">
-          <div class="table-cell" style="width: 100%">NCBI ID</div>
-        </div>
+  <div class="col-md-4">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Chromosomes</h5>
       </div>
-      <div class="table-body">
-        {% for chromosome in chromosomes %}
-        <a href="http://www.ncbi.nlm.nih.gov/nuccore/{{chromosome}}" target="_blank">
-          <div class="table-row">
-            <div id="{{chromosome}}" class="table-cell" style="width: 100%">
-              {{chromosome}}
-              <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span>
-            </div>
-          </div>
-        </a>
-        {% endfor %}
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 table-no-bottom-border">
+          <thead>
+            <tr>
+              <th class="fw-normal fst-italic" style="width: 1.2em;">&nbsp;</th>
+              <th class="fw-normal fst-italic">NCBI Accession</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for chromosome in chromosomes %}
+            <tr>
+              {% set link -%}http://www.ncbi.nlm.nih.gov/nuccore/{{chromosome}}{%- endset %}
+              <td><img src="/static/assets/iconset.svg#chromosome_S" style="height: 1em;" /></td>
+              <td>{{ general.external_link(chromosome, link) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
-
-  {% include 'comments.html' %}
-
+</div>
 {% endblock %}

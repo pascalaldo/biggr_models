@@ -10,26 +10,18 @@
             <h5 class="card-title">{{model_bigg_id}}</h5>
             <p class="card-text">{{organism}}</p>
           </div>
-          <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
-            <li class="list-group-item bg-body-tertiary">
-              {% if genome_name is none %}
-              Model is not mapped to a genome.
-              {% else %}
-              <i>Genome:</i> <a href="/genomes/{{genome_ref_string}}" class="stretched-link">{{genome_name}}</a>
-              {% endif %}
-            </li>
+          {% call cards.flush_list_group(accent=True) %}
+          {% if genome_name is none %}
+            {{ cards.flush_list_group_item(value="Model is not mapped to a genome", accent=True) }}
+          {% else %}
+            {{ cards.flush_list_group_item(label="Genome", value=genome_name, link="/genomes/"~genome_ref_string, accent=True) }}
+          {% endif %}
             {% if reference_type == 'pmid' %}
-            {%- set pmid_link -%}https://www.ncbi.nlm.nih.gov/pubmed/{{reference_id}}{%- endset -%}
-            <li class="list-group-item bg-body-tertiary">
-              <i>Publication PMID:</i> {{general.external_link(reference_id, pmid_link)}}
-            </li>
+              {{ cards.flush_list_group_item(label="Publication PMID", value=reference_id, link="https://www.ncbi.nlm.nih.gov/pubmed/"~reference_id, accent=True) }}
             {% elif reference_type == 'doi' %}
-            {%- set doi_link -%}https://dx.doi.org/{{reference_id}}{%- endset -%}
-            <li class="list-group-item bg-body-tertiary">
-              <i>Publication DOI:</i> {{general.external_link(reference_id, doi_link)}}
-            </li>
+              {{ cards.flush_list_group_item(label="Publication DOI", value=reference_id, link="https://dx.doi.org/"~reference_id, accent=True) }}
             {% endif %}
-          </ul>
+          {% endcall %}
     {% endcall %}
   </div>
 
@@ -38,19 +30,7 @@
       <div class="card-header">
         <h5 class="card-title">Model Metrics</h5>
       </div>
-      <div class="card-body">
-        <ul class="list-group list-group-flush rounded-3">
-          <li class="list-group-item">
-              <i>Metabolites:</i> <a href="/models/{{model_bigg_id}}/metabolites" class="stretched-link">{{metabolite_count}}</a>
-          </li>
-          <li class="list-group-item">
-              <i>Reactions:</i> <a href="/models/{{model_bigg_id}}/reactions" class="stretched-link">{{reaction_count}}</a>
-          </li>
-          <li class="list-group-item">
-              <i>Genes:</i> <a href="/models/{{model_bigg_id}}/genes" class="stretched-link">{{gene_count}}</a>
-          </li>
-        </ul>
-      </div>
+        {{ cards.flush_list_group(model_metrics, align=6) }}
     </div>
   </div>
   <div class="col-md-6">

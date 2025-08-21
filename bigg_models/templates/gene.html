@@ -1,29 +1,29 @@
 {% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
 {% block title %}BiGG Gene {{bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
   <div class="col-md-6">
-    <div class="card mb-3 bg-body-tertiary">
-      <div class="row g-0">
-        <div class="col-md-4">
-          <img src="/static/assets/molecule.svg" class="img-fluid p-4 w-100 h-100" alt="Gene">
-        </div>
-        <div class="col-md-8">
-          <div class="card-body">
-            <h5 class="card-title">{{bigg_id}}</h5>
-            {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
-          </div>
-          <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
-            <li class="list-group-item bg-body-tertiary"><i>Model:</i> <a href="/models/{{model_bigg_id}}" class="stretched-link">{{model_bigg_id}}</a></li>
-            {% if mapped_to_genbank %}
-            <li class="list-group-item bg-body-tertiary"><i>Position:</i> {{leftpos}} – {{rightpos}}</li>
-            <li class="list-group-item bg-body-tertiary"><i>Strand:</i> {% if strand == '-' %}Minus{% elif strand == '+' %}Plus{% endif %}</li>
-            <li class="list-group-item bg-body-tertiary"><i>Chromosome:</i> <a href="/genomes/{{genome_ref_string}}#{{chromosome_ncbi_accession}}" class="stretched-link">{{chromosome_ncbi_accession}}</a></li>
-            {% endif %}
-          </ul>
-        </div>
+    {% call cards.item_card("gene_L", "Gene", accent=True) %}
+      <div class="card-body">
+        <h5 class="card-title">{{bigg_id}}</h5>
+        {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
-    </div>
+      {% call cards.flush_list_group(accent=True) %}
+        {{ cards.flush_list_group_item("Model", model_bigg_id, "/models/"~model_bigg_id, accent=True) }}
+        {% if mapped_to_genbank %}
+          {% set strand_string = "Unknown" %}
+          {% if strand == '-' %}
+            {% set strand_string = "Minus" %}
+          {% elif strand == '+' %}
+            {% set strand_string = "Plus" %}
+          {% endif %}
+          {{ cards.flush_list_group_item("Position", left_pos~" - "~right_pos, accent=True) }}
+          {{ cards.flush_list_group_item("Strand", strand_string, accent=True) }}
+          {{ cards.flush_list_group_item("Chromosome", chromosome_ncbi_accession, link="/genomes/"~genome_ref_string~"#"~chromosome_ncbi_accession, accent=True) }}
+        {% endif %}
+      {% endcall %}
+    {% endcall %}
   </div>
   {% if protein_sequence is not none %}
   <div class="col-md-6">

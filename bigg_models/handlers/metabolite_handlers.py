@@ -45,6 +45,11 @@ class UniversalMetaboliteListDisplayHandler(utils.BaseHandler):
             "hide_organism": True,
             "page_name": "universal_metabolite_list",
         }
+        data["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Universal", None),
+            ("Metabolites", "/universal/metabolites/"),
+        ]
         self.write(self.template.render(data))
         self.finish()
 
@@ -108,6 +113,13 @@ class MetabolitesListDisplayHandler(utils.BaseHandler):
             "results": {"metabolites": "ajax"},
             "page_name": "metabolite_list",
         }
+        data["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (model_bigg_id, f"/models/{model_bigg_id}"),
+            ("Metabolites", f"/models/{model_bigg_id}/metabolites/"),
+        ]
+
         self.write(self.template.render(data))
         self.finish()
 

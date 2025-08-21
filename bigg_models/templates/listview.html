@@ -15,6 +15,8 @@
   {%- set n_cols = 4 -%}
   {%- if type == 'models' -%}
     {%- set n_cols = 5 -%}
+  {%- elif type == 'genomes' -%}
+    {%- set n_cols = 3 -%}
   {%- endif -%}
   {%- if hide_organism -%}
     {%- set n_cols = n_cols - 1 -%}

@@ -9,12 +9,12 @@
         <h5 class="card-title">{{general.formatted_comp_comp(bigg_id)}}</h5>
         {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
-      <ul class="list-group list-group-flush rounded-3 bg-body-tertiary">
-        <li class="list-group-item bg-body-tertiary"><i>Model:</i> <a href="/models/{{model_bigg_id}}" class="stretched-link">{{model_bigg_id}}</a></li>
-        <li class="list-group-item bg-body-tertiary"><i>Compartment:</i> {{compartment_bigg_id}} - {{compartment_name}}</li>
-        <li class="list-group-item bg-body-tertiary"><i>Charge:</i> {{charge}}</li>
-        <li class="list-group-item bg-body-tertiary"><i>Formula:</i> {{formula}}</li>
-      </ul>
+      {% call cards.flush_list_group(accent=True) %}
+        {{ cards.flush_list_group_item("Model", model_bigg_id, "/models/"~model_bigg_id, accent=True) }}
+        {{ cards.flush_list_group_item("Compartment", compartment_bigg_id~" - "~compartment_name, accent=True) }}
+        {{ cards.flush_list_group_item("Charge", charge, accent=True) }}
+        {{ cards.flush_list_group_item("Formula", formula, accent=True) }}
+      {% endcall %}
     {% endcall %}
   </div>
   <div class="col-12">

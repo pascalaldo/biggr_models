@@ -80,15 +80,12 @@ def get_models(
         ModelCount.reaction_count,
         ModelCount.gene_count,
     ).join(ModelCount, ModelCount.model_id == Model.id)
-    print(str(query))
     if multistrain_off:
         query = utils._add_multistrain_filter(session, query, Model)
-    print(str(query))
     # order and limit
     query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
-    print(str(query))
 
     return [
         {

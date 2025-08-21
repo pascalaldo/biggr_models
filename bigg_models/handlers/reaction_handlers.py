@@ -42,6 +42,12 @@ class UniversalReactionListDisplayHandler(utils.BaseHandler):
             "hide_organism": True,
             "page_name": "universal_reaction_list",
         }
+        dictionary["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Universal", None),
+            ("Reactions", "/universal/reactions/"),
+        ]
+
         self.write(self.template.render(dictionary))
         self.finish()
 
@@ -112,6 +118,13 @@ class ReactionListDisplayHandler(utils.BaseHandler):
             "results": {"reactions": "ajax"},
             "page_name": "reaction_list",
         }
+        results["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (model_bigg_id, f"/models/{model_bigg_id}"),
+            ("Reactions", f"/models/{model_bigg_id}/reactions/"),
+        ]
+
         self.return_result(results)
 
 
