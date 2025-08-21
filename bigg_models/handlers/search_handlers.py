@@ -172,7 +172,7 @@ class SearchHandler(utils.BaseHandler):
 
 
 class SearchDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("listview.html")
 
     def get(self):
         data = {
