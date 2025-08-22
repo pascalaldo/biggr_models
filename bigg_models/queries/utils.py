@@ -166,6 +166,9 @@ def format_bigg_id(bigg_id, format_type=None):
             universal_id, compartment_id = comp_id.rsplit("_", maxsplit=1)
             return f'<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span><span class="fw-normal fst-italic opacity-75 small">:{charge}</span>'
         elif format_type == "comp":
+            universal_id, charge = bigg_id.rsplit(":", maxsplit=1)
+            return f'<span class="fw-semibold">{universal_id}</span><span class="fw-normal fst-italic opacity-75 small">:{charge}</span>'
+        elif format_type == "universal_comp_comp":
             universal_id, compartment_id = bigg_id.rsplit("_", maxsplit=1)
             return f'<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span>'
         else:

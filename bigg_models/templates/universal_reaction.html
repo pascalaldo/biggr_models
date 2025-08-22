@@ -1,12 +1,13 @@
 {% extends "general_main.html" %}
 {% import "general_card_macros.html" as cards %}
+{% import "general_table_macros.html" as tables %}
 {% block title %}BiGG Reaction: {{bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
   <div class="col-12">
     {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", reference) %}
       <div class="card-body">
-      <h5 class="card-title">{{bigg_id}}</h5>
+      <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span>{{bigg_id}}</h5>
         {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
       {% call cards.flush_list_group(accent=True) %}
@@ -21,34 +22,17 @@
         <h5 class="mb-0">Reaction Participants</h5>
       </div>
       <div class="card-body p-0">
-        <table class="table table-hover mb-0 table-no-bottom-border">
-          <thead>
-            <tr>
-              <th class="fw-normal fst-italic" style="width: 1.2em;">&nbsp;</th>
-              <th class="fw-normal fst-italic">x</th>
-              <th class="fw-normal fst-italic w-25">BiGG ID</th>
-              <th class="fw-normal fst-italic">Name</th>
-              <th class="fw-normal fst-italic border-start">Reference</th>
-              <th class="fw-normal fst-italic">x [side]</th>
-              <th class="fw-normal fst-italic">Compartment</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for metabolite in metabolites %}
-            <tr>
+        {% call(metabolite) tables.simple_table([{"name": "Stoich.", "colspan": 2}, {"name": "BiGG ID", "class": "w-25"}, "Name", {"name": "Reference", "class": "border-start"}, "x [side]", "Compartment"], metabolites) %}
               {% set link -%}/models/universal/metabolites/{{metabolite['base_bigg_id']}}{%- endset %}
               {% set ref_n = metabolite['reference_participant']['reference_n'] %}
-              <td><a href="{{link}}" class="d-block"><img src="/static/assets/{%- if metabolite["coefficient"] < 0 -%}substrate_logo{%- else -%}product_logo{%- endif -%}.svg" style="height: 1em;" /></a></td>
+              <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/{%- if metabolite["coefficient"] < 0 -%}substrate_logo{%- else -%}product_logo{%- endif -%}.svg" style="height: 1em;" /></a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['coefficient_int_or_float']}}</a></td>
               <td><a href="{{link}}" class="d-block">{{general.formatted_universal_comp_comp(metabolite['bigg_id'])}}</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['name']}}</a></td>
               <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{{general.formatted_reference(metabolite['reference']['id'])}}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['reference_participant']['coefficient']}} [{{metabolite['reference_participant']['side']}}]</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['reference_participant']['compartment']}}</a></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        {% endcall %}
       </div>
     </div>
   </div>
@@ -58,17 +42,8 @@
         <h5 class="mb-0">In BiGGr Models</h5>
       </div>
       <div class="card-body p-0">
-        <table class="table table-hover mb-0 table-no-bottom-border">
-          <thead>
-            <tr>
-              <th class="fw-normal fst-italic">Organism</th>
-              <th class="fw-normal fst-italic">Model</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for model in models_containing_reaction %}
+        {% call(model) tables.simple_table(["Organism", "Model"], models_containing_reaction) %}
             {% set link -%}/models/{{model['bigg_id']}}/reactions/{{bigg_id}}{%- endset %}
-            <tr>
               <td>
                 <a href="{{link}}" class="d-block text-reset text-decoration-none">
                   {% if model['organism'] is none %}-{% else %}{{model['organism']}}{% endif %}</a>
@@ -78,10 +53,7 @@
                   {{model['bigg_id']}}
                 </a>
               </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        {% endcall %}
       </div>
     </div>
   </div>

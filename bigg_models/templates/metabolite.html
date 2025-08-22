@@ -1,5 +1,6 @@
 {% extends "general_main.html" %}
 {% import "general_card_macros.html" as cards %}
+{% import "general_table_macros.html" as tables %}
 {% block title %}BiGG Metabolite {{bigg_id}} in {{model_bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
@@ -23,25 +24,12 @@
         <h5 class="mb-0">Reactions in model</h5>
       </div>
       <div class="card-body p-0">
-        <table class="table table-hover mb-0 table-no-bottom-border">
-          <thead>
-            <tr>
-              <th class="fw-normal fst-italic" style="width: 1.2em;">&nbsp;</th>
-              <th class="fw-normal fst-italic">BiGG ID</th>
-              <th class="fw-normal fst-italic">Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for reaction in reactions %}
-            <tr>
-              {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
-              <td><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#reaction_S" style="height: 1em;" /></a></td>
-              <td><a href="{{link}}" class="d-block">{{reaction['bigg_id']}}</a></td>
-              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        {% call(reaction) tables.simple_table(["&nbsp;", "BiGG ID", "Name"], reactions) %}
+          {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
+          <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#reaction_S" style="height: 1em;" /></a></td>
+          <td><a href="{{link}}" class="d-block">{{reaction['bigg_id']}}</a></td>
+          <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
+        {% endcall %}
       </div>
     </div>
   </div>

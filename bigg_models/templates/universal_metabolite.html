@@ -1,5 +1,6 @@
 {% extends "general_main.html" %}
 {% import "general_card_macros.html" as cards %}
+{% import "general_table_macros.html" as tables %}
 {% block title %}BiGG Metabolite {{bigg_id}}{% endblock %}
 {% block body %}
 
@@ -8,7 +9,7 @@
   <div class="col-12">
     <div class="card mb-3">
       <div class="card-body">
-            <h5 class="card-title">Universal: {{bigg_id}}</h5>
+        <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span>{{bigg_id}}</h5>
             {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
     </div>
@@ -35,35 +36,22 @@
         <h5 class="mb-0">In BiGGr Models</h5>
       </div>
       <div class="card-body p-0">
-        <table class="table table-hover mb-0 table-no-bottom-border">
-          <thead>
-            <tr>
-              <th class="fw-normal fst-italic">Organism</th>
-              <th class="fw-normal fst-italic">Model</th>
-              <th class="fw-normal fst-italic">BiGG ID</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for c in compartments_in_models %}
-            {%- set link -%}/models/{{c['model_bigg_id']}}/metabolites/{{c['bigg_id']}}{%- endset -%}
-            <tr>
-              <td>
-                {% if c['organism'] is none %}-{% else %}{{c['organism']}}{% endif %}
-              </td>
-              <td>
-                <a href="{{link}}" class="d-block text-reset text-decoration-none">
-                  {{c['model_bigg_id']}}
-                </a>
-              </td>
-              <td>
-                <a href="{{link}}" class="d-block">
-                  {{general.formatted_comp_comp(c['bigg_id'])}}
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        {% call(c) tables.simple_table(["Organism", "Model", "BiGG ID"], compartments_in_models) %}
+          {%- set link -%}/models/{{c['model_bigg_id']}}/metabolites/{{c['bigg_id']}}{%- endset -%}
+          <td>
+            {% if c['organism'] is none %}-{% else %}{{c['organism']}}{% endif %}
+          </td>
+          <td>
+            <a href="{{link}}" class="d-block text-reset text-decoration-none">
+              {{c['model_bigg_id']}}
+            </a>
+          </td>
+          <td>
+            <a href="{{link}}" class="d-block">
+              {{general.formatted_comp_comp(c['bigg_id'])}}
+            </a>
+          </td>
+        {% endcall %}
       </div>
     </div>
   </div>

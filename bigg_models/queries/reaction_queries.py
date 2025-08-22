@@ -359,7 +359,9 @@ def get_reaction_and_models(reaction_bigg_id, session):
         reaction_bigg_id, session
     )
 
-    reaction_string = utils.build_reaction_string(metabolite_db, -1000, 1000, False)
+    reaction_string = utils.build_reaction_string(
+        metabolite_db, -1000, 1000, False, format_met="universal_comp_comp"
+    )
     return {
         "bigg_id": reaction_db.id,
         "name": reaction_db.name,
