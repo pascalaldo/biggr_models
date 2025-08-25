@@ -19,7 +19,7 @@
   <div class="col-12">
     {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", reference) %}
       <div class="card-body">
-        <h5 class="card-title">{{general.formatted_comp(default_component['id'])}}</h5>
+        <h5 class="card-title">{{default_component['id'] | format_id("comp")}}</h5>
         {% if default_component['name'] is not none %}<p class="card-text">{{default_component['name']}}</p>{% endif %}
       </div>
       {% call cards.flush_list_group(accent=True) %}

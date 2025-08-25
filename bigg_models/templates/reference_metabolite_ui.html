@@ -1,7 +1,14 @@
 {% import "general_macros.html" as general %}
+{% if reference is none %}
+<div class="card m-2 w-100">
+	<div class="card-body d-flex align-items-center">
+		<p class="lead text-secondary">No reference available.</p>
+	</div>
+</div>
+{% else %}
 <div class="card m-2 w-100">
 	<div class="card-body">
-		<h5 class="card-title">{{general.formatted_reference(reference['id'])}}</h5>
+		<h5 class="card-title">{{reference['id'] | format_reference}}</h5>
 		<p class="card-text">{{reference['name']}}</p>
 	</div>
 	<ul class="list-group list-group-flush rounded-3-end">
@@ -16,3 +23,4 @@
 
 	</ul>
 </div>
+{% endif %}

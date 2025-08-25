@@ -1,7 +1,7 @@
 {% import "general_macros.html" as general %}
 <div class="card m-2 w-100">
 	<div class="card-body">
-		<h5 class="card-title">{{general.formatted_reference(reference['id'])}}</h5>
+		<h5 class="card-title">{{reference['id'] | format_reference}}</h5>
 		{% if reference['name'] is not none %}<p class="card-text">{{reference['name']}}</p>{%
 		endif %}
 		<p class="card-text">{{reference['equation']}}</p>

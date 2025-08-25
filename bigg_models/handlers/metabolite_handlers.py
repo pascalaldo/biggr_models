@@ -138,6 +138,9 @@ class MetaboliteHandler(utils.BaseHandler):
             ("Models", "/models/"),
             (model_bigg_id, f"/models/{model_bigg_id}/"),
             ("Metabolites", f"/models/{model_bigg_id}/metabolites/"),
-            (comp_met_id, f"/models/{model_bigg_id}/metabolites/{comp_met_id}"),
+            (
+                utils.format_bigg_id(comp_met_id, "comp_comp"),
+                f"/models/{model_bigg_id}/metabolites/{comp_met_id}",
+            ),
         ]
         self.return_result(results)

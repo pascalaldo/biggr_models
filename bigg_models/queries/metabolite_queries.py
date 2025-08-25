@@ -339,6 +339,7 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
             Component.charge,
             CompartmentalizedComponent.id,
             Model.id,
+            Component.model_specific,
         )
         .join(
             CompartmentalizedComponent,
@@ -430,4 +431,5 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
         "escher_maps": m_escher_maps,
         "other_models_with_metabolite": model_result,
         "reference": reference,
+        "model_specific": result_db[9],
     }

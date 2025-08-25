@@ -27,9 +27,9 @@
               {% set ref_n = metabolite['reference_participant']['reference_n'] %}
               <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/{%- if metabolite["coefficient"] < 0 -%}substrate_logo{%- else -%}product_logo{%- endif -%}.svg" style="height: 1em;" /></a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['coefficient_int_or_float']}}</a></td>
-              <td><a href="{{link}}" class="d-block">{{general.formatted_universal_comp_comp(metabolite['bigg_id'])}}</a></td>
+              <td><a href="{{link}}" class="d-block">{{metabolite.bigg_id | format_id("universal_comp_comp")}}</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['name']}}</a></td>
-              <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{{general.formatted_reference(metabolite['reference']['id'])}}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
+              <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['reference']['id'] | format_reference}}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['reference_participant']['coefficient']}} [{{metabolite['reference_participant']['side']}}]</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['reference_participant']['compartment']}}</a></td>
         {% endcall %}

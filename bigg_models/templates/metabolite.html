@@ -7,8 +7,9 @@
   <div class="col-12">
     {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", reference) %}
       <div class="card-body">
-        <h5 class="card-title">{{general.formatted_comp_comp(bigg_id)}}</h5>
-        {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
+      <h5 class="card-title">{{bigg_id | format_id("comp_comp")}}</h5>
+        {% if name %}<p class="card-text">{{name}}</p>{% endif %}
+        {% if model_specific %}<div class="alert alert-primary mt-1 mb-0 p-1 ps-2 pe-2">This is a non-standardized model-specific entry.</div>{% endif %}
       </div>
       {% call cards.flush_list_group(accent=True) %}
         {{ cards.flush_list_group_item("Model", model_bigg_id, "/models/"~model_bigg_id, accent=True) }}

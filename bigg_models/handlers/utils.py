@@ -12,8 +12,43 @@ from jinja2 import Environment, PackageLoader
 from os import path
 import mimetypes
 
+
+def format_bigg_id(bigg_id, format_type=None):
+    if format_type is None:
+        return bigg_id
+    try:
+        prefix = ""
+        if bigg_id.startswith("__"):
+            if "__" in bigg_id[2:]:
+                model_id, bigg_id = bigg_id[2:].split("__", maxsplit=1)
+                prefix = (
+                    f"<span class='small opacity-75 fw-lighter'>__{model_id}__</span>"
+                )
+        if format_type == "comp_comp":
+            comp_id, charge = bigg_id.rsplit(":", maxsplit=1)
+            universal_id, compartment_id = comp_id.rsplit("_", maxsplit=1)
+            return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span><span class="fw-normal fst-italic opacity-75 small">:{charge}</span>'
+        elif format_type == "comp":
+            universal_id, charge = bigg_id.rsplit(":", maxsplit=1)
+            return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal fst-italic opacity-75 small">:{charge}</span>'
+        elif format_type == "universal_comp_comp":
+            universal_id, compartment_id = bigg_id.rsplit("_", maxsplit=1)
+            return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span>'
+        else:
+            return bigg_id
+    except:
+        return bigg_id
+
+
+def format_reference(identifier):
+    namespace, ref_id = identifier.rsplit(":", maxsplit=1)
+    return f'<span class="fw-normal text-body-secondary">{namespace}:</span><span class="text-body-emphasis">{ref_id}</span>'
+
+
 # set up jinja2 template location
 env = Environment(loader=PackageLoader("bigg_models", "templates"))
+env.filters["format_reference"] = lambda x: format_reference(x)
+env.filters["format_id"] = format_bigg_id
 
 # root directory
 directory = path.abspath(path.join(path.dirname(__file__), ".."))

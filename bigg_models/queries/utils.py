@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from bigg_models.version import __version__ as version, __api_version__ as api_version
+import bigg_models.handlers.utils as handler_utils
 
 from cobradb.models import (
     Component,
@@ -157,26 +158,6 @@ def get_gene_list_for_model(model_bigg_id, session):
 # -----------
 
 
-def format_bigg_id(bigg_id, format_type=None):
-    if format_type is None:
-        return bigg_id
-    try:
-        if format_type == "comp_comp":
-            comp_id, charge = bigg_id.rsplit(":", maxsplit=1)
-            universal_id, compartment_id = comp_id.rsplit("_", maxsplit=1)
-            return f'<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span><span class="fw-normal fst-italic opacity-75 small">:{charge}</span>'
-        elif format_type == "comp":
-            universal_id, charge = bigg_id.rsplit(":", maxsplit=1)
-            return f'<span class="fw-semibold">{universal_id}</span><span class="fw-normal fst-italic opacity-75 small">:{charge}</span>'
-        elif format_type == "universal_comp_comp":
-            universal_id, compartment_id = bigg_id.rsplit("_", maxsplit=1)
-            return f'<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span>'
-        else:
-            return bigg_id
-    except:
-        return bigg_id
-
-
 def build_reaction_string(
     metabolite_list,
     lower_bound,
@@ -188,7 +169,9 @@ def build_reaction_string(
     reaction_string_parts = [[], []]
     for met in metabolite_list:
         part_i = int(float(met["coefficient"]) > 0)
-        formatted_bigg_id = format_bigg_id(met["bigg_id"], format_type=format_met)
+        formatted_bigg_id = handler_utils.format_bigg_id(
+            met["bigg_id"], format_type=format_met
+        )
         if float(met["coefficient"]) != -1:
             coeff = float(abs(met["coefficient"]))
             if coeff.is_integer():
