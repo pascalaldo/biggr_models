@@ -25,6 +25,8 @@ from cobradb.models import (
 from cobradb.util import make_reaction_copy_id
 from sqlalchemy import func, asc
 
+from bigg_models.queries.memote_queries import get_memote_results_for_reaction
+
 
 # def reaction_with_hash(hash, session):
 #     """Find the reaction with the given hash."""
@@ -50,7 +52,7 @@ def get_universal_reactions(
     size=None,
     sort_column=None,
     sort_direction="ascending",
-    **kwargs
+    **kwargs,
 ):
     """Get universal reactions.
 
@@ -117,7 +119,7 @@ def get_model_reactions(
     size=None,
     sort_column=None,
     sort_direction="ascending",
-    **kwargs
+    **kwargs,
 ):
     """Get model reactions.
 
@@ -528,6 +530,7 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
             if db_count > 1
             else reaction_bigg_id
         )
+        memote_result_db = get_memote_results_for_reaction(session, result_db[3])
         result_list.append(
             {
                 "gene_reaction_rule": result_db[4],
@@ -539,6 +542,7 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
                 "subsystem": result_db[9],
                 "exported_reaction_id": exported_reaction_id,
                 "reaction_string": reaction_string,
+                "memote_result": memote_result_db,
             }
         )
 
