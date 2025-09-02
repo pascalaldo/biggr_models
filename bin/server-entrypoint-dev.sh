@@ -4,7 +4,8 @@ mkdir -p /static/models/
 mkdir -p /static/multistrain/
 mkdir -p /static/namespace/
 
-ln -s /static/models bigg_models/static/models
+# ln -s /static/models bigg_models/static/models
+ln -s /models bigg_models/static/models
 ln -s /static/multistrain bigg_models/static/multistrain
 ln -s /static/namespace bigg_models/static/namespace
 

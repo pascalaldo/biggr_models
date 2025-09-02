@@ -23,7 +23,11 @@ from sqlalchemy import func
 
 
 def get_universal_metabolites_count(session):
-    return session.query(UniversalComponent).count()
+    return (
+        session.query(UniversalComponent)
+        .filter(UniversalComponent.model_specific == False)
+        .count()
+    )
 
 
 def get_universal_metabolites(
@@ -32,7 +36,7 @@ def get_universal_metabolites(
     size=None,
     sort_column=None,
     sort_direction="ascending",
-    **kwargs
+    **kwargs,
 ):
     """Get universal metabolites.
 
@@ -71,7 +75,9 @@ def get_universal_metabolites(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(UniversalComponent.id, UniversalComponent.name)
+    query = session.query(UniversalComponent.id, UniversalComponent.name).filter(
+        UniversalComponent.model_specific == False
+    )
 
     # order and limit
     query = utils._apply_order_limit_offset(
@@ -97,7 +103,7 @@ def get_model_metabolites(
     size=None,
     sort_column=None,
     sort_direction="ascending",
-    **kwargs
+    **kwargs,
 ):
     """Get model metabolites.
 
@@ -189,18 +195,19 @@ def get_metabolite(met_bigg_id, session):
         .first()
     )
     if result_db is None:
+        raise utils.NotFoundError("No Component found with BiGG ID " + met_bigg_id)
         # Look for a result with a deprecated ID
-        res_db = (
-            session.query(DeprecatedID, UniversalComponent)
-            .filter(DeprecatedID.type == "component")
-            .filter(DeprecatedID.deprecated_id == met_bigg_id)
-            .join(UniversalComponent, UniversalComponent.id == DeprecatedID.ome_id)
-            .first()
-        )
-        if res_db:
-            raise utils.RedirectError(res_db[1].bigg_id)
-        else:
-            raise utils.NotFoundError("No Component found with BiGG ID " + met_bigg_id)
+        # res_db = (
+        #     session.query(DeprecatedID, UniversalComponent)
+        #     .filter(DeprecatedID.type == "component")
+        #     .filter(DeprecatedID.deprecated_id == met_bigg_id)
+        #     .join(UniversalComponent, UniversalComponent.id == DeprecatedID.ome_id)
+        #     .first()
+        # )
+        # if res_db:
+        #     raise utils.RedirectError(res_db[1].bigg_id)
+        # else:
+        #     raise utils.NotFoundError("No Component found with BiGG ID " + met_bigg_id)
 
     comp_comp_db = (
         session.query(
@@ -242,6 +249,8 @@ def get_metabolite(met_bigg_id, session):
         .filter(UniversalComponentReferenceMapping.id == met_bigg_id)
         .first()
     )
+    print(f"Default component: {default_component_db}")
+    print(default_component_db[0].id)
     default_component = None
     reference = None
 
@@ -261,23 +270,38 @@ def get_metabolite(met_bigg_id, session):
         }
 
     components_db = (
-        session.query(Component, ComponentReferenceMapping)
+        session.query(Component, ComponentReferenceMapping, ReferenceCompound)
         .join(
             ComponentReferenceMapping,
             ComponentReferenceMapping.component_id == Component.id,
         )
+        .join(
+            ReferenceCompound,
+            ReferenceCompound.id == ComponentReferenceMapping.reference_id,
+        )
         .filter(Component.universal_id == met_bigg_id)
         .order_by(Component.charge)
     )
-    formulae = list({y.formula for y, _ in components_db if y is not None})
-    charges = list({y.charge for y, _ in components_db if y is not None})
+    formulae = list({y.formula for y, _, _ in components_db if y is not None})
+    charges = list({y.charge for y, _, _ in components_db if y is not None})
 
     components = []
-    for component, refmap in components_db:
+    for component, refmap, ref_db in components_db:
+        ref = None
+        if ref_db is not None:
+            ref = {
+                "id": ref_db.id,
+                "name": ref_db.name,
+                "type": ref_db.compound_type,
+                "charge": ref_db.charge,
+                "formula": ref_db.formula,
+                "ref_n": refmap.reference_n,
+            }
         skip = False
         for comp in components:
             if comp["id"] == component.id:
-                comp["reference_id"].append(refmap.reference_id)
+                if ref is not None:
+                    comp["reference"].append(ref)
                 skip = True
                 break
         if skip:
@@ -286,11 +310,14 @@ def get_metabolite(met_bigg_id, session):
             "id": component.id,
             "name": component.name,
             "charge": component.charge,
-            "reference_id": [refmap.reference_id],
+            "formula": component.formula,
+            "reference": [] if ref is None else [ref],
         }
         if default_component is not None and default_component["id"] == d["id"]:
             d["default"] = True
-        components.append(d)
+            components.insert(0, d)
+        else:
+            components.append(d)
 
     # database links and old ids
     db_link_results = id_queries._get_db_links_for_metabolite(met_bigg_id, session)

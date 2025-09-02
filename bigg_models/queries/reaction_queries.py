@@ -1,3 +1,4 @@
+from sqlalchemy.orm import aliased
 from bigg_models.queries import escher_map_queries, utils, id_queries
 from cobradb.models import (
     Compartment,
@@ -17,6 +18,7 @@ from cobradb.models import (
     ReferenceReaction,
     ReferenceReactionParticipant,
     ReferenceCompound,
+    UniversalComponentReferenceMapping,
     UniversalReaction,
     UniversalReactionMatrix,
 )
@@ -183,8 +185,8 @@ def get_model_reactions(
 def _get_metabolite_and_reference_list_for_universal_reaction(reaction_id, session):
     result_db = (
         session.query(
-            UniversalComponent.id,
             UniversalCompartmentalizedComponent.id,
+            UniversalComponent.id,
             UniversalReactionMatrix.coefficient,
             UniversalCompartmentalizedComponent.compartment_id,
             UniversalComponent.name,
@@ -193,7 +195,7 @@ def _get_metabolite_and_reference_list_for_universal_reaction(reaction_id, sessi
             ReferenceReactionParticipant,
         )
         .join(
-            UniversalCompartmentalizedComponent,
+            UniversalComponent,
             UniversalCompartmentalizedComponent.universal_component_id
             == UniversalComponent.id,
         )
@@ -207,18 +209,31 @@ def _get_metabolite_and_reference_list_for_universal_reaction(reaction_id, sessi
             UniversalReaction.id == UniversalReactionMatrix.universal_id,
         )
         .join(
+            ReferenceReactionParticipant,
+            UniversalReactionMatrix.reference_reaction_participant_id
+            == ReferenceReactionParticipant.id,
+            isouter=True,
+        )
+        .join(
+            UniversalComponentReferenceMapping,
+            UniversalComponentReferenceMapping.id == UniversalComponent.id,
+            isouter=True,
+        )
+        .join(
             ComponentReferenceMapping,
-            ComponentReferenceMapping.universal_id == UniversalComponent.id,
+            ComponentReferenceMapping.id
+            == UniversalComponentReferenceMapping.mapping_id,
+            isouter=True,
         )
         .join(
             ReferenceCompound,
             ReferenceCompound.id == ComponentReferenceMapping.reference_id,
+            isouter=True,
         )  # TODO: Does this work when there is no reference?
-        .join(ReferenceReaction, ReferenceReaction.id == UniversalReaction.reference_id)
         .join(
-            ReferenceReactionParticipant,
-            (ReferenceReactionParticipant.reaction_id == ReferenceReaction.id)
-            & (ReferenceReactionParticipant.compound_id == ReferenceCompound.id),
+            ReferenceReaction,
+            ReferenceReaction.id == UniversalReaction.reference_id,
+            isouter=True,
         )
         .filter(UniversalReaction.id == reaction_id)
         .order_by(
@@ -228,8 +243,8 @@ def _get_metabolite_and_reference_list_for_universal_reaction(reaction_id, sessi
     )
     return [
         {
-            "base_bigg_id": x[0],
-            "bigg_id": x[1],
+            "base_bigg_id": x[1],
+            "bigg_id": x[0],
             "coefficient": x[2],
             "coefficient_int_or_float": int(x[2]) if x[2].is_integer() else x[2],
             "compartment_bigg_id": x[3],
@@ -243,19 +258,23 @@ def _get_metabolite_and_reference_list_for_universal_reaction(reaction_id, sessi
 
 
 def _get_metabolite_and_reference_list_for_reaction(reaction_id, session):
+    cr = aliased(ComponentReferenceMapping)
+    cr_id = cr.id.label("cr_id")
+    subq = session.query(cr_id).filter(cr.component_id == Component.id).limit(1)
     result_db = (
         session.query(
-            Component.id,
             CompartmentalizedComponent.id,
+            Component.id,
             UniversalReactionMatrix.coefficient,
             CompartmentalizedComponent.compartment_id,
             Component.name,
             ReferenceCompound,
             ComponentReferenceMapping,
             ReferenceReactionParticipant,
+            ReactionMatrix.id,
         )
         .join(
-            CompartmentalizedComponent,
+            Component,
             CompartmentalizedComponent.component_id == Component.id,
         )
         .join(
@@ -271,29 +290,45 @@ def _get_metabolite_and_reference_list_for_reaction(reaction_id, session):
             Reaction,
             Reaction.id == ReactionMatrix.reaction_id,
         )
+        .join(UniversalReaction, UniversalReaction.id == Reaction.universal_id)
+        .join(
+            ReferenceReaction,
+            ReferenceReaction.id == UniversalReaction.reference_id,
+            isouter=True,
+        )
+        .join(
+            ReferenceReactionParticipant,
+            UniversalReactionMatrix.reference_reaction_participant_id
+            == ReferenceReactionParticipant.id,
+            isouter=True,
+        )
+        # .join(
+        #     ComponentReferenceMapping,
+        #     ComponentReferenceMapping.component_id == Component.id,
+        #     isouter=True,
+        # )
         .join(
             ComponentReferenceMapping,
-            ComponentReferenceMapping.component_id == Component.id,
+            ComponentReferenceMapping.id == subq,
+            isouter=True,
         )
         .join(
             ReferenceCompound,
             ReferenceCompound.id == ComponentReferenceMapping.reference_id,
+            isouter=True,
         )  # TODO: Does this work when there is no reference?
-        .join(UniversalReaction, UniversalReaction.id == Reaction.universal_id)
-        .join(ReferenceReaction, ReferenceReaction.id == UniversalReaction.reference_id)
-        .join(
-            ReferenceReactionParticipant,
-            (ReferenceReactionParticipant.reaction_id == ReferenceReaction.id)
-            & (ReferenceReactionParticipant.compound_id == ReferenceCompound.id),
-        )
         .filter(Reaction.id == reaction_id)
-        .order_by(asc(UniversalReactionMatrix.coefficient > 0), asc(Component.id))
+        .order_by(
+            asc(UniversalReactionMatrix.coefficient > 0),
+            asc(CompartmentalizedComponent.id),
+        )
         .all()
     )
+
     return [
         {
-            "base_bigg_id": x[0],
-            "bigg_id": x[1],
+            "base_bigg_id": x[1],
+            "bigg_id": x[0],
             "coefficient": x[2],
             "coefficient_int_or_float": int(x[2]) if x[2].is_integer() else x[2],
             "compartment_bigg_id": x[3],

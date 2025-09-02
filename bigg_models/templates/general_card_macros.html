@@ -13,8 +13,8 @@
 </div>
 {% endmacro %}
 
-{% macro item_and_reference(icon_id, alt_text, reference_include, reference) %}
-<div class="card mb-3 bg-body-tertiary">
+{% macro item_and_reference(icon_id, alt_text, reference_include, reference, accent=True) %}
+<div class="card mb-3{% if accent %} bg-body-tertiary{% endif %}">
 	<div class="row g-0">
 		<div class="col-12 col-lg-7">
 			<div class="row g-0">
@@ -45,7 +45,7 @@
 				class="stretched-link">{{value}}</a>{% endif %}{% else %}{{value}}{%
 			endif%}{% endif %}
 			{% if align > 0 %}</div>
-		<div>{% endif %}
+	</div>{% endif %}
 </li>
 {% endmacro %}
 {% macro flush_list_group(items=[], accent=False, align=0) %}

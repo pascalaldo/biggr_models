@@ -19,6 +19,7 @@ services:
       - /data/biggr-genbank/:/genbank
       - /data/biggr-metanetx/:/metanetx
       - /data/biggr-static/:/static
+      - /data/biggr-bigg-models/:/models
   biggr-web-dev:
     profiles:
       - dev
@@ -36,6 +37,7 @@ services:
       - /data/biggr-genbank/:/genbank
       - /data/biggr-metanetx/:/metanetx
       - /data/biggr-static/:/static
+      - /data/biggr-bigg-models/:/models
       - ./:/server
   biggr-db:
     container_name: biggr-postgres

@@ -16,19 +16,25 @@
   </div>
 
 
+  {% for component in components %}
   <div class="col-12">
-    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", reference) %}
+    {% if not component.reference %}
+      {% set one_ref = none %}
+    {% else %}
+      {% set one_ref = component.reference[0] %}
+    {% endif %}
+    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", one_ref, accent=component.default) %}
       <div class="card-body">
-        <h5 class="card-title">{{default_component['id'] | format_id("comp")}}</h5>
-        {% if default_component['name'] is not none %}<p class="card-text">{{default_component['name']}}</p>{% endif %}
+        <h5 class="card-title">{{component.id | format_id("comp")}}</h5>
+        {% if component.name is not none %}<p class="card-text">{{component.name}}</p>{% endif %}
       </div>
       {% call cards.flush_list_group(accent=True) %}
-        {{ cards.flush_list_group_item("Charge", default_component.charge, accent=True) }}
-        {{ cards.flush_list_group_item("Formula", default_component.formula, accent=True) }}
+        {{ cards.flush_list_group_item("Charge", component.charge, accent=component.default) }}
+        {{ cards.flush_list_group_item("Formula", component.formula, accent=component.default) }}
       {% endcall %}
     {% endcall %}
   </div>
-
+  {% endfor %}
 
   <div class="col-12">
     <div class="card mb-3">
