@@ -23,6 +23,7 @@ from cobradb.models import (
     UniversalReactionMatrix,
 )
 from cobradb.util import make_reaction_copy_id
+from cobradb.parse import split_id_and_copy_tag
 from sqlalchemy import func, asc
 
 from bigg_models.queries.memote_queries import get_memote_results_for_reaction
@@ -165,7 +166,11 @@ def get_model_reactions(
     # set up the query
     query = (
         session.query(
-            UniversalReaction.id, UniversalReaction.name, Model.id, Model.organism
+            UniversalReaction.id,
+            UniversalReaction.name,
+            Model.id,
+            Model.organism,
+            ModelReaction.copy_number,
         )
         .join(Reaction, Reaction.universal_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
@@ -179,7 +184,12 @@ def get_model_reactions(
     )
 
     return [
-        {"bigg_id": x[0], "name": x[1], "model_bigg_id": x[2], "organism": x[3]}
+        {
+            "bigg_id": f"{x[0]}:{x[4]}" if x[4] != 1 else x[0],
+            "name": x[1],
+            "model_bigg_id": x[2],
+            "organism": x[3],
+        }
         for x in query
     ]
 
@@ -440,7 +450,7 @@ def get_model_list_for_reaction(reaction_bigg_id, session):
         session.query(Model.id)
         .join(ModelReaction, ModelReaction.model_id == Model.id)
         .join(Reaction, Reaction.id == ModelReaction.reaction_id)
-        .filter(Reaction.id == reaction_bigg_id)
+        .filter(Reaction.universal_id == reaction_bigg_id)
         .distinct()
         .all()
     )
@@ -457,40 +467,59 @@ def get_reference_for_reaction(reaction_bigg_id, session):
     return result
 
 
-def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
+def get_model_reaction(model_bigg_id, biggr_id, session):
     """Get details about this reaction in the given model. Returns multiple
     results when the reaction appears in the model multiple times.
 
     """
-    model_reaction_db = (
+    # model_reaction_db = (
+    #     session.query(
+    #         Reaction.id,
+    #         UniversalReaction.id,
+    #         UniversalReaction.name,
+    #         ModelReaction.id,
+    #         ModelReaction.gene_reaction_rule,
+    #         ModelReaction.lower_bound,
+    #         ModelReaction.upper_bound,
+    #         ModelReaction.objective_coefficient,
+    #         ModelReaction.copy_number,
+    #         ModelReaction.subsystem,
+    #     )
+    #     .join(UniversalReaction, Reaction.universal_id == UniversalReaction.id)
+    #     .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
+    #     .filter(ModelReaction.model_id == model_bigg_id)
+    #     .filter(ModelReaction.copy_number == copy_number)
+    #     .filter(UniversalReaction.id == reaction_bigg_id)
+    # )
+    #
+    reaction_bigg_id, copy_number = split_id_and_copy_tag(biggr_id)
+    full_bigg_id = (
+        reaction_bigg_id if copy_number == 1 else f"{reaction_bigg_id}:{copy_number}"
+    )
+
+    result_db = (
         session.query(
-            Reaction.id,
-            UniversalReaction.id,
-            UniversalReaction.name,
-            ModelReaction.id,
-            ModelReaction.gene_reaction_rule,
-            ModelReaction.lower_bound,
-            ModelReaction.upper_bound,
-            ModelReaction.objective_coefficient,
-            ModelReaction.copy_number,
-            ModelReaction.subsystem,
+            Reaction,
+            UniversalReaction,
+            ModelReaction,
         )
         .join(UniversalReaction, Reaction.universal_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .filter(ModelReaction.model_id == model_bigg_id)
+        .filter(ModelReaction.copy_number == copy_number)
         .filter(UniversalReaction.id == reaction_bigg_id)
+        .first()
     )
-    db_count = model_reaction_db.count()
-    if db_count == 0:
+    if result_db is None:
         raise utils.NotFoundError(
             "Reaction %s not found in model %s" % (reaction_bigg_id, model_bigg_id)
         )
 
-    reaction_id = model_reaction_db[0][0]
+    reaction_db, universal_reaction_db, model_reaction_db = result_db
 
     # metabolites
     metabolite_db = _get_metabolite_and_reference_list_for_reaction(
-        reaction_id, session
+        reaction_db.id, session
     )
 
     # models
@@ -499,6 +528,18 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
 
     # reference
     reference_db = get_reference_for_reaction(reaction_bigg_id, session)
+
+    other_copy_numbers = list(
+        sorted(
+            x[0]
+            for x in session.query(ModelReaction.copy_number)
+            .join(Reaction, Reaction.id == ModelReaction.reaction_id)
+            .filter(Reaction.universal_id == reaction_db.universal_id)
+            .filter(ModelReaction.model_id == model_reaction_db.model_id)
+            .filter(ModelReaction.copy_number != model_reaction_db.copy_number)
+            .all()
+        )
+    )
 
     # database_links
     # db_link_results = id_queries._get_db_links_for_model_reaction(
@@ -519,47 +560,35 @@ def get_model_reaction(model_bigg_id, reaction_bigg_id, session):
     old_id_results = []
     r_escher_maps = []
 
-    result_list = []
-    for result_db in model_reaction_db:
-        gene_db = _get_gene_list_for_model_reaction(result_db[3], session)
-        reaction_string = utils.build_reaction_string(
-            metabolite_db, result_db[5], result_db[6], False, format_met="comp_comp"
-        )
-        exported_reaction_id = (
-            make_reaction_copy_id(reaction_bigg_id, result_db[8])
-            if db_count > 1
-            else reaction_bigg_id
-        )
-        memote_result_db = get_memote_results_for_reaction(session, result_db[3])
-        result_list.append(
-            {
-                "gene_reaction_rule": result_db[4],
-                "lower_bound": result_db[5],
-                "upper_bound": result_db[6],
-                "objective_coefficient": result_db[7],
-                "genes": gene_db,
-                "copy_number": result_db[8],
-                "subsystem": result_db[9],
-                "exported_reaction_id": exported_reaction_id,
-                "reaction_string": reaction_string,
-                "memote_result": memote_result_db,
-            }
-        )
+    gene_db = _get_gene_list_for_model_reaction(model_reaction_db.id, session)
+    reaction_string = utils.build_reaction_string(
+        metabolite_db,
+        model_reaction_db.lower_bound,
+        model_reaction_db.upper_bound,
+        False,
+        format_met="comp_comp",
+    )
+    # exported_reaction_id = (
+    #     make_reaction_copy_id(reaction_bigg_id, result_db[8])
+    #     if db_count > 1
+    #     else reaction_bigg_id
+    # )
+    memote_result_db = get_memote_results_for_reaction(session, model_reaction_db.id)
 
     return {
-        "count": len(result_list),
         "bigg_id": reaction_bigg_id,
-        "universal_bigg_id": model_reaction_db[0][1],
-        "name": model_reaction_db[0][1],
-        "pseudoreaction": False,
+        "full_bigg_id": full_bigg_id,
         "model_bigg_id": model_bigg_id,
-        "metabolites": metabolite_db,
-        "database_links": db_link_results,
-        "old_identifiers": old_id_results,
-        "other_models_with_reaction": model_result,
-        "escher_maps": r_escher_maps,
-        "results": result_list,
+        "reaction": reaction_db,
+        "model_reaction": model_reaction_db,
+        "universal_reaction": universal_reaction_db,
+        "other_copy_numbers": other_copy_numbers,
+        "reaction_string": reaction_string,
+        "memote_result": memote_result_db,
+        "genes": gene_db,
         "reference": reference_db,
+        "other_models_with_reaction": model_result,
+        "metabolites": metabolite_db,
     }
 
 

@@ -19,7 +19,7 @@ from bigg_models.queries.memote_queries import get_general_results_for_model
 
 def get_models_count(session, multistrain_off, **kwargs):
     """Return the number of models in the database."""
-    query = session.query(Model)
+    query = session.query(Model).join(ModelCount, ModelCount.model_id == Model.id)
     if multistrain_off:
         query = utils._add_multistrain_filter(session, query, Model)
     return query.count()

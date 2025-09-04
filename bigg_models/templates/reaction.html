@@ -1,20 +1,30 @@
 {% extends "general_main.html" %}
 {% import "general_card_macros.html" as cards %}
 {% import "general_table_macros.html" as tables %}
-{% block title %}BiGG Reaction {{bigg_id}} in {{model_bigg_id}}{% endblock %}
+{% block title %}BiGG Reaction {{full_bigg_id}} in {{model_bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
+  {% if other_copy_numbers %}
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title"><span class="fw-normal text-body-secondary">Other instances of the same reaction:</span>{% for cpn in other_copy_numbers %}<a href="/models/{{model_bigg_id}}/reactions/{{bigg_id}}:{{cpn}}" class="ms-3">{{bigg_id}}:{{cpn}}</a>{% endfor %}</h5>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="col-12">
     {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", reference) %}
       <div class="card-body">
-        <h5 class="card-title">{{bigg_id}}</h5>
-        {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
+        <h5 class="card-title">{{full_bigg_id}}</h5>
+        {% if name is not none %}<p class="card-text">{{universal_reaction.name}}</p>{% endif %}
       </div>
       {% call cards.flush_list_group(accent=True) %}
-        {{ cards.flush_list_group_item(value=results[0]['reaction_string'], accent=True) }}
+        {{ cards.flush_list_group_item(value=reaction_string, accent=True) }}
         {{ cards.flush_list_group_item("Model", model_bigg_id, link="/models/"~model_bigg_id, accent=True) }}
-        {{ cards.flush_list_group_item("Bounds", '('~results[0].lower_bound~', '~results[0].upper_bound~')', accent=True) }}
-        {{ cards.flush_list_group_item("Universal Reaction", universal_bigg_id, link="/universal/reactions/"~universal_bigg_id, accent=True) }}
+        {{ cards.flush_list_group_item("Bounds", '('~model_reaction.lower_bound~', '~model_reaction.upper_bound~')', accent=True) }}
+        {{ cards.flush_list_group_item("Universal Reaction", universal_reaction.id, link="/universal/reactions/"~universal_reaction.id, accent=True) }}
       {% endcall %}
     {% endcall %}
   </div>
@@ -38,7 +48,24 @@
       </div>
     </div>
   </div>
-  {% if results[0].memote_result %}
+  {% if genes %}
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Related Genes</h5>
+      </div>
+      <div class="card-body p-0">
+        {% call(gene) tables.simple_table([{"name": ""}, {"name": "BiGG ID", "class": "w-50"}, "Name"], genes) %}
+      {% set link -%}/models/{{model_bigg_id}}/genes/{{gene.bigg_id}}{%- endset %}
+          <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#gene_S" style="height: 1em;" /></a></td>
+      <td><a href="{{link}}" class="d-block">{{gene.bigg_id}}</a></td>
+          <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{gene.name}}</a></td>
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if memote_result %}
   <div class="col-md-6">
     <div class="card mb-3">
       <div class="card-header">
@@ -48,7 +75,7 @@
         This reaction was flagged in the following MEMOTE tests:
       </div>
       <div class="accordion accordion-flush" id="memote_overview_accordion">
-        {% for reaction_result_data, general_result_data, test_data in results[0].memote_result %}
+        {% for reaction_result_data, general_result_data, test_data in memote_result %}
         {% set test_id = test_data.id %}
         <div class="accordion-item">
           <h5 class="accordion-header" id="flush-heading-{{test_id}}">

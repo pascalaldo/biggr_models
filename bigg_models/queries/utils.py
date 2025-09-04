@@ -172,7 +172,7 @@ def build_reaction_string(
         formatted_bigg_id = handler_utils.format_bigg_id(
             met["bigg_id"], format_type=format_met
         )
-        if float(met["coefficient"]) != -1:
+        if abs(float(met["coefficient"])) != 1:
             coeff = float(abs(met["coefficient"]))
             if coeff.is_integer():
                 coeff = int(coeff)

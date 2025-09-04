@@ -19,7 +19,7 @@
           {% elif strand == '+' %}
             {% set strand_string = "Plus" %}
           {% endif %}
-          {{ cards.flush_list_group_item("Position", left_pos~" - "~right_pos, accent=True) }}
+          {{ cards.flush_list_group_item("Position", leftpos~" - "~rightpos, accent=True) }}
           {{ cards.flush_list_group_item("Strand", strand_string, accent=True) }}
           {{ cards.flush_list_group_item("Chromosome", chromosome_ncbi_accession, link="/genomes/"~genome_ref_string~"#"~chromosome_ncbi_accession, accent=True) }}
         {% endif %}
