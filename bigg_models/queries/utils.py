@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from bigg_models.version import __version__ as version, __api_version__ as api_version
+import bigg_models.handlers.utils as handler_utils
 
 from cobradb.models import (
     Component,
@@ -158,65 +159,42 @@ def get_gene_list_for_model(model_bigg_id, session):
 
 
 def build_reaction_string(
-    metabolite_list, lower_bound, upper_bound, universal=False, html=True
+    metabolite_list,
+    lower_bound,
+    upper_bound,
+    universal=False,
+    html=True,
+    format_met=None,
 ):
-    post_reaction_string = ""
-    pre_reaction_string = ""
+    reaction_string_parts = [[], []]
     for met in metabolite_list:
-        if float(met["coefficient"]) < 0:
-            if float(met["coefficient"]) != -1:
-                pre_reaction_string += (
-                    "{}".format(abs(met["coefficient"]))
-                    + " "
-                    + met["bigg_id"]
-                    # + "_"
-                    # + met["compartment_bigg_id"]
-                    + " + "
-                )
-            else:
-                pre_reaction_string += (
-                    # met["bigg_id"] + "_" + met["compartment_bigg_id"] + " + "
-                    met["bigg_id"]
-                    + " + "
-                )
-        if float(met["coefficient"]) > 0:
-            if float(met["coefficient"]) != 1:
-                post_reaction_string += (
-                    "{}".format(abs(met["coefficient"]))
-                    + " "
-                    + met["bigg_id"]
-                    # + "_"
-                    # + met["compartment_bigg_id"]
-                    + " + "
-                )
-            else:
-                post_reaction_string += (
-                    # met["bigg_id"] + "_" + met["compartment_bigg_id"] + " + "
-                    met["bigg_id"]
-                    + " + "
-                )
+        part_i = int(float(met["coefficient"]) > 0)
+        formatted_bigg_id = handler_utils.format_bigg_id(
+            met["bigg_id"], format_type=format_met
+        )
+        if abs(float(met["coefficient"])) != 1:
+            coeff = float(abs(met["coefficient"]))
+            if coeff.is_integer():
+                coeff = int(coeff)
+            reaction_string_parts[part_i].append(
+                f"<span class='fw-bold'>{coeff}</span> {formatted_bigg_id}"
+            )
+        else:
+            reaction_string_parts[part_i].append(formatted_bigg_id)
 
     both_arrow = " &#8652; " if html else " <-> "
     left_arrow = " &#x2190; " if html else " <-- "
     right_arrow = " &#x2192; " if html else " --> "
 
     if len(metabolite_list) == 1 or universal is True:
-        reaction_string = (
-            pre_reaction_string[:-3] + both_arrow + post_reaction_string[:-3]
-        )
+        arrow = both_arrow
     elif lower_bound < 0 and upper_bound <= 0:
-        reaction_string = (
-            pre_reaction_string[:-3] + left_arrow + post_reaction_string[:-3]
-        )
+        arrow = left_arrow
     elif lower_bound >= 0 and upper_bound > 0:
-        reaction_string = (
-            pre_reaction_string[:-3] + right_arrow + post_reaction_string[:-3]
-        )
+        arrow = right_arrow
     else:
-        reaction_string = (
-            pre_reaction_string[:-3] + both_arrow + post_reaction_string[:-3]
-        )
-
+        arrow = both_arrow
+    reaction_string = arrow.join(" + ".join(x) for x in reaction_string_parts)
     return reaction_string
 
 

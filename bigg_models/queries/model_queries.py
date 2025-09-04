@@ -14,10 +14,12 @@ from cobradb.models import (
 from sqlalchemy import func
 from os import path
 
+from bigg_models.queries.memote_queries import get_general_results_for_model
+
 
 def get_models_count(session, multistrain_off, **kwargs):
     """Return the number of models in the database."""
-    query = session.query(Model)
+    query = session.query(Model).join(ModelCount, ModelCount.model_id == Model.id)
     if multistrain_off:
         query = utils._add_multistrain_filter(session, query, Model)
     return query.count()
@@ -80,15 +82,12 @@ def get_models(
         ModelCount.reaction_count,
         ModelCount.gene_count,
     ).join(ModelCount, ModelCount.model_id == Model.id)
-    print(str(query))
     if multistrain_off:
         query = utils._add_multistrain_filter(session, query, Model)
-    print(str(query))
     # order and limit
     query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
-    print(str(query))
 
     return [
         {
@@ -144,10 +143,15 @@ def get_model_and_counts(
         "reference_type": model_db[3],
         "reference_id": model_db[4],
         "escher_maps": m_escher_maps,
-        "last_updated": session.query(DatabaseVersion)
-        .first()
-        .date_time.strftime("%b %d, %Y"),
+        "model_modified_date": model_db[0].date_modified.strftime("%b %d, %Y"),
+        # "last_updated": session.query(DatabaseVersion)
+        # .first()
+        # .date_time.strftime("%b %d, %Y"),
     }
+
+    memote_result_db = get_general_results_for_model(session, model_db[0].id)
+    result["memote_general_result"] = memote_result_db
+
     if static_model_dir:
         # get filesizes
         for ext in ("xml", "xml_gz", "mat", "mat_gz", "json", "json_gz", "multistrain"):
@@ -174,9 +178,9 @@ def get_model_and_counts(
 def get_model_list(session):
     """Return a list of all models, for advanced search."""
     model_list = session.query(Model.id).order_by(Model.id)
-    list = [x[0] for x in model_list]
-    list.sort()
-    return list
+    l = [x[0] for x in model_list]
+    l.sort()
+    return l
 
 
 def get_model_json_string(model_bigg_id):

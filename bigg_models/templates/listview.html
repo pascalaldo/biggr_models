@@ -1,0 +1,54 @@
+{% extends "general_main.html" %}
+{% block head %}
+  <script src="//code.jquery.com/jquery-1.9.1.min.js"></script>
+  <script src="/static/lib/tablesorter/jquery.tablesorter.min.js"></script>
+  <script>
+   /* pass in the hide_organism variable from Jinja */
+   var HIDE_ORGANISM = {% if hide_organism %}true{% else %}false{% endif %},
+       TABLESORTER_SIZE = {{tablesorter_size if tablesorter_size else 108}};
+  </script>
+  <script src="/static/lib/tablesorter/jquery.tablesorter.pager.js"></script>
+  <script src="/static/js/tablesorter_pager.js"></script>
+{% endblock %}
+{% block body %}
+{% for type in results %}
+  {%- set n_cols = 4 -%}
+  {%- if type == 'models' -%}
+    {%- set n_cols = 5 -%}
+  {%- elif type == 'genomes' -%}
+    {%- set n_cols = 3 -%}
+  {%- endif -%}
+  {%- if hide_organism -%}
+    {%- set n_cols = n_cols - 1 -%}
+  {%- endif -%}
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-3">
+        <div class="card-header"><h5 class="card-title">{{type|capitalize()}}</h5></div>
+          <div class="card-body p-0">
+            <table class="table table-hover mb-0 table-no-bottom-border rounded-3 rounded-top-0 {{type}}-tablesorter tablesorter">
+              <thead>
+                <tr>
+                  <td class="pager sorter-false" colspan="42">
+                    <img src="/static/lib/tablesorter/addons/pager/icons/first.png" class="first"/>
+                    <img src="/static/lib/tablesorter/addons/pager/icons/prev.png" class="prev"/>
+                    <span class="pagedisplay"></span> <!-- this can be any element, including an input -->
+                    <img src="/static/lib/tablesorter/addons/pager/icons/next.png" class="next"/>
+                    <img src="/static/lib/tablesorter/addons/pager/icons/last.png" class="last"/>
+                  </td>
+                </tr>
+                <tr>
+                  {% for i in range(n_cols) -%}
+                    <th>{{i + 1}}</th>
+                  {%- endfor %}
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

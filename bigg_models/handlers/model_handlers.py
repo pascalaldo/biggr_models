@@ -34,7 +34,7 @@ class ModelListHandler(utils.PageableHandler):
 
 
 class ModelsListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("listview.html")
 
     def get(self):
         template_data = {"results": {"models": "ajax"}}
@@ -63,4 +63,54 @@ class ModelHandler(utils.BaseHandler):
             static_model_dir=utils.static_model_dir,
             static_multistrain_dir=utils.static_multistrain_dir,
         )
+        result["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (model_bigg_id, f"/models/{model_bigg_id}"),
+        ]
+
+        result["model_metrics"] = [
+            {
+                "label": "Metabolites",
+                "link": f"/models/{model_bigg_id}/metabolites",
+                "value": result["metabolite_count"],
+            },
+            {
+                "label": "Reactions",
+                "link": f"/models/{model_bigg_id}/reactions",
+                "value": result["reaction_count"],
+            },
+            {
+                "label": "Genes",
+                "link": f"/models/{model_bigg_id}/genes",
+                "value": result["gene_count"],
+            },
+        ]
+
+        result["model_properties"] = []
+        if result["genome_name"] is not None:
+            result["model_properties"].append(
+                {
+                    "label": "Genome",
+                    "link": f"/genomes/{result['genome_ref_string']}",
+                    "value": result["genome_name"],
+                }
+            )
+        if result["reference_type"] == "pmid":
+            result["model_properties"].append(
+                {
+                    "label": "Publication PMID",
+                    "link": f"https://www.ncbi.nlm.nih.gov/pubmed/{result['reference_id']}",
+                    "value": result["reference_id"],
+                }
+            )
+        elif result["reference_type"] == "doi":
+            result["model_properties"].append(
+                {
+                    "label": "Publication DOI",
+                    "link": f"https://dx.doi.org/{result['reference_id']}",
+                    "value": result["reference_id"],
+                }
+            )
+
         self.return_result(result)

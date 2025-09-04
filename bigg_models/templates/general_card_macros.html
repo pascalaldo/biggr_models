@@ -1,0 +1,58 @@
+{% import "general_macros.html" as general %}
+{% macro item_card(icon_id, alt_text, accent=False) %}
+<div class="card mb-3{% if accent %} bg-body-tertiary{% endif %}">
+	<div class="row g-0">
+		<div class="col-3">
+			<img src="/static/assets/iconset.svg#{{icon_id}}" class="img-fluid p-0 w-100 h-100"
+				alt="{{alt_text}}">
+		</div>
+		<div class="col-9">
+			{{ caller() }}
+		</div>
+	</div>
+</div>
+{% endmacro %}
+
+{% macro item_and_reference(icon_id, alt_text, reference_include, reference, accent=True) %}
+<div class="card mb-3{% if accent %} bg-body-tertiary{% endif %}">
+	<div class="row g-0">
+		<div class="col-12 col-lg-7">
+			<div class="row g-0">
+				<div class="col-3">
+					<img src="/static/assets/iconset.svg#{{icon_id}}"
+						class="img-fluid p-0 w-100 h-100" alt="{{alt_text}}">
+				</div>
+				<div class="col-9">
+					{{ caller() }}
+				</div>
+			</div>
+		</div>
+		<div class="col-12 col-lg-5 d-flex">
+			{% include reference_include %}
+		</div>
+	</div>
+</div>
+{% endmacro %}
+{% macro flush_list_group_item(label=none, value=none, link=none, accent=False, align=0) %}
+<li class="list-group-item{% if accent %} bg-body-tertiary{% endif %}">
+	{%- if align > 0 -%}<div class="row g-0">
+		<div class="col-{{align}}">{%- endif -%}
+			{% if label is not none %}<i>{{ label }}:</i> {% endif %}{% if align > 0 %}
+		</div>
+		<div class="col-{{ 12 - align }}">{% endif %}{% if value is not none %}{% if link is not none %}{% if
+			link.startswith("http")
+			%}{{ general.external_link(value, link) }}{% else %}<a href="{{link}}"
+				class="stretched-link">{{value}}</a>{% endif %}{% else %}{{value}}{%
+			endif%}{% endif %}
+			{% if align > 0 %}</div>
+	</div>{% endif %}
+</li>
+{% endmacro %}
+{% macro flush_list_group(items=[], accent=False, align=0) %}
+<ul class="list-group list-group-flush rounded-3{% if accent %} bg-body-tertiary{% endif %}">
+	{% for item in items %}
+	{{ flush_list_group_item(item.label, item.value, item.link, accent=accent, align=align) }}
+	{% endfor %}
+	{% if caller %}{{ caller() }}{% endif %}
+</ul>
+{% endmacro %}

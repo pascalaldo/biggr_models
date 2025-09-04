@@ -9,6 +9,7 @@ from cobradb.models import (
     ModelGene,
     ModelReaction,
     Reaction,
+    UniversalReaction,
     GenomeRegion
 )
 
@@ -164,7 +165,13 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         )
 
     reaction_db = (
-        session.query(Reaction.id, ModelReaction.gene_reaction_rule, Reaction.name)
+        session.query(
+            Reaction.id,
+            ModelReaction.gene_reaction_rule,
+            UniversalReaction.name,
+            UniversalReaction.id,
+        )
+        .join(UniversalReaction, UniversalReaction.id == Reaction.universal_id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
         .join(
@@ -176,7 +183,8 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         .filter(Gene.bigg_id == gene_bigg_id)
     )
     reaction_results = [
-        {"bigg_id": r[0], "gene_reaction_rule": r[1], "name": r[2]} for r in reaction_db
+        {"bigg_id": r[3], "reaction_id": r[0], "gene_reaction_rule": r[1], "name": r[2]}
+        for r in reaction_db
     ]
 
     # synonym_db = id_queries._get_db_links_for_model_gene(gene_bigg_id, session)

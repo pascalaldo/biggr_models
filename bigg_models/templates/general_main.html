@@ -1,0 +1,30 @@
+{% import "general_macros.html" as general %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="">
+	<meta name="author" content="Pascal Pieters">
+	<title>{% block title %}BiGGr{% endblock %}</title>
+	<script src="/static/js/color-modes.js"></script>
+	<meta name="theme-color" content="#712cf9">
+	{% include "general_style.html" %}
+	{% block head %}{% endblock %}
+</head>
+
+<body>
+	{% include "general_color_mode_switcher.html" %}
+	<main>
+		{% include "general_navbar.html" %}
+		<div class="container mb-5 mt-2">
+			{% include "general_breadcrumbs.html" %}
+			{% block body %}
+			{% endblock %}
+		</div>
+	</main>
+	<script src="/static/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

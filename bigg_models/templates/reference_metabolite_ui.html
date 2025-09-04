@@ -1,0 +1,26 @@
+{% import "general_macros.html" as general %}
+{% if reference is none %}
+<div class="card m-2 w-100">
+	<div class="card-body d-flex align-items-center">
+		<p class="lead text-secondary">No reference available.</p>
+	</div>
+</div>
+{% else %}
+<div class="card m-2 w-100">
+	<div class="card-body">
+		<h5 class="card-title">{{reference['id'] | format_reference}}</h5>
+		<p class="card-text">{{reference['name']}}</p>
+	</div>
+	<ul class="list-group list-group-flush rounded-3-end">
+		<li class="list-group-item"><i>Type:</i> {{reference['type']}}</li>
+		<li class="list-group-item"><i>Charge:</i> {{reference['charge']}}</li>
+		<li class="list-group-item"><i>Formula:</i> {{reference['formula']}}</li>
+		{% if reference['id'].startswith('CHEBI:') %}
+		{% set chebi_link -%}http://identifiers.org/{{reference['id']}}{%- endset %}
+		<li class="list-group-item">{{general.external_link("View on ChEBI", chebi_link)}}
+		</li>
+		{% endif %}
+
+	</ul>
+</div>
+{% endif %}

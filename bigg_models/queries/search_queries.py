@@ -1,9 +1,11 @@
 from bigg_models.queries import utils
 
 from cobradb.models import (
-    Component,
+    UniversalComponent,
     Compartment,
+    Component,
     CompartmentalizedComponent,
+    UniversalCompartmentalizedComponent,
     Chromosome,
     DataSource,
     Gene,
@@ -16,6 +18,7 @@ from cobradb.models import (
     ModelReaction,
     ModelCompartmentalizedComponent,
     Reaction,
+    UniversalReaction,
     Synonym,
 )
 
@@ -36,18 +39,18 @@ def search_for_universal_reactions_count(
 ):
     """Count the search results."""
     # similarity functions
-    sim_bigg_id = func.similarity(Reaction.bigg_id, query_string)
-    sim_name = func.similarity(Reaction.name, query_string)
+    sim_bigg_id = func.similarity(UniversalReaction.id, query_string)
+    sim_name = func.similarity(UniversalReaction.name, query_string)
 
-    query = session.query(Reaction.bigg_id, Reaction.name).filter(
+    query = session.query(UniversalReaction.id, UniversalReaction.name).filter(
         or_(
             sim_bigg_id >= bigg_id_sim_cutoff,
-            and_(sim_name >= name_sim_cutoff, Reaction.name != ""),
+            and_(sim_name >= name_sim_cutoff, UniversalReaction.name != ""),
         )
     )
 
     if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Reaction)
+        query = utils._add_multistrain_filter(session, query, UniversalReaction)
 
     return query.count()
 
@@ -85,13 +88,13 @@ def search_for_universal_reactions(
 
     """
     # similarity functions
-    sim_bigg_id = func.similarity(Reaction.bigg_id, query_string)
-    sim_name = func.similarity(Reaction.name, query_string)
+    sim_bigg_id = func.similarity(UniversalReaction.id, query_string)
+    sim_name = func.similarity(UniversalReaction.name, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Reaction.bigg_id),
-        "name": func.lower(Reaction.name),
+        "bigg_id": func.lower(UniversalReaction.id),
+        "name": func.lower(UniversalReaction.name),
     }
 
     if sort_column is None:
@@ -106,15 +109,15 @@ def search_for_universal_reactions(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(Reaction.bigg_id, Reaction.name).filter(
+    query = session.query(UniversalReaction.id, UniversalReaction.name).filter(
         or_(
             sim_bigg_id >= bigg_id_sim_cutoff,
-            and_(sim_name >= name_sim_cutoff, Reaction.name != ""),
+            and_(sim_name >= name_sim_cutoff, UniversalReaction.name != ""),
         )
     )
 
     if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Reaction)
+        query = utils._add_multistrain_filter(session, query, UniversalReaction)
 
     # order and limit
     query = utils._apply_order_limit_offset(
@@ -159,13 +162,13 @@ def search_for_reactions(
 
     """
     # similarity functions
-    sim_bigg_id = func.similarity(Reaction.bigg_id, query_string)
-    sim_name = func.similarity(Reaction.name, query_string)
+    sim_bigg_id = func.similarity(UniversalReaction.id, query_string)
+    sim_name = func.similarity(UniversalReaction.name, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Reaction.bigg_id),
-        "name": func.lower(Reaction.name),
+        "bigg_id": func.lower(UniversalReaction.id),
+        "name": func.lower(UniversalReaction.name),
     }
 
     if sort_column is None:
@@ -181,13 +184,16 @@ def search_for_reactions(
 
     # set up the query
     query = (
-        session.query(Reaction.bigg_id, Model.bigg_id, Model.organism, Reaction.name)
+        session.query(
+            UniversalReaction.id, Model.id, Model.organism, UniversalReaction.name
+        )
+        .join(Reaction, Reaction.universal_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
         .filter(
             or_(
                 sim_bigg_id >= bigg_id_sim_cutoff,
-                and_(sim_name >= name_sim_cutoff, Reaction.name != ""),
+                and_(sim_name >= name_sim_cutoff, UniversalReaction.name != ""),
             )
         )
     )
@@ -214,18 +220,18 @@ def search_for_universal_metabolites_count(
 ):
     """Count the search results."""
     # similarity functions
-    sim_bigg_id = func.similarity(Component.bigg_id, query_string)
-    sim_name = func.similarity(Component.name, query_string)
+    sim_bigg_id = func.similarity(UniversalComponent.id, query_string)
+    sim_name = func.similarity(UniversalComponent.name, query_string)
 
-    query = session.query(Component.bigg_id, Component.name).filter(
+    query = session.query(UniversalComponent.id, UniversalComponent.name).filter(
         or_(
             sim_bigg_id >= bigg_id_sim_cutoff,
-            and_(sim_name >= name_sim_cutoff, Component.name != ""),
+            and_(sim_name >= name_sim_cutoff, UniversalComponent.name != ""),
         )
     )
 
     if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Component)
+        query = utils._add_multistrain_filter(session, query, UniversalComponent)
 
     return query.count()
 
@@ -263,13 +269,13 @@ def search_for_universal_metabolites(
 
     """
     # similarity functions
-    sim_bigg_id = func.similarity(Component.bigg_id, query_string)
-    sim_name = func.similarity(Component.name, query_string)
+    sim_bigg_id = func.similarity(UniversalComponent.id, query_string)
+    sim_name = func.similarity(UniversalComponent.name, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Component.bigg_id),
-        "name": func.lower(Component.name),
+        "bigg_id": func.lower(UniversalComponent.id),
+        "name": func.lower(UniversalComponent.name),
     }
 
     if sort_column is None:
@@ -284,15 +290,15 @@ def search_for_universal_metabolites(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(Component.bigg_id, Component.name).filter(
+    query = session.query(UniversalComponent.id, UniversalComponent.name).filter(
         or_(
             sim_bigg_id >= bigg_id_sim_cutoff,
-            and_(sim_name >= name_sim_cutoff, Component.name != ""),
+            and_(sim_name >= name_sim_cutoff, UniversalComponent.name != ""),
         )
     )
 
     if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Component)
+        query = utils._add_multistrain_filter(session, query, UniversalComponent)
 
     # order and limit
     query = utils._apply_order_limit_offset(
@@ -343,14 +349,14 @@ def search_for_metabolites(
 
     """
     # similarity functions
-    sim_bigg_id = func.similarity(Component.bigg_id, query_string)
+    sim_bigg_id = func.similarity(Component.id, query_string)
     sim_name = func.similarity(Component.name, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": [func.lower(Component.bigg_id), func.lower(Compartment.bigg_id)],
+        "bigg_id": [func.lower(Component.id), func.lower(Compartment.id)],
         "name": func.lower(Component.name),
-        "model_bigg_id": func.lower(Model.bigg_id),
+        "model_bigg_id": func.lower(Model.id),
         "organism": func.lower(Model.organism),
     }
 
@@ -382,9 +388,9 @@ def search_for_metabolites(
     # set up the query
     query = (
         session.query(
-            Component.bigg_id,
-            Compartment.bigg_id,
-            Model.bigg_id,
+            Component.id,
+            Compartment.id,
+            Model.id,
             Model.organism,
             Component.name,
         )
@@ -409,8 +415,8 @@ def search_for_metabolites(
             )
         except Exception:
             return []
-        query = query.filter(Component.bigg_id == metabolite_bigg_id).filter(
-            Compartment.bigg_id == compartment_bigg_id
+        query = query.filter(Component.id == metabolite_bigg_id).filter(
+            Compartment.id == compartment_bigg_id
         )
     else:
         query = query.filter(
@@ -454,9 +460,7 @@ def search_for_genes_count(
 
     # set up the query
     query = (
-        session.query(
-            Gene.bigg_id, Model.bigg_id, Gene.name, sim_bigg_id, Model.organism
-        )
+        session.query(Gene.bigg_id, Model.id, Gene.name, sim_bigg_id, Model.organism)
         .join(ModelGene, ModelGene.gene_id == Gene.id)
         .join(Model, Model.id == ModelGene.model_id)
         .filter(
@@ -472,7 +476,7 @@ def search_for_genes_count(
 
     # limit the models
     if limit_models:
-        query = query.filter(Model.bigg_id.in_(limit_models))
+        query = query.filter(Model.id.in_(limit_models))
 
     return query.count()
 
@@ -522,7 +526,7 @@ def search_for_genes(
     columns = {
         "bigg_id": func.lower(Gene.bigg_id),
         "name": func.lower(Gene.name),
-        "model_bigg_id": func.lower(Model.bigg_id),
+        "model_bigg_id": func.lower(Model.id),
         "organism": func.lower(Model.organism),
     }
 
@@ -539,7 +543,7 @@ def search_for_genes(
 
     # set up the query
     query = (
-        session.query(GenomeRegion.bigg_id, Gene.name, Model.bigg_id, Model.organism)
+        session.query(GenomeRegion.bigg_id, Gene.name, Model.id, Model.organism)
         .join(Gene)
         .join(ModelGene)
         .join(Model)
@@ -572,12 +576,12 @@ def search_for_genes(
 def search_for_models_count(query_string, session, multistrain_off):
     """Count the search results."""
     # similarity functions
-    sim_bigg_id = func.similarity(Model.bigg_id, query_string)
+    sim_bigg_id = func.similarity(Model.id, query_string)
     sim_organism = func.similarity(Model.organism, query_string)
 
     # set up the query
     query = (
-        session.query(Model.bigg_id, ModelCount, Model.organism)
+        session.query(Model.id, ModelCount, Model.organism)
         .join(ModelCount)
         .filter(
             or_(sim_bigg_id >= bigg_id_sim_cutoff, sim_organism >= organism_sim_cutoff)
@@ -626,12 +630,12 @@ def search_for_models(
     """
 
     # models by bigg_id
-    sim_bigg_id = func.similarity(Model.bigg_id, query_string)
+    sim_bigg_id = func.similarity(Model.id, query_string)
     sim_organism = func.similarity(Model.organism, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Model.bigg_id),
+        "bigg_id": func.lower(Model.id),
         "organism": func.lower(Model.organism),
         "metabolite_count": ModelCount.metabolite_count,
         "reaction_count": ModelCount.reaction_count,
@@ -652,7 +656,7 @@ def search_for_models(
     # set up the query
     query = (
         session.query(
-            Model.bigg_id,
+            Model.id,
             Model.organism,
             ModelCount.metabolite_count,
             ModelCount.reaction_count,
@@ -696,21 +700,19 @@ def search_ids_fast(query_string, session, limit=None):
         .join(ModelGene)
         .filter(Gene.name.ilike(query_string + "%"))
     )
-    reaction_q = session.query(Reaction.bigg_id).filter(
-        Reaction.bigg_id.ilike(query_string + "%")
+    reaction_q = session.query(Reaction.id).filter(
+        Reaction.id.ilike(query_string + "%")
     )
     reaction_name_q = session.query(Reaction.name).filter(
         Reaction.name.ilike(query_string + "%")
     )
-    metabolite_q = session.query(Component.bigg_id).filter(
-        Component.bigg_id.ilike(query_string + "%")
+    metabolite_q = session.query(UniversalComponent.id).filter(
+        UniversalComponent.id.ilike(query_string + "%")
     )
-    metabolite_name_q = session.query(Component.name).filter(
-        Component.name.ilike(query_string + "%")
+    metabolite_name_q = session.query(UniversalComponent.name).filter(
+        UniversalComponent.name.ilike(query_string + "%")
     )
-    model_q = session.query(Model.bigg_id).filter(
-        Model.bigg_id.ilike(query_string + "%")
-    )
+    model_q = session.query(Model.id).filter(Model.id.ilike(query_string + "%"))
     organism_q = session.query(Model.organism).filter(
         Model.organism.ilike(query_string + "%")
     )

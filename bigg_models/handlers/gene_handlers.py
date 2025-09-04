@@ -32,7 +32,7 @@ class GeneListHandler(utils.PageableHandler):
 
 
 class GeneListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("listview.html")
 
     def get(self, model_bigg_id):
         data = {

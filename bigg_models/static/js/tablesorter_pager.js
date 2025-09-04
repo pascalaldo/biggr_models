@@ -6,15 +6,17 @@ $(function() {
         return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
     }
 
-    var table_list = ['reactions', 'metabolites', 'models', 'genes'],
+    var table_list = ['reactions', 'metabolites', 'models', 'genes', 'genomes'],
         all_columns = {reactions: ['bigg_id', 'name', 'model_bigg_id', 'organism'],
                        metabolites: ['bigg_id', 'name', 'model_bigg_id', 'organism'],
                        models: ['bigg_id', 'organism', 'metabolite_count', 'reaction_count', 'gene_count'],
-                       genes: ['bigg_id', 'name', 'model_bigg_id', 'organism']},
+                       genes: ['bigg_id', 'name', 'model_bigg_id', 'organism'],
+                       genomes: ['name', 'organism', 'genome_type']},
         all_column_names = {reactions: ['BiGG ID', 'Name', 'Model', 'Organism'],
                             metabolites: ['BiGG ID', 'Name', 'Model', 'Organism'],
                             models: ['BiGG ID', 'Organism', 'Metabolites', 'Reactions', 'Genes'],
-                            genes: ['BiGG ID', 'Name', 'Model', 'Organism']};
+                            genes: ['BiGG ID', 'Name', 'Model', 'Organism'],
+                            genomes: ['Name', 'Organism', 'Type']};
     for (var i = 0; i < table_list.length; i++) {
         var type = table_list[i],
             selector = '.' + type + '-tablesorter';
@@ -106,9 +108,9 @@ $(function() {
                             } else {
                                 this_val = this_row[col];
                                 // add compartment if present
-                                if (col == 'bigg_id' && 'compartment_bigg_id' in this_row)
-                                    this_val = this_val + '_' + this_row['compartment_bigg_id'];
-                                // make links
+                                //if (col == 'bigg_id' && 'compartment_bigg_id' in this_row)
+                                //    this_val = this_val + '_' + this_row['compartment_bigg_id'];
+                                //// make links
                                 if ('link_urls' in this_row && col in this_row['link_urls'])
                                     this_val = ('<a href="' + this_row['link_urls'][col] + '">' +
                                                 this_val + '</a>');

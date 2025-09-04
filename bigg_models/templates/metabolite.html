@@ -1,94 +1,38 @@
-{% extends "parent_display.html" %}
-{% block title %}BiGG Metabolite {{bigg_id}}_{{compartment_bigg_id}} in {{model_bigg_id}}{% endblock %}
-{% block description %}Metabolite {{bigg_id}}_{{compartment_bigg_id}} in {{model_bigg_id}}. {{name}}.{% endblock %}
-{% block content %}
-
-  <div class="row">
-    <div class="col-lg-8">
-      <h1><span class="light">Metabolite: </span>{{bigg_id}}_{{compartment_bigg_id}}</h1>
-      <hr>
-      <h4>Descriptive name: </h4>
-      <p>{% if name is not none %}{{name}}{% endif %}</p>
-
-      <h4>Model: </h4>
-      <p><a href="/models/{{model_bigg_id}}">{{model_bigg_id}}</a></p>
-
-      <h4>Formula:</h4>
-      <p>{{formula}}</p>
-
-      <h4>Charge:</h4>
-      <p>{{charge}}</p>
-
-      <h4>Compartment:</h4>
-      <p><a href="/compartments">{{compartment_bigg_id}} - {{compartment_name}}</a></p>
-
-      <h4>Reactions: </h4>
-      <div class="panel panel-default">
-        <div class="table table-hover">
-          <div class="table-header">
-            <div class="table-row">
-              <div class="table-cell" style="width: 30%">BiGG ID</div>
-              <div class="table-cell" style="width: 70%">Name</div>
-            </div>
-          </div>
-          <div class="table-body">
-            {% for reaction in reactions %}
-            <a href="/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}">
-              <div class="table-row">
-                <div class="table-cell" style="width: 30%">{{reaction['bigg_id']}}</div>
-                <div class="table-cell" style="width: 70%">{{reaction['name']}}</div>
-              </div>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
+{% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
+{% import "general_table_macros.html" as tables %}
+{% block title %}BiGG Metabolite {{bigg_id}} in {{model_bigg_id}}{% endblock %}
+{% block body %}
+<div class="row">
+  <div class="col-12">
+    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", reference) %}
+      <div class="card-body">
+      <h5 class="card-title">{{bigg_id | format_id("comp_comp")}}</h5>
+        {% if name %}<p class="card-text">{{name}}</p>{% endif %}
+        {% if model_specific %}<div class="alert alert-primary mt-1 mb-0 p-1 ps-2 pe-2">This is a non-standardized model-specific entry.</div>{% endif %}
       </div>
-      {% if escher_maps|count > 0 %}
-        {% include 'escher_div.html' %}
-      {% endif %}
-
-      {% include 'comments.html' %}
-    </div>
-
-    <!-- Side bar -->
-    <div class="col-lg-4">
-      <div class="well">
-        <h4>
-          Universal metabolite
-          {% with question_title='Universal metabolite'%}
-            {% with question_text='BiGG Models has a list of universal metabolites. Visit the universal metabolite page to see all the models and compartments that contain this metabolite.'%}
-              {% include 'question_mark.html' %}
-            {% endwith %}
-          {% endwith %}
-        </h4>
-        <ul class="list-unstyled">
-          <li>
-            <a href="/universal/metabolites/{{bigg_id}}">{{bigg_id}}</a>
-          </li>
-        </ul>
-      </div>
-
-      {% include 'database_links.html' %}
-      {% include 'old_identifiers.html' %}
-
-      <div class="well">
-        <h4>{{bigg_id}} in other models</h4>
-        <ul class="list-unstyled">
-          {% for other in other_models_with_metabolite %}
-            <li>
-              <a href="/models/{{other['bigg_id']}}/metabolites/{{bigg_id}}_{{other['compartment_bigg_id']}}">
-                {{other['bigg_id']}}
-              </a>
-              ({{bigg_id}}_{{other['compartment_bigg_id']}})
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-
+      {% call cards.flush_list_group(accent=True) %}
+        {{ cards.flush_list_group_item("Model", model_bigg_id, "/models/"~model_bigg_id, accent=True) }}
+        {{ cards.flush_list_group_item("Compartment", compartment_bigg_id~" - "~compartment_name, accent=True) }}
+        {{ cards.flush_list_group_item("Charge", charge, accent=True) }}
+        {{ cards.flush_list_group_item("Formula", formula, accent=True) }}
+      {% endcall %}
+    {% endcall %}
   </div>
-  {% if escher_maps|count > 0 %}
-    {% set escher_script_type = 'metabolite' %}
-    {% include 'escher_script.html' %}
-  {% endif %}
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Reactions in model</h5>
+      </div>
+      <div class="card-body p-0">
+        {% call(reaction) tables.simple_table(["&nbsp;", "BiGG ID", "Name"], reactions) %}
+          {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
+          <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#reaction_S" style="height: 1em;" /></a></td>
+          <td><a href="{{link}}" class="d-block">{{reaction['bigg_id']}}</a></td>
+          <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

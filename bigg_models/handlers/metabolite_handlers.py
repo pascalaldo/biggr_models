@@ -37,7 +37,7 @@ class UniversalMetaboliteListHandler(utils.PageableHandler):
 
 
 class UniversalMetaboliteListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("listview.html")
 
     def get(self):
         data = {
@@ -45,6 +45,11 @@ class UniversalMetaboliteListDisplayHandler(utils.BaseHandler):
             "hide_organism": True,
             "page_name": "universal_metabolite_list",
         }
+        data["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Universal", None),
+            ("Metabolites", "/universal/metabolites/"),
+        ]
         self.write(self.template.render(data))
         self.finish()
 
@@ -58,6 +63,12 @@ class UniversalMetaboliteHandler(utils.BaseHandler):
         except query_utils.RedirectError as e:
             self.redirect(re.sub(self.request.path, "%s$" % met_bigg_id, e.args[0]))
         else:
+            result["breadcrumbs"] = [
+                ("Home", "/"),
+                ("Universal", None),
+                ("Metabolites", f"/universal/metabolites/"),
+                (met_bigg_id, f"/universal/metabolites/{met_bigg_id}"),
+            ]
             self.return_result(result)
 
 
@@ -75,7 +86,7 @@ class MetaboliteListHandler(utils.PageableHandler):
                 dict(
                     x,
                     link_urls={
-                        "bigg_id": "/models/{model_bigg_id}/metabolites/{bigg_id}_{compartment_bigg_id}".format(
+                        "bigg_id": "/models/{model_bigg_id}/metabolites/{bigg_id}".format(
                             **x
                         )
                     },
@@ -95,13 +106,20 @@ class MetaboliteListHandler(utils.PageableHandler):
 
 
 class MetabolitesListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("listview.html")
 
     def get(self, model_bigg_id):
         data = {
             "results": {"metabolites": "ajax"},
             "page_name": "metabolite_list",
         }
+        data["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (model_bigg_id, f"/models/{model_bigg_id}"),
+            ("Metabolites", f"/models/{model_bigg_id}/metabolites/"),
+        ]
+
         self.write(self.template.render(data))
         self.finish()
 
@@ -110,11 +128,19 @@ class MetaboliteHandler(utils.BaseHandler):
     template = utils.env.get_template("metabolite.html")
 
     def get(self, model_bigg_id, comp_met_id):
-        met_bigg_id, compartment_bigg_id = split_compartment(comp_met_id)
         results = utils.safe_query(
             metabolite_queries.get_model_comp_metabolite,
-            met_bigg_id,
-            compartment_bigg_id,
+            comp_met_id,
             model_bigg_id,
         )
+        results["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (model_bigg_id, f"/models/{model_bigg_id}/"),
+            ("Metabolites", f"/models/{model_bigg_id}/metabolites/"),
+            (
+                utils.format_bigg_id(comp_met_id, "comp_comp"),
+                f"/models/{model_bigg_id}/metabolites/{comp_met_id}",
+            ),
+        ]
         self.return_result(results)

@@ -1,90 +1,61 @@
-{% extends "parent_display.html" %}
+{% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
+{% import "general_table_macros.html" as tables %}
 {% block title %}BiGG Reaction: {{bigg_id}}{% endblock %}
-{% block description %}Universal BiGG reaction {{bigg_id}}. {{name}}.{% endblock %}
-{% block content %}
-  <div class="row">
-
-    <div class="col-lg-8">
-      <h1>
-        <span class="light">Universal reaction: </span>
-        <span>{{bigg_id}}</span>
-      </h1>
-      {% include "pseudoreaction_question.html" %}
-
-      <hr/>
-
-      <h4>Descriptive name:</h4>
-      <p>{% if name is not none %}{{name}}{% endif %}</p>
-
-      <h4>Reaction:</h4>
-      <p>{{reaction_string}}</p>
-
-      <h4>Metabolites:</h4>
-      <div class="panel panel-default">
-        <div class="table table-hover">
-          <div class="table-header">
-            <div class="table-row">
-              <div class="table-cell" style="width: 20%; min-width: 140px">Stoichiometry</div>
-              <div class="table-cell" style="width: 30%">BiGG ID</div>
-              <div class="table-cell" style="width: 50%">Name</div>
-            </div>
-          </div>
-          <div class="table-body">
-            {% for metabolite in metabolites %}
-            <a href="/models/universal/metabolites/{{metabolite['bigg_id']}}">
-              <div class="table-row">
-                <div class="table-cell" style="width: 20%; min-width: 140px" align="right">
-                  {{metabolite['coefficient']}}
-                </div>
-                <div class="table-cell" style="width: 30%">
-                  {{metabolite['bigg_id']}}
-                </div>
-                <div class="table-cell" style="width: 50%">
-                  {{metabolite['name']}}
-                </div>
-              </div>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
+{% block body %}
+<div class="row">
+  <div class="col-12">
+    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", reference) %}
+      <div class="card-body">
+      <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span>{{bigg_id}}</h5>
+        {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
-      <br/>
-
-      <h4><i>{{bigg_id}}</i> in BiGG models:</h4>
-      <div class="panel panel-default">
-        <div class="table table-hover">
-          <div class="table-header">
-            <div class="table-row">
-              <div class="table-cell" style="width: 50%">Organism</div>
-              <div class="table-cell" style="width: 50%">Model</div>
-            </div>
-          </div>
-          <div class="table-body">
-            {% for model in models_containing_reaction %}
-            <a href="/models/{{model['bigg_id']}}/reactions/{{bigg_id}}">
-              <div class="table-row">
-                <div class="table-cell" style="width: 50%">
-                  {% if model['organism'] is none %}-{% else %}{{model['organism']}}{% endif %}
-                </div>
-                <div class="table-cell" style="width: 50%">
-                  {{model['bigg_id']}}
-                </div>
-              </div>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      {% include 'comments.html' %}
-
-    </div>
-
-    <!-- Side bar -->
-    <div class="col-lg-4">
-      {% include 'database_links.html' %}
-      {% include 'old_identifiers.html' %}
-    </div>
-
+      {% call cards.flush_list_group(accent=True) %}
+        {{ cards.flush_list_group_item(value=reaction_string, accent=True) }}
+      {% endcall %}
+    {% endcall %}
   </div>
+
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Reaction Participants</h5>
+      </div>
+      <div class="card-body p-0">
+        {% call(metabolite) tables.simple_table([{"name": "Stoich.", "colspan": 2}, {"name": "BiGG ID", "class": "w-25"}, "Name", {"name": "Reference", "class": "border-start"}, "x [side]", "Compartment"], metabolites) %}
+              {% set link -%}/models/universal/metabolites/{{metabolite['base_bigg_id']}}{%- endset %}
+              {% set ref_n = metabolite['reference_participant']['reference_n'] %}
+              <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/{%- if metabolite["coefficient"] < 0 -%}substrate_logo{%- else -%}product_logo{%- endif -%}.svg" style="height: 1em;" /></a></td>
+              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['coefficient_int_or_float']}}</a></td>
+              <td><a href="{{link}}" class="d-block">{{metabolite.bigg_id | format_id("universal_comp_comp")}}</a></td>
+              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['name']}}</a></td>
+        <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference'] is none %} - {% else %}{{metabolite['reference']['id'] | format_reference}}{% endif %}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference_participant'] is none %} - {% else %}{{metabolite['reference_participant']['coefficient']}} [{{metabolite['reference_participant']['side']}}]{% endif %}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference_participant'] is none %} - {% else %}{{metabolite['reference_participant']['compartment']}}{% endif %}</a></td>
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">In BiGGr Models</h5>
+      </div>
+      <div class="card-body p-0">
+        {% call(model) tables.simple_table(["Organism", "Model"], models_containing_reaction) %}
+            {% set link -%}/models/{{model['bigg_id']}}/reactions/{{bigg_id}}{%- endset %}
+              <td>
+                <a href="{{link}}" class="d-block text-reset text-decoration-none">
+                  {% if model['organism'] is none %}-{% else %}{{model['organism']}}{% endif %}</a>
+              </td>
+              <td>
+                <a href="{{link}}" class="d-block">
+                  {{model['bigg_id']}}
+                </a>
+              </td>
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
