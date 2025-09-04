@@ -1,0 +1,39 @@
+name: Deploy the master branch code to an Azure Virtual Machine
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deployment:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Copy files using SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.BIGGR_PROD_HOST }}
+          username: ${{ secrets.BIGGR_PROD_SSH_USERNAME }}
+          key: ${{ secrets.BIGGR_PROD_PRIVATE_SSH_KEY }}
+          source: "."
+          target: "/data/projects/biggr_models/"
+  
+      - name: Create the .env file and (re-)start containers over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.BIGGR_PROD_HOST }}
+          username: ${{ secrets.BIGGR_PROD_SSH_USERNAME }}
+          key: ${{ secrets.BIGGR_PROD_PRIVATE_SSH_KEY }}
+          port: 22
+          script: |
+            cd /data/projects/biggr_models/
+            cp ../cobradb/.env .env
+            cp ../cobradb/settings.ini settings.ini
+            docker compose --profile prod down
+            docker compose --profile prod up -d --build --force-recreate --remove-orphans
+            docker system prune --all --force
