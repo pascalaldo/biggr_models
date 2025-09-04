@@ -45,10 +45,32 @@ def format_reference(identifier):
     return f'<span class="fw-normal text-body-secondary">{namespace}:</span><span class="text-body-emphasis">{ref_id}</span>'
 
 
+def format_gene_reaction_rule(grr):
+    s = grr.replace("(", " ( ").replace(")", " ) ")
+    s = [xs for x in s.split(" ") if (xs := x.strip()) != ""]
+    s = [
+        (
+            x
+            if x in [")", "(", "or", "and", "OR", "AND"]
+            else f"<span class='fw-semibold'>{x}</span>"
+        )
+        for x in s
+    ]
+    res = " "
+    for x in s:
+        if x == ")" or res[-1] in " (":
+            res = f"{res}{x}"
+        else:
+            res = f"{res} {x}"
+
+    return res.strip()
+
+
 # set up jinja2 template location
 env = Environment(loader=PackageLoader("bigg_models", "templates"))
 env.filters["format_reference"] = lambda x: format_reference(x)
 env.filters["format_id"] = format_bigg_id
+env.filters["format_gene_reaction_rule"] = format_gene_reaction_rule
 
 # root directory
 directory = path.abspath(path.join(path.dirname(__file__), ".."))

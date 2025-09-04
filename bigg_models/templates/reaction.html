@@ -52,7 +52,10 @@
   <div class="col-md-6">
     <div class="card mb-3">
       <div class="card-header">
-        <h5 class="mb-0">Related Genes</h5>
+        <h5 class="mb-0">Gene Reaction Rule</h5>
+      </div>
+      <div class="card-body bg-body-tertiary border-bottom border-solid">
+        {{model_reaction.gene_reaction_rule | format_gene_reaction_rule}}
       </div>
       <div class="card-body p-0">
         {% call(gene) tables.simple_table([{"name": ""}, {"name": "BiGG ID", "class": "w-50"}, "Name"], genes) %}

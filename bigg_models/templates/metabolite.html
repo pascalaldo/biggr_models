@@ -16,6 +16,7 @@
         {{ cards.flush_list_group_item("Compartment", compartment_bigg_id~" - "~compartment_name, accent=True) }}
         {{ cards.flush_list_group_item("Charge", charge, accent=True) }}
         {{ cards.flush_list_group_item("Formula", formula, accent=True) }}
+        {{ cards.flush_list_group_item("Universal Metabolite", universal_id, link="/universal/metabolites/"~universal_id, accent=True) }}
       {% endcall %}
     {% endcall %}
   </div>

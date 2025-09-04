@@ -367,6 +367,7 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
             CompartmentalizedComponent.id,
             Model.id,
             Component.model_specific,
+            Component.universal_id,
         )
         .join(
             CompartmentalizedComponent,
@@ -444,6 +445,7 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
 
     return {
         "bigg_id": result_db[7],
+        "universal_id": result_db[10],
         "name": result_db[1],
         "compartment_bigg_id": result_db[2],
         "compartment_name": result_db[3],
