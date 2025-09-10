@@ -33,3 +33,13 @@
 	</svg>
 </a>
 {%- endmacro %}
+{% macro inchi_list_item(inchi) %}
+{% if inchi %}
+{% set inchi_str = inchi.to_string() %}
+{% set inchi_key = inchi.key %}
+<li class="list-group-item"><a href="#" class="w-100 d-block text-reset text-decoration-none"
+		onclick="this.style.textWrap = {'stable': 'nowrap', 'nowrap': 'stable'}[this.style.textWrap];"
+		style="text-wrap: nowrap; overflow-x: hidden; text-overflow: ellipsis;">{{inchi_str}}</a></li>
+<li class="list-group-item"><i>InChiKey:</i> {{inchi_key}}</li>
+{% endif %}
+{% endmacro %}

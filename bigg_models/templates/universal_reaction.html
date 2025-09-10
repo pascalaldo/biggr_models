@@ -7,7 +7,7 @@
   <div class="col-12">
     {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", reference) %}
       <div class="card-body">
-      <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span>{{bigg_id}}</h5>
+      <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span> {{bigg_id | format_id("reaction")}}</h5>
         {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
       </div>
       {% call cards.flush_list_group(accent=True) %}

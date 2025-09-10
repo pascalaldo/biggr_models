@@ -17,6 +17,7 @@ from cobradb.models import (
     Model,
     Reaction,
     ReactionMatrix,
+    InChI,
 )
 
 from sqlalchemy import func
@@ -235,42 +236,30 @@ def get_metabolite(met_bigg_id, session):
     )
 
     default_component_db = (
-        session.query(UniversalComponentReferenceMapping, Component, ReferenceCompound)
+        session.query(Component)
         .join(
             ComponentReferenceMapping,
+            Component.id == ComponentReferenceMapping.component_id,
+        )
+        .join(
+            UniversalComponentReferenceMapping,
             ComponentReferenceMapping.id
             == UniversalComponentReferenceMapping.mapping_id,
-        )
-        .join(Component, Component.id == ComponentReferenceMapping.component_id)
-        .join(
-            ReferenceCompound,
-            ReferenceCompound.id == ComponentReferenceMapping.reference_id,
         )
         .filter(UniversalComponentReferenceMapping.id == met_bigg_id)
         .first()
     )
-    print(f"Default component: {default_component_db}")
-    print(default_component_db[0].id)
     default_component = None
-    reference = None
 
     if default_component_db:
-        _, default_component_db, reference_db = default_component_db
         default_component = {
             "id": default_component_db.id,
             "formula": default_component_db.formula,
             "charge": default_component_db.charge,
         }
-        reference = {
-            "id": reference_db.id,
-            "name": reference_db.name,
-            "type": reference_db.compound_type,
-            "charge": reference_db.charge,
-            "formula": reference_db.formula,
-        }
 
     components_db = (
-        session.query(Component, ComponentReferenceMapping, ReferenceCompound)
+        session.query(Component, ComponentReferenceMapping, ReferenceCompound, InChI)
         .join(
             ComponentReferenceMapping,
             ComponentReferenceMapping.component_id == Component.id,
@@ -279,14 +268,13 @@ def get_metabolite(met_bigg_id, session):
             ReferenceCompound,
             ReferenceCompound.id == ComponentReferenceMapping.reference_id,
         )
+        .outerjoin(InChI, InChI.id == ReferenceCompound.inchi_id)
         .filter(Component.universal_id == met_bigg_id)
         .order_by(Component.charge)
     )
-    formulae = list({y.formula for y, _, _ in components_db if y is not None})
-    charges = list({y.charge for y, _, _ in components_db if y is not None})
 
     components = []
-    for component, refmap, ref_db in components_db:
+    for component, refmap, ref_db, inchi_db in components_db:
         ref = None
         if ref_db is not None:
             ref = {
@@ -296,6 +284,7 @@ def get_metabolite(met_bigg_id, session):
                 "charge": ref_db.charge,
                 "formula": ref_db.formula,
                 "ref_n": refmap.reference_n,
+                "inchi": inchi_db,
             }
         skip = False
         for comp in components:
@@ -326,14 +315,11 @@ def get_metabolite(met_bigg_id, session):
     return {
         "bigg_id": result_db[0],
         "name": result_db[1],
-        "formulae": formulae,
-        "charges": charges,
         "database_links": db_link_results,
         "old_identifiers": old_id_results,
         # "compartments_in_models": [],
         "components": components,
         "default_component": default_component,
-        "reference": reference,
         "compartments_in_models": [
             {"bigg_id": c[0], "model_bigg_id": c[1], "organism": c[2]}
             for c in comp_comp_db
@@ -390,11 +376,12 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
         )
     met_bigg_id = result_db[0]
     reference_db = (
-        session.query(ReferenceCompound)
+        session.query(ReferenceCompound, InChI)
         .join(
             ComponentReferenceMapping,
             ReferenceCompound.id == ComponentReferenceMapping.reference_id,
         )
+        .outerjoin(InChI, InChI.id == ReferenceCompound.inchi_id)
         .filter(
             ComponentReferenceMapping.component_id == str(result_db[0]),
         )
@@ -404,11 +391,12 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
         reference = None
     else:
         reference = {
-            "id": reference_db.id,
-            "name": reference_db.name,
-            "type": reference_db.compound_type,
-            "charge": reference_db.charge,
-            "formula": reference_db.formula,
+            "id": reference_db[0].id,
+            "name": reference_db[0].name,
+            "type": reference_db[0].compound_type,
+            "charge": reference_db[0].charge,
+            "formula": reference_db[0].formula,
+            "inchi": reference_db[1],
         }
 
     reactions_db = (

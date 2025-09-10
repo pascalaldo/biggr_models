@@ -150,7 +150,7 @@ def get_model_and_counts(
     }
 
     memote_result_db = get_general_results_for_model(session, model_db[0].id)
-    result["memote_general_result"] = memote_result_db
+    result["memote_result"] = memote_result_db
 
     if static_model_dir:
         # get filesizes
