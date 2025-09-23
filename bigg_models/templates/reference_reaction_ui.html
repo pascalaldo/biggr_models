@@ -8,12 +8,12 @@
 {% else %}
 <div class="card m-2 w-100">
 	<div class="card-body">
-		<h5 class="card-title">{{reference['id'] | format_reference}}</h5>
+		<h5 class="card-title">{{reference['bigg_id'] | format_reference}}</h5>
 		{% if reference['name'] is not none %}<p class="card-text">{{reference['name']}}</p>{%
 		endif %}
 		<p class="card-text">{{reference['equation']}}</p>
-		{% if reference['id'].startswith('RHEA:') %}
-		{% set rhea_link -%}http://identifiers.org/{{reference['id']}}{%- endset %}
+		{% if reference['bigg_id'].startswith('RHEA:') %}
+		{% set rhea_link -%}http://identifiers.org/{{reference['bigg_id']}}{%- endset %}
 		<p class="card-text">{{general.external_link("View on rhea-db.org", rhea_link)}}
 		</p>
 		{% endif %}

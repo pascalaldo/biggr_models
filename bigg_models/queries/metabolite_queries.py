@@ -11,23 +11,23 @@ from cobradb.models import (
     UniversalReaction,
     UniversalReactionMatrix,
     Compartment,
-    DeprecatedID,
     ModelCompartmentalizedComponent,
     ModelReaction,
     Model,
     Reaction,
     ReactionMatrix,
+    InChI,
 )
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 
 def get_universal_metabolites_count(session):
-    return (
-        session.query(UniversalComponent)
-        .filter(UniversalComponent.model_specific == False)
-        .count()
-    )
+    return session.scalars(
+        select(func.count(UniversalComponent.id)).filter(
+            UniversalComponent.model_id == None
+        )
+    ).first()
 
 
 def get_universal_metabolites(
@@ -61,7 +61,7 @@ def get_universal_metabolites(
     """
     # get the sort column
     columns = {
-        "bigg_id": func.lower(UniversalComponent.id),
+        "bigg_id": func.lower(UniversalComponent.bigg_id),
         "name": func.lower(UniversalComponent.name),
     }
 
@@ -75,8 +75,8 @@ def get_universal_metabolites(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(UniversalComponent.id, UniversalComponent.name).filter(
-        UniversalComponent.model_specific == False
+    query = select(UniversalComponent.bigg_id, UniversalComponent.name).filter(
+        UniversalComponent.model_id == None
     )
 
     # order and limit
@@ -84,16 +84,17 @@ def get_universal_metabolites(
         query, sort_column_object, sort_direction, page, size
     )
 
+    query = session.execute(query).all()
     return [{"bigg_id": x[0], "name": x[1]} for x in query]
 
 
 def get_model_metabolites_count(model_bigg_id, session):
     """Count the model metabolites."""
-    return (
-        session.query(ModelCompartmentalizedComponent)
-        .filter(ModelCompartmentalizedComponent.model_id == model_bigg_id)
-        .count()
-    )
+    return session.scalars(
+        select(func.count(ModelCompartmentalizedComponent.id))
+        .join(ModelCompartmentalizedComponent.model)
+        .filter(Model.bigg_id == model_bigg_id)
+    ).first()
 
 
 def get_model_metabolites(
@@ -133,10 +134,10 @@ def get_model_metabolites(
     # get the sort column
     columns = {
         "bigg_id": [
-            func.lower(CompartmentalizedComponent.id),
+            func.lower(CompartmentalizedComponent.bigg_id),
         ],
         "name": func.lower(Component.name),
-        "model_bigg_id": func.lower(Model.id),
+        "model_bigg_id": func.lower(Model.bigg_id),
         "organism": func.lower(Model.organism),
     }
 
@@ -151,12 +152,12 @@ def get_model_metabolites(
 
     # set up the query
     query = (
-        session.query(
-            CompartmentalizedComponent.id,
+        select(
+            CompartmentalizedComponent.bigg_id,
             Component.name,
-            Model.id,
+            Model.bigg_id,
             Model.organism,
-            CompartmentalizedComponent.compartment_id,
+            Compartment.bigg_id,
         )
         .join(
             Component,
@@ -168,7 +169,8 @@ def get_model_metabolites(
             == CompartmentalizedComponent.id,
         )
         .join(Model, Model.id == ModelCompartmentalizedComponent.model_id)
-        .filter(Model.id == model_bigg_id)
+        .join(CompartmentalizedComponent.compartment)
+        .filter(Model.bigg_id == model_bigg_id)
     )
 
     # order and limit
@@ -176,6 +178,7 @@ def get_model_metabolites(
         query, sort_column_object, sort_direction, page, size
     )
 
+    query = session.execute(query).all()
     return [
         {
             "bigg_id": x[0],
@@ -189,11 +192,11 @@ def get_model_metabolites(
 
 
 def get_metabolite(met_bigg_id, session):
-    result_db = (
-        session.query(UniversalComponent.id, UniversalComponent.name)
-        .filter(UniversalComponent.id == met_bigg_id)
-        .first()
-    )
+    result_db = session.execute(
+        select(UniversalComponent.bigg_id, UniversalComponent.name)
+        .filter(UniversalComponent.bigg_id == met_bigg_id)
+        .limit(1)
+    ).first()
     if result_db is None:
         raise utils.NotFoundError("No Component found with BiGG ID " + met_bigg_id)
         # Look for a result with a deprecated ID
@@ -209,15 +212,15 @@ def get_metabolite(met_bigg_id, session):
         # else:
         #     raise utils.NotFoundError("No Component found with BiGG ID " + met_bigg_id)
 
-    comp_comp_db = (
-        session.query(
-            CompartmentalizedComponent.id,
-            Model.id,
+    comp_comp_db = session.execute(
+        select(
+            CompartmentalizedComponent.bigg_id,
+            Model.bigg_id,
             Model.organism,
         )
         .join(
             UniversalCompartmentalizedComponent,
-            CompartmentalizedComponent.universal_id
+            CompartmentalizedComponent.universal_compartmentalized_component_id
             == UniversalCompartmentalizedComponent.id,
         )
         .join(
@@ -231,75 +234,65 @@ def get_metabolite(met_bigg_id, session):
             UniversalComponent.id
             == UniversalCompartmentalizedComponent.universal_component_id,
         )
-        .filter(UniversalComponent.id == met_bigg_id)
-    )
+        .filter(UniversalComponent.bigg_id == met_bigg_id)
+    ).all()
 
-    default_component_db = (
-        session.query(UniversalComponentReferenceMapping, Component, ReferenceCompound)
+    default_component_db = session.scalars(
+        select(Component)
         .join(
             ComponentReferenceMapping,
+            Component.id == ComponentReferenceMapping.component_id,
+        )
+        .join(
+            UniversalComponentReferenceMapping,
             ComponentReferenceMapping.id
             == UniversalComponentReferenceMapping.mapping_id,
         )
-        .join(Component, Component.id == ComponentReferenceMapping.component_id)
-        .join(
-            ReferenceCompound,
-            ReferenceCompound.id == ComponentReferenceMapping.reference_id,
-        )
-        .filter(UniversalComponentReferenceMapping.id == met_bigg_id)
-        .first()
-    )
-    print(f"Default component: {default_component_db}")
-    print(default_component_db[0].id)
+        .join(UniversalComponentReferenceMapping.universal_component)
+        .filter(UniversalComponent.bigg_id == met_bigg_id)
+        .limit(1)
+    ).first()
     default_component = None
-    reference = None
 
     if default_component_db:
-        _, default_component_db, reference_db = default_component_db
         default_component = {
-            "id": default_component_db.id,
+            "bigg_id": default_component_db.bigg_id,
             "formula": default_component_db.formula,
             "charge": default_component_db.charge,
         }
-        reference = {
-            "id": reference_db.id,
-            "name": reference_db.name,
-            "type": reference_db.compound_type,
-            "charge": reference_db.charge,
-            "formula": reference_db.formula,
-        }
 
-    components_db = (
-        session.query(Component, ComponentReferenceMapping, ReferenceCompound)
+    components_db = session.execute(
+        select(Component, ComponentReferenceMapping, ReferenceCompound, InChI)
         .join(
             ComponentReferenceMapping,
             ComponentReferenceMapping.component_id == Component.id,
         )
         .join(
             ReferenceCompound,
-            ReferenceCompound.id == ComponentReferenceMapping.reference_id,
+            ReferenceCompound.id == ComponentReferenceMapping.reference_compound_id,
         )
-        .filter(Component.universal_id == met_bigg_id)
+        .outerjoin(InChI, InChI.id == ReferenceCompound.inchi_id)
+        .join(Component.universal_component)
+        .filter(UniversalComponent.bigg_id == met_bigg_id)
         .order_by(Component.charge)
-    )
-    formulae = list({y.formula for y, _, _ in components_db if y is not None})
-    charges = list({y.charge for y, _, _ in components_db if y is not None})
+    ).all()
 
     components = []
-    for component, refmap, ref_db in components_db:
+    for component, refmap, ref_db, inchi_db in components_db:
         ref = None
         if ref_db is not None:
             ref = {
-                "id": ref_db.id,
+                "bigg_id": ref_db.bigg_id,
                 "name": ref_db.name,
                 "type": ref_db.compound_type,
                 "charge": ref_db.charge,
                 "formula": ref_db.formula,
                 "ref_n": refmap.reference_n,
+                "inchi": inchi_db,
             }
         skip = False
         for comp in components:
-            if comp["id"] == component.id:
+            if comp["bigg_id"] == component.bigg_id:
                 if ref is not None:
                     comp["reference"].append(ref)
                 skip = True
@@ -307,13 +300,16 @@ def get_metabolite(met_bigg_id, session):
         if skip:
             continue
         d = {
-            "id": component.id,
+            "bigg_id": component.bigg_id,
             "name": component.name,
             "charge": component.charge,
             "formula": component.formula,
             "reference": [] if ref is None else [ref],
         }
-        if default_component is not None and default_component["id"] == d["id"]:
+        if (
+            default_component is not None
+            and default_component["bigg_id"] == d["bigg_id"]
+        ):
             d["default"] = True
             components.insert(0, d)
         else:
@@ -326,14 +322,11 @@ def get_metabolite(met_bigg_id, session):
     return {
         "bigg_id": result_db[0],
         "name": result_db[1],
-        "formulae": formulae,
-        "charges": charges,
         "database_links": db_link_results,
         "old_identifiers": old_id_results,
         # "compartments_in_models": [],
         "components": components,
         "default_component": default_component,
-        "reference": reference,
         "compartments_in_models": [
             {"bigg_id": c[0], "model_bigg_id": c[1], "organism": c[2]}
             for c in comp_comp_db
@@ -342,33 +335,41 @@ def get_metabolite(met_bigg_id, session):
 
 
 def get_model_list_for_metabolite(metabolite_bigg_id, session):
-    result = (
-        session.query(Model.id, CompartmentalizedComponent.compartment_id)
+    result = session.execute(
+        select(Model.bigg_id, CompartmentalizedComponent.compartment_id)
         .join(
             ModelCompartmentalizedComponent,
             ModelCompartmentalizedComponent.compartmentalized_component_id
             == CompartmentalizedComponent.id,
         )
-        .filter(CompartmentalizedComponent.component_id == metabolite_bigg_id)
+        .join(CompartmentalizedComponent.component)
+        .filter(Component.bigg_id == metabolite_bigg_id)
     )
     return [{"bigg_id": x[0], "compartment_bigg_id": x[1]} for x in result]
 
 
 def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
-    result_db = (
-        session.query(
-            Component.id,
-            Component.name,
-            Compartment.id,
-            Compartment.name,
-            Model.id,
-            Component.formula,
-            Component.charge,
-            CompartmentalizedComponent.id,
-            Model.id,
-            Component.model_specific,
-            Component.universal_id,
+    result_db = session.execute(
+        select(
+            Component,
+            UniversalComponent,
+            CompartmentalizedComponent,
+            Compartment,
+            Model,
+            # Component.id,
+            # Component.name,
+            # Compartment.bigg_id,
+            # Compartment.name,
+            # Model.bigg_id,
+            # Component.formula,
+            # Component.charge,
+            # CompartmentalizedComponent.bigg_id,
+            # Model.id,
+            # Component.model_id,
+            # UniversalComponent.bigg_id,
+            # CompartmentalizedComponent.id,
         )
+        .join(Component.universal_component)
         .join(
             CompartmentalizedComponent,
             CompartmentalizedComponent.component_id == Component.id,
@@ -380,52 +381,57 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
             == CompartmentalizedComponent.id,
         )
         .join(Model, Model.id == ModelCompartmentalizedComponent.model_id)
-        .filter(CompartmentalizedComponent.id == comp_met_id)
-        .filter(Model.id == model_bigg_id)
-        .first()
-    )
+        .filter(CompartmentalizedComponent.bigg_id == comp_met_id)
+        .filter(Model.bigg_id == model_bigg_id)
+        .limit(1)
+    ).first()
     if result_db is None:
         raise utils.NotFoundError(
             "Component %s not in model %s" % (comp_met_id, model_bigg_id)
         )
-    met_bigg_id = result_db[0]
-    reference_db = (
-        session.query(ReferenceCompound)
+    met_bigg_id = result_db.Component.bigg_id
+    reference_db = session.execute(
+        select(ReferenceCompound, InChI)
         .join(
             ComponentReferenceMapping,
-            ReferenceCompound.id == ComponentReferenceMapping.reference_id,
+            ReferenceCompound.id == ComponentReferenceMapping.reference_compound_id,
         )
+        .outerjoin(InChI, InChI.id == ReferenceCompound.inchi_id)
         .filter(
-            ComponentReferenceMapping.component_id == str(result_db[0]),
+            ComponentReferenceMapping.component_id == result_db.Component.id,
         )
-        .first()
-    )
+        .limit(1)
+    ).first()
     if reference_db is None:
         reference = None
     else:
         reference = {
-            "id": reference_db.id,
-            "name": reference_db.name,
-            "type": reference_db.compound_type,
-            "charge": reference_db.charge,
-            "formula": reference_db.formula,
+            "bigg_id": reference_db[0].bigg_id,
+            "name": reference_db[0].name,
+            "type": reference_db[0].compound_type,
+            "charge": reference_db[0].charge,
+            "formula": reference_db[0].formula,
+            "inchi": reference_db[1],
         }
 
-    reactions_db = (
-        session.query(
-            UniversalReaction.id, UniversalReaction.name, ModelReaction.model_id
+    reactions_db = session.execute(
+        select(
+            UniversalReaction.bigg_id, UniversalReaction.name, ModelReaction.model_id
         )
-        .join(Reaction, Reaction.universal_id == UniversalReaction.id)
+        .join(Reaction, Reaction.universal_reaction_id == UniversalReaction.id)
         .join(ReactionMatrix, ReactionMatrix.reaction_id == Reaction.id)
-        .filter(ReactionMatrix.compartmentalized_component_id == result_db[7])
+        .filter(
+            ReactionMatrix.compartmentalized_component_id
+            == result_db.CompartmentalizedComponent.id
+        )
         .join(
             UniversalReactionMatrix,
-            ReactionMatrix.reaction_matrix_id == UniversalReactionMatrix.id,
+            ReactionMatrix.universal_reaction_matrix_id == UniversalReactionMatrix.id,
         )
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
-        .filter(ModelReaction.model_id == result_db[8])
+        .filter(ModelReaction.model_id == result_db.Model.id)
         .distinct()
-    )
+    ).all()
     model_db = get_model_list_for_metabolite(met_bigg_id, session)
     # m_escher_maps = escher_map_queries.get_escher_maps_for_metabolite(
     #     met_bigg_id, compartment_bigg_id, model_bigg_id, session
@@ -444,14 +450,14 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
     # )
 
     return {
-        "bigg_id": result_db[7],
-        "universal_id": result_db[10],
-        "name": result_db[1],
-        "compartment_bigg_id": result_db[2],
-        "compartment_name": result_db[3],
-        "model_bigg_id": result_db[4],
-        "formula": result_db[5],
-        "charge": result_db[6],
+        "bigg_id": result_db.CompartmentalizedComponent.bigg_id,
+        "universal_id": result_db.UniversalComponent.bigg_id,
+        "name": result_db.Component.name,
+        "compartment_bigg_id": result_db.Compartment.bigg_id,
+        "compartment_name": result_db.Compartment.name,
+        "model_bigg_id": result_db.Model.bigg_id,
+        "formula": result_db.Component.formula,
+        "charge": result_db.Component.charge,
         "database_links": db_link_results,
         "old_identifiers": old_id_results,
         "reactions": [
@@ -460,5 +466,5 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
         "escher_maps": m_escher_maps,
         "other_models_with_metabolite": model_result,
         "reference": reference,
-        "model_specific": result_db[9],
+        "model_specific": (result_db.Component.model_id is not None),
     }

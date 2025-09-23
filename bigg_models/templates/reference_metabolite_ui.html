@@ -8,15 +8,16 @@
 {% else %}
 <div class="card m-2 w-100">
 	<div class="card-body">
-		<h5 class="card-title">{{reference['id'] | format_reference}}</h5>
+		<h5 class="card-title">{{reference['bigg_id'] | format_reference}}</h5>
 		<p class="card-text">{{reference['name']}}</p>
 	</div>
 	<ul class="list-group list-group-flush rounded-3-end">
 		<li class="list-group-item"><i>Type:</i> {{reference['type']}}</li>
 		<li class="list-group-item"><i>Charge:</i> {{reference['charge']}}</li>
 		<li class="list-group-item"><i>Formula:</i> {{reference['formula']}}</li>
-		{% if reference['id'].startswith('CHEBI:') %}
-		{% set chebi_link -%}http://identifiers.org/{{reference['id']}}{%- endset %}
+		{{ general.inchi_list_item(reference.inchi) }}
+		{% if reference['bigg_id'].startswith('CHEBI:') %}
+		{% set chebi_link -%}http://identifiers.org/{{reference['bigg_id']}}{%- endset %}
 		<li class="list-group-item">{{general.external_link("View on ChEBI", chebi_link)}}
 		</li>
 		{% endif %}

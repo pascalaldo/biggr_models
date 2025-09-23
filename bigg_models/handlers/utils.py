@@ -34,6 +34,11 @@ def format_bigg_id(bigg_id, format_type=None):
         elif format_type == "universal_comp_comp":
             universal_id, compartment_id = bigg_id.rsplit("_", maxsplit=1)
             return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span>'
+        elif format_type == "reaction":
+            if ":" in bigg_id:
+                universal_id, copy_number = bigg_id.rsplit(":", maxsplit=1)
+                return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal fst-italic opacity-75 small">:{copy_number}</span>'
+            return f'{prefix}<span class="fw-semibold">{bigg_id}</span>'
         else:
             return bigg_id
     except:

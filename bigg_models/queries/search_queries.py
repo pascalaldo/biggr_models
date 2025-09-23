@@ -23,7 +23,7 @@ from cobradb.models import (
 )
 
 from cobradb.model_loading import parse
-from sqlalchemy import func, or_, and_
+from sqlalchemy import select, func, or_, and_
 from itertools import chain
 
 name_sim_cutoff = 0.3
@@ -39,20 +39,19 @@ def search_for_universal_reactions_count(
 ):
     """Count the search results."""
     # similarity functions
-    sim_bigg_id = func.similarity(UniversalReaction.id, query_string)
+    sim_bigg_id = func.similarity(UniversalReaction.bigg_id, query_string)
     sim_name = func.similarity(UniversalReaction.name, query_string)
 
-    query = session.query(UniversalReaction.id, UniversalReaction.name).filter(
-        or_(
-            sim_bigg_id >= bigg_id_sim_cutoff,
-            and_(sim_name >= name_sim_cutoff, UniversalReaction.name != ""),
+    query = session.scalars(
+        select(func.count(UniversalReaction.id)).filter(
+            or_(
+                sim_bigg_id >= bigg_id_sim_cutoff,
+                and_(sim_name >= name_sim_cutoff, UniversalReaction.name != ""),
+            )
         )
-    )
+    ).first()
 
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, UniversalReaction)
-
-    return query.count()
+    return query
 
 
 def search_for_universal_reactions(
@@ -88,12 +87,12 @@ def search_for_universal_reactions(
 
     """
     # similarity functions
-    sim_bigg_id = func.similarity(UniversalReaction.id, query_string)
+    sim_bigg_id = func.similarity(UniversalReaction.bigg_id, query_string)
     sim_name = func.similarity(UniversalReaction.name, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": func.lower(UniversalReaction.id),
+        "bigg_id": func.lower(UniversalReaction.bigg_id),
         "name": func.lower(UniversalReaction.name),
     }
 
@@ -109,21 +108,19 @@ def search_for_universal_reactions(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(UniversalReaction.id, UniversalReaction.name).filter(
+    query = select(UniversalReaction.bigg_id, UniversalReaction.name).filter(
         or_(
             sim_bigg_id >= bigg_id_sim_cutoff,
             and_(sim_name >= name_sim_cutoff, UniversalReaction.name != ""),
         )
     )
 
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, UniversalReaction)
-
     # order and limit
     query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
+    query = session.execute(query).all()
     return [{"bigg_id": x[0], "name": x[1]} for x in query]
 
 
@@ -162,12 +159,12 @@ def search_for_reactions(
 
     """
     # similarity functions
-    sim_bigg_id = func.similarity(UniversalReaction.id, query_string)
+    sim_bigg_id = func.similarity(UniversalReaction.bigg_id, query_string)
     sim_name = func.similarity(UniversalReaction.name, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": func.lower(UniversalReaction.id),
+        "bigg_id": func.lower(UniversalReaction.bigg_id),
         "name": func.lower(UniversalReaction.name),
     }
 
@@ -184,10 +181,13 @@ def search_for_reactions(
 
     # set up the query
     query = (
-        session.query(
-            UniversalReaction.id, Model.id, Model.organism, UniversalReaction.name
+        select(
+            UniversalReaction.bigg_id,
+            Model.bigg_id,
+            Model.organism,
+            UniversalReaction.name,
         )
-        .join(Reaction, Reaction.universal_id == UniversalReaction.id)
+        .join(Reaction, Reaction.universal_reaction_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
         .filter(
@@ -207,6 +207,7 @@ def search_for_reactions(
     if limit_models:
         query = query.filter(Model.bigg_id.in_(limit_models))
 
+    query = session.execute(query).all()
     return [
         {"bigg_id": x[0], "model_bigg_id": x[1], "organism": x[2], "name": x[3]}
         for x in query
@@ -220,20 +221,19 @@ def search_for_universal_metabolites_count(
 ):
     """Count the search results."""
     # similarity functions
-    sim_bigg_id = func.similarity(UniversalComponent.id, query_string)
+    sim_bigg_id = func.similarity(UniversalComponent.bigg_id, query_string)
     sim_name = func.similarity(UniversalComponent.name, query_string)
 
-    query = session.query(UniversalComponent.id, UniversalComponent.name).filter(
-        or_(
-            sim_bigg_id >= bigg_id_sim_cutoff,
-            and_(sim_name >= name_sim_cutoff, UniversalComponent.name != ""),
+    query = session.scalars(
+        select(func.count(UniversalComponent.id)).filter(
+            or_(
+                sim_bigg_id >= bigg_id_sim_cutoff,
+                and_(sim_name >= name_sim_cutoff, UniversalComponent.name != ""),
+            )
         )
-    )
+    ).first()
 
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, UniversalComponent)
-
-    return query.count()
+    return query
 
 
 def search_for_universal_metabolites(
@@ -269,12 +269,12 @@ def search_for_universal_metabolites(
 
     """
     # similarity functions
-    sim_bigg_id = func.similarity(UniversalComponent.id, query_string)
+    sim_bigg_id = func.similarity(UniversalComponent.bigg_id, query_string)
     sim_name = func.similarity(UniversalComponent.name, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": func.lower(UniversalComponent.id),
+        "bigg_id": func.lower(UniversalComponent.bigg_id),
         "name": func.lower(UniversalComponent.name),
     }
 
@@ -290,20 +290,19 @@ def search_for_universal_metabolites(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(UniversalComponent.id, UniversalComponent.name).filter(
+    query = select(UniversalComponent.bigg_id, UniversalComponent.name).filter(
         or_(
             sim_bigg_id >= bigg_id_sim_cutoff,
             and_(sim_name >= name_sim_cutoff, UniversalComponent.name != ""),
         )
     )
 
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, UniversalComponent)
-
     # order and limit
     query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
+
+    query = session.execute(query).all()
 
     return [{"bigg_id": x[0], "name": x[1]} for x in query]
 
@@ -349,14 +348,14 @@ def search_for_metabolites(
 
     """
     # similarity functions
-    sim_bigg_id = func.similarity(Component.id, query_string)
+    sim_bigg_id = func.similarity(Component.bigg_id, query_string)
     sim_name = func.similarity(Component.name, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": [func.lower(Component.id), func.lower(Compartment.id)],
+        "bigg_id": [func.lower(Component.bigg_id), func.lower(Compartment.bigg_id)],
         "name": func.lower(Component.name),
-        "model_bigg_id": func.lower(Model.id),
+        "model_bigg_id": func.lower(Model.bigg_id),
         "organism": func.lower(Model.organism),
     }
 
@@ -387,10 +386,10 @@ def search_for_metabolites(
 
     # set up the query
     query = (
-        session.query(
-            Component.id,
-            Compartment.id,
-            Model.id,
+        select(
+            Component.bigg_id,
+            Compartment.bigg_id,
+            Model.bigg_id,
             Model.organism,
             Component.name,
         )
@@ -415,8 +414,8 @@ def search_for_metabolites(
             )
         except Exception:
             return []
-        query = query.filter(Component.id == metabolite_bigg_id).filter(
-            Compartment.id == compartment_bigg_id
+        query = query.filter(Component.bigg_id == metabolite_bigg_id).filter(
+            Compartment.bigg_id == compartment_bigg_id
         )
     else:
         query = query.filter(
@@ -434,6 +433,8 @@ def search_for_metabolites(
     # just search certain models
     if limit_models:
         query = query.filter(Model.bigg_id.in_(limit_models))
+
+    query = session.execute(query).all()
 
     return [
         {
@@ -460,7 +461,7 @@ def search_for_genes_count(
 
     # set up the query
     query = (
-        session.query(Gene.bigg_id, Model.id, Gene.name, sim_bigg_id, Model.organism)
+        select(func.count(Gene.bigg_id))
         .join(ModelGene, ModelGene.gene_id == Gene.id)
         .join(Model, Model.id == ModelGene.model_id)
         .filter(
@@ -471,14 +472,12 @@ def search_for_genes_count(
         )
     )
 
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Gene)
-
     # limit the models
     if limit_models:
-        query = query.filter(Model.id.in_(limit_models))
+        query = query.filter(Model.bigg_id.in_(limit_models))
 
-    return query.count()
+    query = session.scalars(query).first()
+    return query
 
 
 def search_for_genes(
@@ -526,7 +525,7 @@ def search_for_genes(
     columns = {
         "bigg_id": func.lower(Gene.bigg_id),
         "name": func.lower(Gene.name),
-        "model_bigg_id": func.lower(Model.id),
+        "model_bigg_id": func.lower(Model.bigg_id),
         "organism": func.lower(Model.organism),
     }
 
@@ -543,7 +542,7 @@ def search_for_genes(
 
     # set up the query
     query = (
-        session.query(GenomeRegion.bigg_id, Gene.name, Model.id, Model.organism)
+        select(GenomeRegion.bigg_id, Gene.name, Model.bigg_id, Model.organism)
         .join(Gene)
         .join(ModelGene)
         .join(Model)
@@ -555,9 +554,6 @@ def search_for_genes(
         )
     )
 
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Gene)
-
     # order and limit
     query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
@@ -567,6 +563,7 @@ def search_for_genes(
     if limit_models:
         query = query.filter(Model.bigg_id.in_(limit_models))
 
+    query = session.execute(query).all()
     return [
         {"bigg_id": x[0], "name": x[1], "model_bigg_id": x[2], "organism": x[3]}
         for x in query
@@ -576,20 +573,19 @@ def search_for_genes(
 def search_for_models_count(query_string, session, multistrain_off):
     """Count the search results."""
     # similarity functions
-    sim_bigg_id = func.similarity(Model.id, query_string)
+    sim_bigg_id = func.similarity(Model.bigg_id, query_string)
     sim_organism = func.similarity(Model.organism, query_string)
 
     # set up the query
     query = (
-        session.query(Model.id, ModelCount, Model.organism)
+        select(func.count(Model.id))
         .join(ModelCount)
         .filter(
             or_(sim_bigg_id >= bigg_id_sim_cutoff, sim_organism >= organism_sim_cutoff)
         )
     )
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Model)
-    return query.count()
+    query = session.scalars(query).first()
+    return query
 
 
 def search_for_models(
@@ -630,12 +626,12 @@ def search_for_models(
     """
 
     # models by bigg_id
-    sim_bigg_id = func.similarity(Model.id, query_string)
+    sim_bigg_id = func.similarity(Model.bigg_id, query_string)
     sim_organism = func.similarity(Model.organism, query_string)
 
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Model.id),
+        "bigg_id": func.lower(Model.bigg_id),
         "organism": func.lower(Model.organism),
         "metabolite_count": ModelCount.metabolite_count,
         "reaction_count": ModelCount.reaction_count,
@@ -655,8 +651,8 @@ def search_for_models(
 
     # set up the query
     query = (
-        session.query(
-            Model.id,
+        select(
+            Model.bigg_id,
             Model.organism,
             ModelCount.metabolite_count,
             ModelCount.reaction_count,
@@ -668,14 +664,12 @@ def search_for_models(
         )
     )
 
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Model)
-
     # order and limit
     query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
 
+    query = session.execute(query).all()
     return [
         {
             "bigg_id": x[0],
@@ -691,31 +685,25 @@ def search_for_models(
 def search_ids_fast(query_string, session, limit=None):
     """Search used for autocomplete."""
     gene_q = (
-        session.query(Gene.bigg_id)
+        select(Gene.bigg_id)
         .join(ModelGene)
         .filter(Gene.bigg_id.ilike(query_string + "%"))
     )
     gene_name_q = (
-        session.query(Gene.name)
-        .join(ModelGene)
-        .filter(Gene.name.ilike(query_string + "%"))
+        select(Gene.name).join(ModelGene).filter(Gene.name.ilike(query_string + "%"))
     )
-    reaction_q = session.query(Reaction.id).filter(
-        Reaction.id.ilike(query_string + "%")
-    )
-    reaction_name_q = session.query(Reaction.name).filter(
+    reaction_q = select(Reaction.bigg_id).filter(Reaction.id.ilike(query_string + "%"))
+    reaction_name_q = select(Reaction.name).filter(
         Reaction.name.ilike(query_string + "%")
     )
-    metabolite_q = session.query(UniversalComponent.id).filter(
+    metabolite_q = select(UniversalComponent.bigg_id).filter(
         UniversalComponent.id.ilike(query_string + "%")
     )
     metabolite_name_q = session.query(UniversalComponent.name).filter(
         UniversalComponent.name.ilike(query_string + "%")
     )
-    model_q = session.query(Model.id).filter(Model.id.ilike(query_string + "%"))
-    organism_q = session.query(Model.organism).filter(
-        Model.organism.ilike(query_string + "%")
-    )
+    model_q = select(Model.bigg_id).filter(Model.bigg_id.ilike(query_string + "%"))
+    organism_q = select(Model.organism).filter(Model.organism.ilike(query_string + "%"))
     query = gene_q.union(
         gene_name_q,
         reaction_q,
@@ -729,6 +717,8 @@ def search_ids_fast(query_string, session, limit=None):
     if limit is not None:
         query = query.limit(limit)
 
+    query = session.execute(query).all()
+
     return [x[0] for x in query]
 
 
@@ -737,33 +727,33 @@ def search_ids_fast(query_string, session, limit=None):
 
 def get_database_sources(session):
     # for advanced search
-    result_db = (
-        session.query(DataSource.bigg_id, DataSource.name)
+    result_db = session.execute(
+        select(DataSource.bigg_id, DataSource.name)
         .filter(DataSource.name != None)
         .distinct()
         .order_by(DataSource.name)
-    )
+    ).all()
     return [(x[0], x[1]) for x in result_db]
 
 
 def get_metabolites_for_database_id(session, query, database_source):
-    met_db = (
-        session.query(Component.bigg_id, Component.name)
+    met_db = session.execute(
+        select(Component.bigg_id, Component.name)
         .join(Synonym, Synonym.ome_id == Component.id)
         .filter(Synonym.type == "component")
         .join(DataSource, DataSource.id == Synonym.data_source_id)
         .filter(DataSource.bigg_id == database_source)
         .filter(Synonym.synonym == query.strip())
-    )
-    comp_comp_db = (
-        session.query(Component.bigg_id, Component.name)
+    ).all()
+    comp_comp_db = session.execute(
+        select(Component.bigg_id, Component.name)
         .join(CompartmentalizedComponent)
         .join(Synonym, Synonym.ome_id == CompartmentalizedComponent.id)
         .filter(Synonym.type == "compartmentalized_component")
         .join(DataSource, DataSource.id == Synonym.data_source_id)
         .filter(DataSource.bigg_id == database_source)
         .filter(Synonym.synonym == query.strip())
-    )
+    ).all()
     return [
         {"bigg_id": x[0], "model_bigg_id": "universal", "name": x[1]}
         for x in chain(met_db, comp_comp_db)
@@ -771,22 +761,22 @@ def get_metabolites_for_database_id(session, query, database_source):
 
 
 def get_reactions_for_database_id(session, query, database_source):
-    result_db = (
-        session.query(Reaction.bigg_id, Reaction.name)
+    result_db = session.execute(
+        select(Reaction.bigg_id, Reaction.name)
         .join(Synonym, Synonym.ome_id == Reaction.id)
         .filter(Synonym.type == "reaction")
         .join(DataSource, DataSource.id == Synonym.data_source_id)
         .filter(DataSource.bigg_id == database_source)
         .filter(Synonym.synonym == query.strip())
-    )
+    ).all()
     return [
         {"bigg_id": x[0], "model_bigg_id": "universal", "name": x[1]} for x in result_db
     ]
 
 
 def get_genes_for_database_id(session, query, database_source):
-    result_db = (
-        session.query(Gene.bigg_id, Model.bigg_id, Gene.name)
+    result_db = session.execute(
+        select(Gene.bigg_id, Model.bigg_id, Gene.name)
         .join(Synonym, Synonym.ome_id == Gene.id)
         .filter(Synonym.type == "gene")
         .join(DataSource)
@@ -794,14 +784,14 @@ def get_genes_for_database_id(session, query, database_source):
         .join(Model)
         .filter(DataSource.bigg_id == database_source)
         .filter(Synonym.synonym == query.strip())
-    )
+    ).all()
     return [{"bigg_id": x[0], "model_bigg_id": x[1], "name": x[2]} for x in result_db]
 
 
 def sequences_for_reaction(reaction_bigg_id, session):
-    print(reaction_bigg_id)
-    res = (
-        session.query(
+    # print(reaction_bigg_id)
+    res = session.execute(
+        select(
             Gene.dna_sequence,
             Gene.protein_sequence,
             Gene.bigg_id,

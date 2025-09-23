@@ -29,7 +29,7 @@
         {% call(reaction) tables.simple_table(["&nbsp;", "BiGG ID", "Name"], reactions) %}
           {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
           <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#reaction_S" style="height: 1em;" /></a></td>
-          <td><a href="{{link}}" class="d-block">{{reaction['bigg_id']}}</a></td>
+          <td><a href="{{link}}" class="d-block">{{reaction['bigg_id'] | format_id("reaction") }}</a></td>
           <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
         {% endcall %}
       </div>

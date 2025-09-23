@@ -10,34 +10,34 @@ from cobradb.models import (
     ModelReaction,
     Reaction,
     UniversalReaction,
-    GenomeRegion
+    GenomeRegion,
 )
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 
 def get_gene_ids_for_gene_name(name, session):
     """Get the gene ids for a gene name."""
-    return (
-        session.query(Gene.id)
-        .filter(func.lower(Gene.name) == func.lower(name))
-        .all()
-    )
+    return session.scalars(
+        select(Gene.id).filter(func.lower(Gene.name) == func.lower(name))
+    ).all()
+
 
 def get_genes(gene_ids, session):
     """Get the genes for a list of gene ids."""
-    rows = (
-        session.query(Gene.id, Gene.bigg_id, Gene.name, Gene.locus_tag, Gene.mapped_to_genbank)
-        .filter(Gene.id.in_(list(gene_ids)))
-        .all()
-    )
+    rows = session.execute(
+        select(
+            Gene.id, Gene.bigg_id, Gene.name, Gene.locus_tag, Gene.mapped_to_genbank
+        ).filter(Gene.id.in_(list(gene_ids)))
+    ).all()
 
     return [dict(r._mapping) for r in rows]
 
+
 def get_genome_region_for_gene_id(ids, session):
     """Get the genome region for a gene id."""
-    rows = (
-        session.query(
+    rows = session.execute(
+        select(
             GenomeRegion.id,
             GenomeRegion.chromosome_id,
             GenomeRegion.bigg_id,
@@ -47,23 +47,20 @@ def get_genome_region_for_gene_id(ids, session):
             GenomeRegion.type,
             GenomeRegion.dna_sequence,
             GenomeRegion.protein_sequence,
-        )
-        .filter(GenomeRegion.id.in_(list(ids)))
-        .all()
-    )
+        ).filter(GenomeRegion.id.in_(list(ids)))
+    ).all()
 
     return [dict(r._mapping) for r in rows]
 
-    
+
 def get_model_genes_count(model_bigg_id, session):
     """Get the number of gene for the given model."""
-    return (
-        session.query(Gene)
+    return session.scalars(
+        session.query(func.count(Gene.id))
         .join(ModelGene)
         .join(Model)
-        .filter(Model.id == model_bigg_id)
-        .count()
-    )
+        .filter(Model.bigg_id == model_bigg_id)
+    ).first()
 
 
 def get_model_genes(
@@ -104,7 +101,7 @@ def get_model_genes(
     columns = {
         "bigg_id": func.lower(Gene.bigg_id),
         "name": func.lower(Gene.name),
-        "model_bigg_id": func.lower(Model.id),
+        "model_bigg_id": func.lower(Model.bigg_id),
         "organism": func.lower(Model.organism),
     }
 
@@ -118,10 +115,10 @@ def get_model_genes(
 
     # set up the query
     query = (
-        session.query(Gene.bigg_id, Gene.name, Model.id, Model.organism)
+        select(Gene.bigg_id, Gene.name, Model.bigg_id, Model.organism)
         .join(ModelGene, ModelGene.gene_id == Gene.id)
         .join(Model, Model.id == ModelGene.model_id)
-        .filter(Model.id == model_bigg_id)
+        .filter(Model.bigg_id == model_bigg_id)
     )
 
     # order and limit
@@ -129,6 +126,7 @@ def get_model_genes(
         query, sort_column_object, sort_direction, page, size
     )
 
+    query = session.execute(query).all()
     return [
         {"bigg_id": x[0], "name": x[1], "model_bigg_id": x[2], "organism": x[3]}
         for x in query
@@ -136,13 +134,13 @@ def get_model_genes(
 
 
 def get_model_gene(gene_bigg_id, model_bigg_id, session):
-    result_db = (
-        session.query(
+    result_db = session.execute(
+        select(
             Gene.bigg_id,
             Gene.name,
             Gene.leftpos,
             Gene.rightpos,
-            Model.id,
+            Model.bigg_id,
             Gene.strand,
             Chromosome.ncbi_accession,
             Genome.accession_type,
@@ -156,22 +154,22 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         .outerjoin(Genome, Genome.id == Model.genome_id)
         .outerjoin(Chromosome, Chromosome.id == Gene.chromosome_id)
         .filter(Gene.bigg_id == gene_bigg_id)
-        .filter(Model.id == model_bigg_id)
-        .first()
-    )
+        .filter(Model.bigg_id == model_bigg_id)
+        .limit(1)
+    ).first()
     if result_db is None:
         raise utils.NotFoundError(
             "Gene %s not found in model %s" % (gene_bigg_id, model_bigg_id)
         )
 
-    reaction_db = (
-        session.query(
-            Reaction.id,
+    reaction_db = session.execute(
+        select(
+            Reaction.bigg_id,
             ModelReaction.gene_reaction_rule,
             UniversalReaction.name,
-            UniversalReaction.id,
+            UniversalReaction.bigg_id,
         )
-        .join(UniversalReaction, UniversalReaction.id == Reaction.universal_id)
+        .join(UniversalReaction, UniversalReaction.id == Reaction.universal_reaction_id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
         .join(Model, Model.id == ModelReaction.model_id)
         .join(
@@ -179,7 +177,7 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         )
         .join(ModelGene, ModelGene.id == GeneReactionMatrix.model_gene_id)
         .join(Gene, Gene.id == ModelGene.gene_id)
-        .filter(Model.id == model_bigg_id)
+        .filter(Model.bigg_id == model_bigg_id)
         .filter(Gene.bigg_id == gene_bigg_id)
     )
     reaction_results = [
