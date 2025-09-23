@@ -8,28 +8,27 @@ from cobradb.models import (
     MemoteResult,
 )
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from os import path
 
 REACTION_TESTS = ["test_blocked_reactions", "test_reaction_mass_balance"]
 
 
-def get_general_results_for_model(session, model_bigg_id):
-    result_db = (
-        session.query(MemoteTest, MemoteResult)
+def get_general_results_for_model(session, model_id):
+    result_db = session.execute(
+        select(MemoteTest, MemoteResult)
         .join(MemoteResult, MemoteResult.test_id == MemoteTest.id)
         .filter(
-            (MemoteResult.model_id == model_bigg_id)
+            (MemoteResult.model_id == model_id)
             & (MemoteResult.model_reaction_id == None)
-            & (MemoteResult.model_component_id == None)
+            & (MemoteResult.model_compartmentalized_component_id == None)
             & (MemoteResult.model_gene_id == None)
             & (MemoteResult.result != None)
         )
-        .all()
-    )
+    ).all()
 
     if result_db is not None:
-        result_db = {r[0].id: r for r in result_db}
+        result_db = {r[0].bigg_id: r for r in result_db}
 
     return result_db
 
@@ -38,21 +37,20 @@ def get_memote_results_for_reaction(session, model_reaction_id):
     reaction_result_alias = aliased(MemoteResult)
     general_result_alias = aliased(MemoteResult)
 
-    result_db = (
-        session.query(reaction_result_alias, general_result_alias, MemoteTest)
+    result_db = session.execute(
+        select(reaction_result_alias, general_result_alias, MemoteTest)
         .join(
             general_result_alias,
             (general_result_alias.test_id == reaction_result_alias.test_id)
             & (general_result_alias.model_id == reaction_result_alias.model_id)
             & (general_result_alias.model_reaction_id == None)
-            & (general_result_alias.model_component_id == None)
+            & (general_result_alias.model_compartmentalized_component_id == None)
             & (general_result_alias.model_gene_id == None),
         )
         .join(MemoteTest, MemoteTest.id == reaction_result_alias.test_id)
         .filter(
             (reaction_result_alias.model_reaction_id == model_reaction_id)
-            & (reaction_result_alias.test_id.in_(REACTION_TESTS))
+            & (MemoteTest.bigg_id.in_(REACTION_TESTS))
         )
-        .all()
-    )
+    ).all()
     return result_db

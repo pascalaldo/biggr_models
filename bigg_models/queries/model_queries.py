@@ -3,7 +3,6 @@ from bigg_models.queries import utils, escher_map_queries
 from cobradb.util import ref_tuple_to_str
 from cobradb import settings
 from cobradb.models import (
-    DatabaseVersion,
     Genome,
     Model,
     ModelCount,
@@ -11,7 +10,7 @@ from cobradb.models import (
     PublicationModel,
 )
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from os import path
 
 from bigg_models.queries.memote_queries import get_general_results_for_model
@@ -19,10 +18,8 @@ from bigg_models.queries.memote_queries import get_general_results_for_model
 
 def get_models_count(session, multistrain_off, **kwargs):
     """Return the number of models in the database."""
-    query = session.query(Model).join(ModelCount, ModelCount.model_id == Model.id)
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Model)
-    return query.count()
+    query = session.scalars(select(func.count(Model.id))).first()
+    return query
 
 
 def get_models(
@@ -58,7 +55,7 @@ def get_models(
     """
     # get the sort column
     columns = {
-        "bigg_id": func.lower(Model.id),
+        "bigg_id": func.lower(Model.bigg_id),
         "organism": func.lower(Model.organism),
         "metabolite_count": ModelCount.metabolite_count,
         "reaction_count": ModelCount.reaction_count,
@@ -75,19 +72,18 @@ def get_models(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = session.query(
-        Model.id,
+    query = select(
+        Model.bigg_id,
         Model.organism,
         ModelCount.metabolite_count,
         ModelCount.reaction_count,
         ModelCount.gene_count,
-    ).join(ModelCount, ModelCount.model_id == Model.id)
-    if multistrain_off:
-        query = utils._add_multistrain_filter(session, query, Model)
+    ).join(Model.model_count)
     # order and limit
     query = utils._apply_order_limit_offset(
         query, sort_column_object, sort_direction, page, size
     )
+    query = session.execute(query).all()
 
     return [
         {
@@ -104,21 +100,21 @@ def get_models(
 def get_model_and_counts(
     model_bigg_id, session, static_model_dir=None, static_multistrain_dir=None
 ):
-    model_db = (
-        session.query(
+    model_db = session.execute(
+        select(
             Model,
             ModelCount,
             Genome,
             Publication.reference_type,
             Publication.reference_id,
         )
-        .join(ModelCount, ModelCount.model_id == Model.id)
-        .outerjoin(Genome, Genome.id == Model.genome_id)
-        .outerjoin(PublicationModel, PublicationModel.model_id == Model.id)
-        .outerjoin(Publication, Publication.id == PublicationModel.publication_id)
-        .filter(Model.id == model_bigg_id)
-        .first()
-    )
+        .join(Model.model_count)
+        .join(Model.genome)
+        .join(Model.publication_models)
+        .join(PublicationModel.publication)
+        .filter(Model.bigg_id == model_bigg_id)
+        .limit(1)
+    ).first()
     if model_db is None:
         raise utils.NotFoundError("No Model found with BiGG ID " + model_bigg_id)
 
@@ -132,7 +128,7 @@ def get_model_and_counts(
         model_db[0].id, session
     )
     result = {
-        "model_bigg_id": model_db[0].id,
+        "model_bigg_id": model_db[0].bigg_id,
         "published_filename": model_db[0].published_filename,
         "organism": getattr(model_db[2], "organism", None),
         "genome_name": genome_name,
@@ -177,7 +173,7 @@ def get_model_and_counts(
 
 def get_model_list(session):
     """Return a list of all models, for advanced search."""
-    model_list = session.query(Model.id).order_by(Model.id)
+    model_list = session.scalars(Model.bigg_id)
     l = [x[0] for x in model_list]
     l.sort()
     return l

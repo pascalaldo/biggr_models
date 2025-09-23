@@ -15,6 +15,8 @@ from cobradb.models import (
 )
 from itertools import chain
 
+from sqlalchemy import select
+
 
 def _compile_db_links(results):
     """Return links for the results that have a url_prefix."""
@@ -129,8 +131,8 @@ def _get_db_links_for_metabolite(met_bigg_id, session):
 
 
 def _get_old_ids_for_metabolite(met_bigg_id, session):
-    result_db = (
-        session.query(Synonym.synonym)
+    result_db = session.scalars(
+        select(Synonym.synonym)
         .join(OldIDSynonym)
         .join(
             ModelCompartmentalizedComponent,
@@ -140,9 +142,9 @@ def _get_old_ids_for_metabolite(met_bigg_id, session):
         .filter(Synonym.type == "component")
         .join(CompartmentalizedComponent)
         .join(Component)
-        .filter(Component.id == met_bigg_id)
+        .filter(Component.bigg_id == met_bigg_id)
         .distinct()
-    )
+    ).all()
     return [x[0] for x in result_db]
 
 

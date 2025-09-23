@@ -41,7 +41,7 @@
           <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['coefficient_int_or_float']}}</a></td>
           <td><a href="{{link}}" class="d-block">{{metabolite.bigg_id | format_id("comp_comp")}}</a></td>
           <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['name']}}</a></td>
-        <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference'] is none %} - {% else %}{{metabolite['reference']['id'] | format_reference}}{% endif %}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
+        <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference'] is none %} - {% else %}{{metabolite['reference']['bigg_id'] | format_reference}}{% endif %}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
         <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference_participant'] is none %} - {% else %}{{metabolite['reference_participant']['coefficient']}} [{{metabolite['reference_participant']['side']}}]{% endif %}</a></td>
         <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference_participant'] is none %} - {% else %}{{metabolite['reference_participant']['compartment']}}{% endif %}</a></td>
         {% endcall %}
