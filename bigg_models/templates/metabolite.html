@@ -5,7 +5,7 @@
 {% block body %}
 <div class="row">
   <div class="col-12">
-    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", reference) %}
+    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", references, "linkouts_metabolite_ui.html", all_annotations) %}
       <div class="card-body">
       <h5 class="card-title">{{bigg_id | format_id("comp_comp")}}</h5>
         {% if name %}<p class="card-text">{{name}}</p>{% endif %}

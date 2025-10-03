@@ -13,43 +13,76 @@
 </div>
 {% endmacro %}
 
-{% macro item_and_reference(icon_id, alt_text, reference_include, reference, accent=True) %}
+{% macro item_and_reference(icon_id, alt_text, reference_include, references, linkouts_include="", linkouts=None,
+accent=True) %}
 <div class="card mb-3{% if accent %} bg-body-tertiary{% endif %}">
 	<div class="row g-0">
-		<div class="col-12 col-lg-7">
+		<div class="col-12{% if linkouts %} col-lg-8{% endif %}">
 			<div class="row g-0">
-				<div class="col-3">
+				<div class="col-2">
 					<img src="/static/assets/iconset.svg#{{icon_id}}"
 						class="img-fluid p-0 w-100 h-100" alt="{{alt_text}}">
 				</div>
-				<div class="col-9">
+				<div class="col-10">
 					{{ caller() }}
 				</div>
 			</div>
+			{% if references %}
+			<div class="row g-0">
+				<div class="col-2">
+					<img src="/static/assets/iconset.svg#reference_L"
+						class="img-fluid p-0 w-100 h-100" alt="Reference">
+				</div>
+				<div class="col-10">
+					{% if referencse is iterable and (references is not string and references is not
+					mapping) %}
+					{% for reference in references %}
+					{% include reference_include %}
+					{% endfor %}
+					{% else %}
+					{% set reference = references %}
+					{% include reference_include %}
+					{% endif %}
+				</div>
+			</div>
+			{% endif %}
 		</div>
-		<div class="col-12 col-lg-5 d-flex">
-			{% include reference_include %}
+		{% if linkouts %}
+		<div class="col-12 col-lg-4">
+			{% include linkouts_include %}
 		</div>
+		{% endif %}
 	</div>
 </div>
 {% endmacro %}
-{% macro flush_list_group_item(label=none, value=none, link=none, accent=False, align=0) %}
+{% macro flush_list_group_item(label=none, value=none, link=none, unit=none, accent=False, align=0) %}
 <li class="list-group-item{% if accent %} bg-body-tertiary{% endif %}">
 	{%- if align > 0 -%}<div class="row g-0">
 		<div class="col-{{align}}">{%- endif -%}
-			{% if label is not none %}<i>{{ label }}:</i> {% endif %}{% if align > 0 %}
+			{% if label is not none %}<i class="text-secondary">{{ label }}:</i> {% endif %}{% if
+			align > 0 %}
 		</div>
-		<div class="col-{{ 12 - align }}">{% endif %}{% if value is not none %}{% if link is not none %}{% if
-			link.startswith("http")
-			%}{{ general.external_link(value, link) }}{% else %}<a href="{{link}}"
-				class="stretched-link">{{value}}</a>{% endif %}{% else %}{{value}}{%
-			endif%}{% endif %}
+		<div class="col-{{ 12 - align }}">{% endif %}{% if value is not none %}<span
+				style="word-break: break-all;">{% if
+				link is not none %}{% if
+				link.startswith("http")
+				%}{{ general.external_link(value, link) }}{% else %}<a href="{{link}}"
+					class="stretched-link">{{value}}</a>{% endif %}{% else %}{{value}}{%
+				endif%}{% endif %}</span>{% if unit is not none %} <span
+				class="d-inline-block float-end small text-light-emphasis">({{unit}})</span>{%
+			endif %}
 			{% if align > 0 %}</div>
 	</div>{% endif %}
 </li>
 {% endmacro %}
-{% macro flush_list_group(items=[], accent=False, align=0) %}
-<ul class="list-group list-group-flush rounded-3{% if accent %} bg-body-tertiary{% endif %}">
+{% macro flush_list_group_category(label, accent=False) %}
+<li class="list-group-item{% if not accent %} bg-body-tertiary{% endif %}">
+	<strong>{{ label }}</strong>
+</li>
+{% endmacro %}
+
+{% macro flush_list_group(items=[], accent=False, align=0, flush=True) %}
+<ul class="list-group{% if flush %} list-group-flush{% endif %} rounded-3{% if accent %} bg-body-tertiary{% endif %}">
 	{% for item in items %}
 	{{ flush_list_group_item(item.label, item.value, item.link, accent=accent, align=align) }}
 	{% endfor %}

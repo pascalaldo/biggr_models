@@ -15,7 +15,7 @@
   {% endif %}
 
   <div class="col-12">
-    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", reference) %}
+    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", [reference], "linkouts_reaction_ui.html", all_annotations) %}
       <div class="card-body">
         <h5 class="card-title">{{full_bigg_id | format_id("reaction")}}</h5>
         {% if name is not none %}<p class="card-text">{{universal_reaction.name}}</p>{% endif %}
@@ -24,7 +24,7 @@
         {{ cards.flush_list_group_item(value=reaction_string, accent=True) }}
         {{ cards.flush_list_group_item("Model", model_bigg_id, link="/models/"~model_bigg_id, accent=True) }}
         {{ cards.flush_list_group_item("Bounds", '('~model_reaction.lower_bound~', '~model_reaction.upper_bound~')', accent=True) }}
-        {{ cards.flush_list_group_item("Universal Reaction", universal_reaction.id | format_id("reaction"), link="/universal/reactions/"~universal_reaction.id, accent=True) }}
+        {{ cards.flush_list_group_item("Universal Reaction", universal_reaction.bigg_id | format_id("reaction"), link="/universal/reactions/"~universal_reaction.bigg_id, accent=True) }}
       {% endcall %}
     {% endcall %}
   </div>

@@ -1,9 +1,17 @@
+// Required
+@import "../../node_modules/bootstrap/scss/functions";
+@import "../../node_modules/bootstrap/scss/variables";
+@import "../../node_modules/bootstrap/scss/variables-dark";
+
 $enable-shadows: true;
 $card-box-shadow: 0 8px 12px rgba(13,13,18,.04);
 $card-border-radius: 4px;
 
 $list-group-item-padding-y: 0.3rem;
 $list-group-item-padding-x: 0.6rem;
+
+// $accordion-button-color: var(--bs-secondary-text-emphasis);
+// $accordion-button-bg: var(--bs-secondary-bg-subtle);
 
 .table-no-bottom-border > tbody > tr:last-of-type > td {
   border-bottom: none;
@@ -17,4 +25,94 @@ $info: rgb(51, 122, 183);
 $warning: rgb(196, 75, 21);
 $primary: rgb(40, 141, 228);
 
-@import "../../node_modules/bootstrap/scss/bootstrap";
+$linkout: rgb(184, 220, 202);
+$linkout-bg-subtle: rgb(225, 240, 233);
+$linkout-text-emphasis: rgb(44, 91, 66);
+
+$custom-colors: (
+  "linkout": $linkout,
+  "info": $info,
+  "warning": $warning,
+  "primary": $primary,
+);
+$theme-colors: map-merge($theme-colors, $custom-colors);
+
+@import "../../node_modules/bootstrap/scss/maps";
+@import "../../node_modules/bootstrap/scss/mixins";
+
+// Add a custom color to new theme maps
+
+// Light mode
+$custom-colors-text: ("linkout": $linkout-text-emphasis);
+$custom-colors-bg-subtle: ("linkout": $linkout-bg-subtle);
+$custom-colors-border-subtle: ("linkout": $linkout-bg-subtle);
+
+$theme-colors-text: map-merge($theme-colors-text, $custom-colors-text);
+$theme-colors-bg-subtle: map-merge($theme-colors-bg-subtle, $custom-colors-bg-subtle);
+$theme-colors-border-subtle: map-merge($theme-colors-border-subtle, $custom-colors-border-subtle);
+
+// Dark mode
+$custom-colors-text-dark: ("linkout": $linkout-text-emphasis);
+$custom-colors-bg-subtle-dark: ("linkout": $linkout-bg-subtle);
+$custom-colors-border-subtle-dark: ("linkout": $linkout-bg-subtle);
+
+
+$theme-colors-text-dark: map-merge($theme-colors-text-dark, $custom-colors-text-dark);
+$theme-colors-bg-subtle-dark: map-merge($theme-colors-bg-subtle-dark, $custom-colors-bg-subtle-dark);
+$theme-colors-border-subtle-dark: map-merge($theme-colors-border-subtle-dark, $custom-colors-border-subtle-dark);
+
+$utilities-bg-subtle: map-merge($utilities-bg-subtle, ("linkout-subtle": var(--#{$prefix}linkout-bg-subtle)));
+
+
+$linkout-accordion-color: var(--#{$prefix}body-color);
+$linkout-accordion-bg: var(--#{$prefix}linkout-bg-subtle);
+$linkout-accordion-button-color: var(--#{$prefix}linkout-text-emphasis);
+$linkout-accordion-button-bg: var(--#{$prefix}linkout-bg-subtle);
+$linkout-accordion-button-active-color: var(--#{$prefix}body-color);
+$linkout-accordion-button-active-bg: var(--#{$prefix}linkout);
+$linkout-accordion-body-padding-x: 0.5rem;
+$linkout-accordion-body-padding-y: 0.5rem;
+$linkout-accordion-button-padding-x: 1rem;
+$linkout-accordion-button-padding-y: 0.75rem;
+$linkout-accordion-icon-width: 1.1rem;
+
+@import "../../node_modules/bootstrap/scss/utilities";
+@import "../../node_modules/bootstrap/scss/root";
+@import "../../node_modules/bootstrap/scss/reboot";
+@import "../../node_modules/bootstrap/scss/type";
+@import "../../node_modules/bootstrap/scss/images";
+@import "../../node_modules/bootstrap/scss/containers";
+@import "../../node_modules/bootstrap/scss/grid";
+@import "../../node_modules/bootstrap/scss/tables";
+@import "../../node_modules/bootstrap/scss/forms";
+@import "../../node_modules/bootstrap/scss/buttons";
+@import "../../node_modules/bootstrap/scss/transitions";
+@import "../../node_modules/bootstrap/scss/dropdown";
+@import "../../node_modules/bootstrap/scss/button-group";
+@import "../../node_modules/bootstrap/scss/nav";
+@import "../../node_modules/bootstrap/scss/navbar";
+@import "../../node_modules/bootstrap/scss/card";
+@import "../../node_modules/bootstrap/scss/accordion";
+@import "linkout-accordion";
+@import "../../node_modules/bootstrap/scss/breadcrumb";
+@import "../../node_modules/bootstrap/scss/pagination";
+@import "../../node_modules/bootstrap/scss/badge";
+@import "../../node_modules/bootstrap/scss/alert";
+@import "../../node_modules/bootstrap/scss/progress";
+@import "../../node_modules/bootstrap/scss/list-group";
+@import "../../node_modules/bootstrap/scss/close";
+@import "../../node_modules/bootstrap/scss/toasts";
+@import "../../node_modules/bootstrap/scss/modal";
+@import "../../node_modules/bootstrap/scss/tooltip";
+@import "../../node_modules/bootstrap/scss/popover";
+@import "../../node_modules/bootstrap/scss/carousel";
+@import "../../node_modules/bootstrap/scss/spinners";
+@import "../../node_modules/bootstrap/scss/offcanvas";
+@import "../../node_modules/bootstrap/scss/placeholders";
+
+// Helpers
+@import "../../node_modules/bootstrap/scss/helpers";
+
+// Utilities
+@import "../../node_modules/bootstrap/scss/utilities/api";
+// @import "../../node_modules/bootstrap/scss/bootstrap";

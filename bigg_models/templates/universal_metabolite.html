@@ -23,9 +23,9 @@
     {% else %}
       {% set one_ref = component.reference[0] %}
     {% endif %}
-    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", one_ref, accent=component.default) %}
+    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", component.reference, "linkouts_metabolite_ui.html", component.all_annotations, accent=component.default) %}
       <div class="card-body">
-        <h5 class="card-title">{{component.id | format_id("comp")}}</h5>
+        <h5 class="card-title">{{component.bigg_id | format_id("comp")}}</h5>
         {% if component.name is not none %}<p class="card-text">{{component.name}}</p>{% endif %}
       </div>
       {% call cards.flush_list_group(accent=True) %}
