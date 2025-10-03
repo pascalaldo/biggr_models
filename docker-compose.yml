@@ -1,7 +1,8 @@
 networks:
   biggr-net:
     name: biggr-net
-    external: true
+    # external: true
+    external: false
 
 services:
   biggr-web:
@@ -41,7 +42,7 @@ services:
       - ./:/server
   biggr-db:
     container_name: biggr-postgres
-    image: postgres
+    image: postgres:17.6
     restart: always
     ports:
       - "5432:5432"

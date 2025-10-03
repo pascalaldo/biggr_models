@@ -1,6 +1,9 @@
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, selectinload, subqueryload
 from bigg_models.queries import escher_map_queries, utils, id_queries
 from cobradb.models import (
+    Annotation,
+    AnnotationLink,
+    ReferenceReactionAnnotationMapping,
     Compartment,
     CompartmentalizedComponent,
     UniversalCompartmentalizedComponent,
@@ -13,6 +16,7 @@ from cobradb.models import (
     ModelGene,
     ModelReaction,
     Reaction,
+    ReactionAnnotationMapping,
     ReactionMatrix,
     ReferenceReaction,
     ReferenceReactionParticipant,
@@ -25,11 +29,16 @@ from cobradb.parse import split_id_and_copy_tag
 from sqlalchemy import func, asc, select
 
 from bigg_models.queries.memote_queries import get_memote_results_for_reaction
+from bigg_models.queries.metabolite_queries import process_annotation_for_template
 
 
 def get_universal_reactions_count(session):
     """Return the number of universal reactions."""
-    return session.scalars(select(func.count(Reaction.id))).first()
+    return session.scalars(
+        select(func.count(UniversalReaction.id)).filter(
+            UniversalReaction.model_id == None
+        )
+    ).first()
 
 
 def get_universal_reactions(
@@ -77,7 +86,9 @@ def get_universal_reactions(
             sort_column_object = next(iter(columns.values()))
 
     # set up the query
-    query = select(UniversalReaction.bigg_id, UniversalReaction.name)
+    query = select(UniversalReaction.bigg_id, UniversalReaction.name).filter(
+        UniversalReaction.model_id == None
+    )
 
     # order and limit
     query = utils._apply_order_limit_offset(
@@ -255,7 +266,9 @@ def _get_metabolite_and_reference_list_for_universal_reaction(reaction_id, sessi
 def _get_metabolite_and_reference_list_for_reaction(reaction_id, session):
     cr = aliased(ComponentReferenceMapping)
     cr_id = cr.id.label("cr_id")
-    subq = select(cr_id).filter(cr.component_id == Component.id).limit(1)
+    subq = (
+        select(cr_id).filter(cr.component_id == Component.id).limit(1).scalar_subquery()
+    )
     result_db = session.execute(
         select(
             CompartmentalizedComponent.bigg_id,
@@ -377,12 +390,45 @@ def get_reaction_and_models(reaction_bigg_id, session):
     #         raise utils.NotFoundError(
     #             "No Reaction found with BiGG ID " + reaction_bigg_id
     #         )
+    all_annotations = []
+    if reference_db is not None:
+        ref_ann = session.execute(
+            select(Annotation, ReferenceReactionAnnotationMapping)
+            .options(
+                selectinload(Annotation.properties),
+                selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
+            )
+            .join(Annotation.reference_reaction_mappings)
+            .filter(
+                ReferenceReactionAnnotationMapping.reference_reaction_id
+                == reference_db.id
+            )
+            .join(ReferenceReactionAnnotationMapping.reference_reaction)
+        ).all()
+        if ref_ann:
+            ref_annotations = [
+                (process_annotation_for_template(ann), ann_map)
+                for ann, ann_map in ref_ann
+            ]
+            all_annotations.extend(ref_annotations)
 
-    # db_link_results = id_queries._get_db_links_for_reaction(reaction_bigg_id, session)
-    # old_id_results = id_queries._get_old_ids_for_reaction(reaction_bigg_id, session)
-    #
-    db_link_results = {}
-    old_id_results = []
+    reaction_ann = session.execute(
+        select(Annotation, ReactionAnnotationMapping)
+        .options(
+            selectinload(Annotation.properties),
+            selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
+        )
+        .join(Annotation.reaction_mappings)
+        .join(ReactionAnnotationMapping.reaction)
+        .filter(Reaction.universal_reaction_id == reaction_db.id)
+    ).all()
+    if reaction_ann:
+        reaction_annotations = [
+            (process_annotation_for_template(ann), ann_map)
+            for ann, ann_map in reaction_ann
+        ]
+        all_annotations.extend(reaction_annotations)
+
     # metabolites
     metabolite_db = _get_metabolite_and_reference_list_for_universal_reaction(
         reaction_bigg_id, session
@@ -395,8 +441,7 @@ def get_reaction_and_models(reaction_bigg_id, session):
         "bigg_id": reaction_db.bigg_id,
         "name": reaction_db.name,
         "pseudoreaction": False,
-        "database_links": db_link_results,
-        "old_identifiers": old_id_results,
+        "all_annotations": all_annotations,
         "metabolites": metabolite_db,
         "reaction_string": reaction_string,
         "models_containing_reaction": [
@@ -439,10 +484,20 @@ def get_model_list_for_reaction(reaction_bigg_id, session):
 
 
 def get_reference_for_reaction(reaction_bigg_id, session):
+    ur_alias = aliased(UniversalReaction)
     result = session.scalars(
         select(ReferenceReaction)
-        .join(UniversalReaction, UniversalReaction.reference_id == ReferenceReaction.id)
-        .filter(UniversalReaction.bigg_id == reaction_bigg_id)
+        .options(
+            subqueryload(
+                ReferenceReaction.universal_reactions.and_(
+                    UniversalReaction.bigg_id != reaction_bigg_id,
+                    UniversalReaction.model_id == None,
+                )
+            )
+        )
+        .execution_options(populate_existing=True)
+        .join(ur_alias, ur_alias.reference_id == ReferenceReaction.id)
+        .filter(ur_alias.bigg_id == reaction_bigg_id)
         .limit(1)
     ).first()
     return result
@@ -511,6 +566,44 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
     # reference
     reference_db = get_reference_for_reaction(reaction_bigg_id, session)
 
+    all_annotations = []
+    if reference_db is not None:
+        ref_ann = session.execute(
+            select(Annotation, ReferenceReactionAnnotationMapping)
+            .options(
+                selectinload(Annotation.properties),
+                selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
+            )
+            .join(Annotation.reference_reaction_mappings)
+            .filter(
+                ReferenceReactionAnnotationMapping.reference_reaction_id
+                == reference_db.id
+            )
+            .join(ReferenceReactionAnnotationMapping.reference_reaction)
+        ).all()
+        if ref_ann:
+            ref_annotations = [
+                (process_annotation_for_template(ann), ann_map)
+                for ann, ann_map in ref_ann
+            ]
+            all_annotations.extend(ref_annotations)
+
+    reaction_ann = session.execute(
+        select(Annotation, ReactionAnnotationMapping)
+        .options(
+            selectinload(Annotation.properties),
+            selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
+        )
+        .join(Annotation.reaction_mappings)
+        .filter(ReactionAnnotationMapping.reaction_id == reaction_db.id)
+    ).all()
+    if reaction_ann:
+        reaction_annotations = [
+            (process_annotation_for_template(ann), ann_map)
+            for ann, ann_map in reaction_ann
+        ]
+        all_annotations.extend(reaction_annotations)
+
     other_copy_numbers = list(
         sorted(
             x[0]
@@ -565,6 +658,7 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
         "full_bigg_id": full_bigg_id,
         "model_bigg_id": model_bigg_id,
         "reaction": reaction_db,
+        "all_annotations": all_annotations,
         "model_reaction": model_reaction_db,
         "universal_reaction": universal_reaction_db,
         "other_copy_numbers": other_copy_numbers,

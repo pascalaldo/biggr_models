@@ -1,21 +1,28 @@
 {% import "general_macros.html" as general %}
 {% if reference is none %}
-<div class="card m-2 w-100">
+<div class="card m-2">
 	<div class="card-body d-flex align-items-center">
 		<p class="lead text-secondary">No reference available.</p>
 	</div>
 </div>
 {% else %}
-<div class="card m-2 w-100">
+<div class="card m-2">
 	<div class="card-body">
 		<h5 class="card-title">{{reference['bigg_id'] | format_reference}}</h5>
 		{% if reference['name'] is not none %}<p class="card-text">{{reference['name']}}</p>{%
 		endif %}
-		<p class="card-text">{{reference['equation']}}</p>
+		<p class="card-text">{% if reference.equation is none %}<i>There is no specific reaction pattern for
+				this reference.</i>{% else %}{{reference['equation']}}{% endif %}</p>
 		{% if reference['bigg_id'].startswith('RHEA:') %}
 		{% set rhea_link -%}http://identifiers.org/{{reference['bigg_id']}}{%- endset %}
 		<p class="card-text">{{general.external_link("View on rhea-db.org", rhea_link)}}
 		</p>
+		{% endif %}
+		{% if reference.universal_reactions %}
+		<p class="card-text">Other universal reactions with this reference: {% for ur in
+			reference.universal_reactions
+			%}<a href="/universal/reactions/{{ur.bigg_id}}" class="me-2">{{ur.bigg_id |
+				format_id('reaction')}}</a>{% endfor %}</p>
 		{% endif %}
 	</div>
 </div>

@@ -1,0 +1,71 @@
+{% import "general_macros.html" as general %}
+{% import "general_card_macros.html" as cards %}
+
+{% if linkouts %}
+{% set accordion_id = linkouts[0][0].id %}
+<div class="linkout-accordion linkout-accordion-flush h-100 border-start bg-linkout-subtle"
+	id="linkout_accordion_{{accordion_id}}">
+	<div class="linkout-accordion-item p-2">
+		<h5 class="m-0 fs-6">External Databases</h5>
+	</div>
+	{% for annotation, ann_map in linkouts %}
+	{% set first = (annotation.id == linkouts[0][0].id) %}
+	<div class="linkout-accordion-item">
+		<h2 class="linkout-accordion-header">
+			<button class="linkout-accordion-button{% if not first %} collapsed{% endif %}" type="button"
+				data-bs-toggle="collapse" data-bs-target="#collapse_{{annotation.id}}"
+				aria-expanded="{% if first %}true{% else %}false{% endif %}"
+				aria-controls="collapse_{{annotation.id}}">
+				{% if ann_map.reference_compound_id %}
+				{{annotation.identifier}} <i>&nbsp;(Reference)</i>
+				{% else %}
+				{{annotation.identifier}} <i>&nbsp;via {{annotation.type}}</i>
+				{% if ann_map.bigg_id_match == False %}&nbsp;<span class="badge text-bg-warning"
+					data-bs-toggle="tooltip" data-bs-title="BiGG ID mismatch">!</span>{% elif
+				ann_map.bigg_id_match is none %}&nbsp;<span class="badge text-bg-warning"
+					data-bs-toggle="tooltip" data-bs-title="No BiGG ID to match">?</span>{% endif
+				%}
+				{% if ann_map.inchi_match == False %}&nbsp;<span class="badge text-bg-warning"
+					data-bs-toggle="tooltip" data-bs-title="InChI mismatch">!</span>{% elif
+				ann_map.inchi_match is none %}&nbsp;<span class="badge text-bg-warning"
+					data-bs-toggle="tooltip" data-bs-title="No InChI to match">?</span>{% endif %}
+
+				{%endif %}
+				{% if annotation.properties.get('Obsolete', [False])[0] %}&nbsp;<span
+					class="badge text-bg-warning" data-bs-toggle="tooltip"
+					data-bs-title="Obsolete entry">!</span>{% endif %}
+			</button>
+		</h2>
+		<div id="collapse_{{annotation.id}}"
+			class="linkout-accordion-collapse collapse{% if first%} show{% endif %}"
+			data-bs-parent="#linkout_accordion_{{accordion_id}}">
+			<div class="linkout-accordion-body">
+				{% call cards.flush_list_group(flush=False) %}
+				{% if annotation.properties %}
+				{{ cards.flush_list_group_category(label="Properties") }}
+				{% for k, v in annotation.properties.items() %}
+				{% set prop_val = v | join(", ") %}
+				{% if k is string %}
+				{{ cards.flush_list_group_item(label=k, value=prop_val) }}
+				{% else %}
+				{{ cards.flush_list_group_item(label=k[0], value=prop_val, unit=k[1]) }}
+				{% endif%}
+				{% endfor %}
+				{% endif %}
+				{% if annotation.links %}
+				{{ cards.flush_list_group_category(label="Linkouts") }}
+				{% for k, v in annotation.links.items() %}
+				{% set links_val %}{% for link in v %}{{general.external_link(link.value,
+				link.url)}}&nbsp;{% endfor %}{%
+				endset
+				%}
+				{{ cards.flush_list_group_item(label=k, value=links_val) }}
+				{% endfor %}
+				{% endif %}
+				{% endcall %}
+			</div>
+		</div>
+	</div>
+	{% endfor %}
+</div>
+{% endif %}

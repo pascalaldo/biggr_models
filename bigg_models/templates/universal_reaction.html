@@ -5,7 +5,7 @@
 {% block body %}
 <div class="row">
   <div class="col-12">
-    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", reference) %}
+    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", [reference], "linkouts_reaction_ui.html", all_annotations) %}
       <div class="card-body">
       <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span> {{bigg_id | format_id("reaction")}}</h5>
         {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}

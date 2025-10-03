@@ -1,0 +1,153 @@
+//
+// Base styles
+//
+
+.linkout-accordion {
+  // scss-docs-start accordion-css-vars
+  --#{$prefix}linkout-accordion-color: #{$linkout-accordion-color};
+  --#{$prefix}linkout-accordion-bg: #{$linkout-accordion-bg};
+  --#{$prefix}linkout-accordion-transition: #{$accordion-transition};
+  --#{$prefix}linkout-accordion-border-color: #{$accordion-border-color};
+  --#{$prefix}linkout-accordion-border-width: #{$accordion-border-width};
+  --#{$prefix}linkout-accordion-border-radius: #{$accordion-border-radius};
+  --#{$prefix}linkout-accordion-inner-border-radius: #{$accordion-inner-border-radius};
+  --#{$prefix}linkout-accordion-btn-padding-x: #{$linkout-accordion-button-padding-x};
+  --#{$prefix}linkout-accordion-btn-padding-y: #{$linkout-accordion-button-padding-y};
+  --#{$prefix}linkout-accordion-btn-color: #{$linkout-accordion-button-color};
+  --#{$prefix}linkout-accordion-btn-bg: #{$linkout-accordion-button-bg};
+  --#{$prefix}linkout-accordion-btn-icon: #{escape-svg($accordion-button-icon)};
+  --#{$prefix}linkout-accordion-btn-icon-width: #{$linkout-accordion-icon-width};
+  --#{$prefix}linkout-accordion-btn-icon-transform: #{$accordion-icon-transform};
+  --#{$prefix}linkout-accordion-btn-icon-transition: #{$accordion-icon-transition};
+  --#{$prefix}linkout-accordion-btn-active-icon: #{escape-svg($accordion-button-active-icon)};
+  --#{$prefix}linkout-accordion-btn-focus-box-shadow: #{$accordion-button-focus-box-shadow};
+  --#{$prefix}linkout-accordion-body-padding-x: #{$linkout-accordion-body-padding-x};
+  --#{$prefix}linkout-accordion-body-padding-y: #{$linkout-accordion-body-padding-y};
+  --#{$prefix}linkout-accordion-active-color: #{$linkout-accordion-button-active-color};
+  --#{$prefix}linkout-accordion-active-bg: #{$linkout-accordion-button-active-bg};
+  // scss-docs-end accordion-css-vars
+}
+
+.linkout-accordion-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--#{$prefix}linkout-accordion-btn-padding-y) var(--#{$prefix}linkout-accordion-btn-padding-x);
+  @include font-size($font-size-base);
+  color: var(--#{$prefix}linkout-accordion-btn-color);
+  text-align: left; // Reset button style
+  background-color: var(--#{$prefix}linkout-accordion-btn-bg);
+  border: 0;
+  @include border-radius(0);
+  overflow-anchor: none;
+  @include transition(var(--#{$prefix}linkout-accordion-transition));
+
+  &:not(.collapsed) {
+    color: var(--#{$prefix}linkout-accordion-active-color);
+    background-color: var(--#{$prefix}linkout-accordion-active-bg);
+    box-shadow: inset 0 calc(-1 * var(--#{$prefix}linkout-accordion-border-width)) 0 var(--#{$prefix}linkout-accordion-border-color); // stylelint-disable-line function-disallowed-list
+
+    &::after {
+      background-image: var(--#{$prefix}linkout-accordion-btn-active-icon);
+      transform: var(--#{$prefix}linkout-accordion-btn-icon-transform);
+    }
+  }
+
+  // Accordion icon
+  &::after {
+    flex-shrink: 0;
+    width: var(--#{$prefix}linkout-accordion-btn-icon-width);
+    height: var(--#{$prefix}linkout-accordion-btn-icon-width);
+    margin-left: auto;
+    content: "";
+    background-image: var(--#{$prefix}linkout-accordion-btn-icon);
+    background-repeat: no-repeat;
+    background-size: var(--#{$prefix}linkout-accordion-btn-icon-width);
+    @include transition(var(--#{$prefix}linkout-accordion-btn-icon-transition));
+  }
+
+  &:hover {
+    z-index: 2;
+  }
+
+  &:focus {
+    z-index: 3;
+    outline: 0;
+    box-shadow: var(--#{$prefix}linkout-accordion-btn-focus-box-shadow);
+  }
+}
+
+.linkout-accordion-header {
+  margin-bottom: 0;
+}
+
+.linkout-accordion-item {
+  color: var(--#{$prefix}linkout-accordion-color);
+  background-color: var(--#{$prefix}linkout-accordion-bg);
+  border: var(--#{$prefix}linkout-accordion-border-width) solid var(--#{$prefix}linkout-accordion-border-color);
+
+  &:first-of-type {
+    @include border-top-radius(var(--#{$prefix}linkout-accordion-border-radius));
+
+    > .linkout-accordion-header .linkout-accordion-button {
+      @include border-top-radius(var(--#{$prefix}linkout-accordion-inner-border-radius));
+    }
+  }
+
+  &:not(:first-of-type) {
+    border-top: 0;
+  }
+
+  // Only set a border-radius on the last item if the accordion is collapsed
+  &:last-of-type {
+    @include border-bottom-radius(var(--#{$prefix}linkout-accordion-border-radius));
+
+    > .linkout-accordion-header .linkout-accordion-button {
+      &.collapsed {
+        @include border-bottom-radius(var(--#{$prefix}linkout-accordion-inner-border-radius));
+      }
+    }
+
+    > .linkout-accordion-collapse {
+      @include border-bottom-radius(var(--#{$prefix}linkout-accordion-border-radius));
+    }
+  }
+}
+
+.linkout-accordion-body {
+  padding: var(--#{$prefix}linkout-accordion-body-padding-y) var(--#{$prefix}linkout-accordion-body-padding-x);
+}
+
+
+// Flush accordion items
+//
+// Remove borders and border-radius to keep accordion items edge-to-edge.
+
+.linkout-accordion-flush {
+  > .linkout-accordion-item {
+    border-right: 0;
+    border-left: 0;
+    @include border-radius(0);
+
+    &:first-child { border-top: 0; }
+    &:last-child { border-bottom: 0; }
+
+    // stylelint-disable selector-max-class
+    > .linkout-accordion-collapse,
+    > .linkout-accordion-header .linkout-accordion-button,
+    > .linkout-accordion-header .linkout-accordion-button.collapsed {
+      @include border-radius(0);
+    }
+    // stylelint-enable selector-max-class
+  }
+}
+
+@if $enable-dark-mode {
+  @include color-mode(dark) {
+    .linkout-accordion-button::after {
+      --#{$prefix}accordion-btn-icon: #{escape-svg($accordion-button-icon-dark)};
+      --#{$prefix}accordion-btn-active-icon: #{escape-svg($accordion-button-active-icon-dark)};
+    }
+  }
+}

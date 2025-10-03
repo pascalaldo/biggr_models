@@ -71,7 +71,7 @@ class UniversalReactionHandler(utils.BaseHandler):
                 ("Reactions", f"/universal/reactions/"),
                 (
                     utils.format_bigg_id(reaction_bigg_id, "reaction"),
-                    f"/universal/metabolites/{reaction_bigg_id}",
+                    f"/universal/reactions/{reaction_bigg_id}",
                 ),
             ]
 
@@ -143,7 +143,7 @@ class ReactionHandler(utils.BaseHandler):
             ("Reactions", f"/models/{model_bigg_id}/reactions/"),
             (
                 utils.format_bigg_id(reaction_bigg_id, "reaction"),
-                f"/models/{model_bigg_id}/metabolites/{reaction_bigg_id}",
+                f"/models/{model_bigg_id}/reactions/{reaction_bigg_id}",
             ),
         ]
 
