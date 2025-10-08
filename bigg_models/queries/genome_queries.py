@@ -11,6 +11,14 @@ def get_genomes_count(session, **kwargs):
     query = session.scalars(select(func.count(Genome.id))).first()
     return query
 
+def get_all_genomes(session):
+    """Get all genomes."""
+    rows = session.execute(
+        select(Genome.accession_value).distinct()
+    ).all()
+    
+    return [r[0] for r in rows]
+
 
 def get_genomes(
     session,
@@ -78,13 +86,98 @@ def get_genome_and_models(genome_ref_string, session):
     }
 
 
-def get_genomes_with_chromosomes(taxon_ids, session, gene_id_filter=None):
-    if not taxon_ids:
+def get_reactions_for_genome(genome_id, session):
+    """Get all reactions associated with a genome through its models."""
+    from cobradb.models import (
+        Model, 
+        ModelReaction, 
+        Reaction,
+        UniversalReaction
+    )
+    
+    # Get reactions through the model associated with this genome
+    reactions = session.execute(
+        select(
+            UniversalReaction.bigg_id,
+            UniversalReaction.name,
+            ModelReaction.gene_reaction_rule,
+            ModelReaction.lower_bound,
+            ModelReaction.upper_bound,
+            ModelReaction.copy_number,
+            ModelReaction.subsystem
+        )
+        .join(Reaction, Reaction.universal_reaction_id == UniversalReaction.id)
+        .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
+        .join(Model, Model.id == ModelReaction.model_id)
+        .filter(Model.genome_id == genome_id)
+        .distinct()
+    ).all()
+    
+    return [
+        {
+            "bigg_id": f"{r[0]}:{r[5]}" if r[5] != 1 else r[0],
+            "name": r[1],
+            "gene_reaction_rule": r[2],
+            "lower_bound": r[3],
+            "upper_bound": r[4],
+            "copy_number": r[5],
+            "subsystem": r[6]
+        }
+        for r in reactions
+    ]
+
+
+def get_metabolites_for_genome(genome_id, session):
+    """Get all metabolites associated with a genome through its models."""
+    from cobradb.models import (
+        Model, 
+        ModelCompartmentalizedComponent, 
+        CompartmentalizedComponent, 
+        Component
+    )
+    
+    # Get metabolites through the model associated with this genome
+    metabolites = session.execute(
+        select(
+            Component.bigg_id,
+            Component.name,
+            Component.formula,
+            Component.charge,
+            CompartmentalizedComponent.bigg_id.label('compartmentalized_bigg_id')
+        )
+        .join(
+            CompartmentalizedComponent,
+            CompartmentalizedComponent.component_id == Component.id
+        )
+        .join(
+            ModelCompartmentalizedComponent,
+            ModelCompartmentalizedComponent.compartmentalized_component_id == CompartmentalizedComponent.id
+        )
+        .join(Model, Model.id == ModelCompartmentalizedComponent.model_id)
+        .filter(Model.genome_id == genome_id)
+        .distinct()
+    ).all()
+    
+    return [
+        {
+            "bigg_id": m[0],
+            "name": m[1],
+            "formula": m[2],
+            "charge": m[3],
+            "compartmentalized_bigg_id": m[4]
+        }
+        for m in metabolites
+    ]
+
+
+def get_genomes_with_chromosomes(accession_id, session, gene_id_filter=None, include_metabolites=True, include_reactions=True):
+    if not accession_id:
         return []
 
     genomes = session.scalars(
-        select(Genome).filter(Genome.taxon_id.in_(list(taxon_ids)))
+        select(Genome).filter(Genome.accession_value == accession_id)
     ).all()
+
     if not genomes:
         return []
 
@@ -134,7 +227,15 @@ def get_genomes_with_chromosomes(taxon_ids, session, gene_id_filter=None):
             col.key: getattr(g, col.key) for col in inspect(Genome).mapper.column_attrs
         }
         genome_dict["chromosome"] = chrom_map.get(g.id, [])
+        
+        # Add metabolites if requested
+        if include_metabolites:
+            genome_dict["metabolites"] = get_metabolites_for_genome(g.id, session)
+        
+        # Add reactions if requested
+        if include_reactions:
+            genome_dict["reactions"] = get_reactions_for_genome(g.id, session)
+        
         results.append(genome_dict)
 
     return results
-
