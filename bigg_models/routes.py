@@ -175,5 +175,13 @@ def get_routes():
             r"/interop-query/query-by-pair/?$", 
             db_interop_handlers.QueryByPairHandler
         ),
+        (
+            r"/interop-query/strains/?$", 
+            db_interop_handlers.StrainListHandler
+        ),
+        (
+            r"/interop-query/genes/?$", 
+            db_interop_handlers.GeneListHandler
+        ),
     ]
     return routes
