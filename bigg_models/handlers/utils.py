@@ -1,7 +1,9 @@
-from cobradb.models import Session
+from datetime import datetime
+from cobradb.models import Base, Session, MemoteResult, MemoteTest
+from sqlalchemy import Row
 from bigg_models import __api_version__ as api_v
 from bigg_models.queries import search_queries, escher_map_queries, utils as query_utils
-import simplejson as json
+import json
 from tornado.web import (
     RequestHandler,
     StaticFileHandler,
@@ -11,6 +13,48 @@ from tornado.web import (
 from jinja2 import Environment, PackageLoader
 from os import path
 import mimetypes
+from pprint import pprint
+
+
+MODELS_CLASS_MAP = {x.__name__: x for x in Base.__subclasses__()}
+
+
+class BiGGrJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if o is None:
+            return None
+        if isinstance(o, Row):
+            return o._tuple()
+        if isinstance(o, (MemoteTest, MemoteResult)):
+            print(vars(o))
+            print(dir(o))
+            print(o._to_shallow_dict())
+            return o._to_shallow_dict()
+        if isinstance(o, Base):
+            return o._to_shallow_dict()
+        if isinstance(o, datetime):
+            return {"_type": "datetime", "iso": o.isoformat()}
+        # Let the base class default method raise the TypeError
+        return super().default(o)
+
+
+def biggr_json_object_hook(o):
+    if o is None:
+        return None
+    if not isinstance(o, dict):
+        return o
+    if "_type" not in o:
+        return o
+    if o["_type"] == "datetime":
+        if isoformat := o.get("iso"):
+            return datetime.fromisoformat(isoformat)
+        else:
+            return None
+    if o["_type"] in MODELS_CLASS_MAP:
+        model_class = MODELS_CLASS_MAP[o["_type"]]
+        return model_class._from_dict(o)
+
+    return None
 
 
 def format_bigg_id(bigg_id, format_type=None):
@@ -135,6 +179,26 @@ def safe_query(func, *args, **kwargs):
         session.close()
 
 
+def do_safe_query(func, *args, **kwargs):
+    """Run the given function, and raise a 404 if it fails.
+
+    Arguments
+    ---------
+
+    func: The function to run. *args and **kwargs are passed to this function.
+
+    """
+    session = Session()
+    try:
+        return func(session, *args, **kwargs)
+    except query_utils.NotFoundError as e:
+        raise HTTPError(status_code=404, reason=e.args[0])
+    except ValueError as e:
+        raise HTTPError(status_code=400, reason=e.args[0])
+    finally:
+        session.close()
+
+
 class BaseHandler(RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -144,8 +208,13 @@ class BaseHandler(RequestHandler):
     def write(self, chunk):
         # note that serving a json list is a security risk
         # This is meant to be serving public-read only data only.
-        if isinstance(chunk, (dict, list, tuple)):
-            value_str = json.dumps(chunk)
+        if isinstance(chunk, (dict, list, tuple, Base)):
+            try:
+                value_str = json.dumps(chunk, cls=BiGGrJSONEncoder)
+            except Exception as e:
+                pprint(chunk)
+                print(e)
+            # value_str = json.dumps(chunk)
             RequestHandler.write(self, value_str)
             self.set_header("Content-type", "application/json; charset=utf-8")
         else:
@@ -162,6 +231,9 @@ class BaseHandler(RequestHandler):
         """
         if self.request.uri.startswith("/api"):
             if result:
+                if "breadcrumbs" in result:
+                    del result["breadcrumbs"]
+
                 self.write(result)
                 self.finish()
             else:

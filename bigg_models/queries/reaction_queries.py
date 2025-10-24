@@ -1,4 +1,4 @@
-from sqlalchemy.orm import aliased, selectinload, subqueryload
+from sqlalchemy.orm import aliased, selectinload, subqueryload, joinedload, Session
 from bigg_models.queries import escher_map_queries, utils, id_queries
 from cobradb.models import (
     Annotation,
@@ -27,6 +27,7 @@ from cobradb.models import (
 )
 from cobradb.parse import split_id_and_copy_tag
 from sqlalchemy import func, asc, select
+from typing import Any, Dict
 
 from bigg_models.queries.memote_queries import get_memote_results_for_reaction
 from bigg_models.queries.metabolite_queries import process_annotation_for_template
@@ -675,3 +676,49 @@ def get_reaction(reaction_bigg_id, session):
     return session.scalars(
         select(Reaction).filter(Reaction.bigg_id == reaction_bigg_id).limit(1)
     ).first()
+
+
+REF_ANNOTATIONS_SUBQ = (
+    subqueryload(ReferenceReaction.annotation_mappings)
+    .subqueryload(ReferenceReactionAnnotationMapping.annotation)
+    .options(subqueryload(Annotation.properties), subqueryload(Annotation.links))
+)
+REACTION_ANNOTATIONS_SUBQ = (
+    subqueryload(Reaction.annotation_mappings)
+    .subqueryload(ReactionAnnotationMapping.annotation)
+    .options(subqueryload(Annotation.properties), subqueryload(Annotation.links))
+)
+
+
+def get_reaction_object(
+    session: Session, id: utils.IDType, load_annotations: bool = True
+) -> Dict[str, Any]:
+    if not isinstance(load_annotations, bool):
+        return None
+
+    id_sel = utils.convert_id_to_query_filter(id, Reaction)
+    reaction_db = session.scalars(
+        select(Reaction)
+        .options(
+            joinedload(Reaction.model),
+            subqueryload(Reaction.matrix).joinedload(
+                ReactionMatrix.compartmentalized_component
+            ),
+            subqueryload(Reaction.universal_reaction)
+            .joinedload(UniversalReaction.reference)
+            .options(
+                subqueryload(ReferenceReaction.reaction_participants).joinedload(
+                    ReferenceReactionParticipant.compound
+                ),
+                *((REF_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+            ),
+            *((REACTION_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+        )
+        .filter(id_sel)
+        .limit(1)
+    ).first()
+
+    if reaction_db is None:
+        raise utils.NotFoundError(f"No Component found with BiGG ID {id}")
+
+    return {"id": id, "object": reaction_db}

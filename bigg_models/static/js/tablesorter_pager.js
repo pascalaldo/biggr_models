@@ -38,7 +38,7 @@ $(function() {
                 // the filterList to the url into an "fcol" array.
                 // So a sortList = [[2,0],[3,0]] becomes "&col[2]=0&col[3]=0" in the url
                 // and a filterList = [[2,Blue],[3,13]] becomes "&fcol[2]=Blue&fcol[3]=13" in the url
-                ajaxUrl: ('/api/v2' + window.location.pathname +
+                ajaxUrl: ('/api/v3' + window.location.pathname +
                           '?query=' + get_parameter_by_name('query') +
                           '&multistrain=' + get_parameter_by_name('multistrain') +
                           '&page={page}&size={size}&{sortList:col}' +

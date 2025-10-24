@@ -28,7 +28,7 @@ def get_general_results_for_model(session, model_id):
     ).all()
 
     if result_db is not None:
-        result_db = {r[0].bigg_id: r for r in result_db}
+        result_db = {r[0].bigg_id: tuple(r) for r in result_db}
 
     return result_db
 
@@ -53,4 +53,4 @@ def get_memote_results_for_reaction(session, model_reaction_id):
             & (MemoteTest.bigg_id.in_(REACTION_TESTS))
         )
     ).all()
-    return result_db
+    return [tuple(r) for r in result_db]

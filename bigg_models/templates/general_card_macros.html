@@ -30,11 +30,16 @@ accent=True) %}
 			{% if references %}
 			<div class="row g-0">
 				<div class="col-2">
+					{% if references %}
+					{% if references is iterable and (references is not string and references is not
+					mapping) and references[0] %}
 					<img src="/static/assets/iconset.svg#reference_L"
 						class="img-fluid p-0 w-100 h-100" alt="Reference">
+					{% endif %}
+					{% endif %}
 				</div>
 				<div class="col-10">
-					{% if referencse is iterable and (references is not string and references is not
+					{% if references is iterable and (references is not string and references is not
 					mapping) %}
 					{% for reference in references %}
 					{% include reference_include %}

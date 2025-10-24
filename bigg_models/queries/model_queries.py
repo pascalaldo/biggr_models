@@ -1,3 +1,4 @@
+from sqlalchemy.orm import Session, joinedload, subqueryload
 from bigg_models.queries import utils, escher_map_queries
 
 from cobradb.util import ref_tuple_to_str
@@ -188,3 +189,25 @@ def get_model_json_string(model_bigg_id):
     except IOError as e:
         raise utils.NotFoundError(e.message)
     return data
+
+
+def get_model_object(
+    session: Session,
+    id: utils.IDType,
+):
+    id_sel = utils.convert_id_to_query_filter(id, Model)
+    model_db = session.scalars(
+        select(Model)
+        .options(
+            joinedload(Model.genome),
+            joinedload(Model.model_count),
+            subqueryload(Model.publication_models),
+        )
+        .filter(id_sel)
+        .limit(1)
+    ).first()
+
+    if model_db is None:
+        raise utils.NotFoundError(f"No Model found with BiGG ID {id}")
+
+    return {"id": id, "object": model_db}

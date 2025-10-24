@@ -18,8 +18,9 @@ RUN pip install -r requirements.txt
 
 RUN git clone https://github.com/pascalaldo/bigg_models_data.git bigg_models_data
 
-RUN git clone https://github.com/pascalaldo/cobradb.git cobradb
+RUN git clone -b api https://github.com/pascalaldo/cobradb.git cobradb
 WORKDIR /app/cobradb
+RUN git pull && git reset --hard 313ce67
 RUN python setup.py install
 WORKDIR /app
 

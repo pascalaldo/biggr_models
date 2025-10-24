@@ -1,5 +1,7 @@
 from bigg_models.handlers import (
+    identifiers_handlers,
     utils,
+    object_handlers,
     reaction_handlers,
     compartment_handlers,
     gene_handlers,
@@ -19,6 +21,22 @@ def get_routes():
         #
         # Universal
         #
+        # (
+        #     r"/api/%s/objects/component/([^/]+)/?$" % utils.api_v,
+        #     metabolite_handlers.ComponentHandler,
+        # ),
+        # (
+        #     r"/api/%s/objects/compartmentalized_component/([^/]+)/?$" % utils.api_v,
+        #     metabolite_handlers.CompartmentalizedComponentHandler,
+        # ),
+        (
+            r"/api/%s/objects/?$" % utils.api_v,
+            object_handlers.ObjectHandler,
+        ),
+        (
+            r"/api/%s/identifiers/?$" % utils.api_v,
+            identifiers_handlers.IdentifiersHandler,
+        ),
         (
             r"/api/%s/(?:models/)?universal/reactions/?$" % utils.api_v,
             reaction_handlers.UniversalReactionListHandler,
@@ -163,17 +181,11 @@ def get_routes():
             RedirectHandler,
             {"url": "http://bigg1.ucsd.edu/multiecoli"},
         ),
+        (r"/interop-query/query-by-gene/?$", db_interop_handlers.QueryByGeneHandler),
         (
-            r"/interop-query/query-by-gene/?$", 
-            db_interop_handlers.QueryByGeneHandler
+            r"/interop-query/query-by-strain/?$",
+            db_interop_handlers.QueryByStrainHandler,
         ),
-        (
-            r"/interop-query/query-by-strain/?$", 
-            db_interop_handlers.QueryByStrainHandler
-        ),
-        (  
-            r"/interop-query/query-by-pair/?$", 
-            db_interop_handlers.QueryByPairHandler
-        ),
+        (r"/interop-query/query-by-pair/?$", db_interop_handlers.QueryByPairHandler),
     ]
     return routes

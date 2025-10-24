@@ -38,7 +38,5 @@ setup(
     install_requires=[
         "cobradb",
         "Jinja2",
-        "simplejson",
-        "progressbar2",
     ],
 )

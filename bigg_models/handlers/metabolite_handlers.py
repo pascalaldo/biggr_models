@@ -120,8 +120,7 @@ class MetabolitesListDisplayHandler(utils.BaseHandler):
             ("Metabolites", f"/models/{model_bigg_id}/metabolites/"),
         ]
 
-        self.write(self.template.render(data))
-        self.finish()
+        self.return_result(data)
 
 
 class MetaboliteHandler(utils.BaseHandler):

@@ -1,10 +1,18 @@
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import (
+    contains_eager,
+    joinedload,
+    selectinload,
+    subqueryload,
+    Session,
+)
 from bigg_models.queries import escher_map_queries, utils, id_queries
+from typing import Any, Dict, List, Optional
 
 from cobradb.models import (
     Annotation,
     AnnotationLink,
     AnnotationProperty,
+    ComponentIDMapping,
     ReferenceCompoundAnnotationMapping,
     ComponentAnnotationMapping,
     CompartmentalizedComponent,
@@ -30,7 +38,7 @@ from sqlalchemy import func, select
 LINKOUT_PROPERTY_KEYS = {
     "name": "Names",
     "smiles": "SMILES",
-    "mass": ("Molecular Mass", "g/mol"),
+    "mass": "Molecular Mass||g/mol",
     "is_obsolete": "Obsolete",
 }
 
@@ -320,11 +328,11 @@ def get_metabolite(met_bigg_id, session):
 
     components_db = session.execute(
         select(Component, ComponentReferenceMapping, ReferenceCompound, InChI)
-        .join(
+        .outerjoin(
             ComponentReferenceMapping,
             ComponentReferenceMapping.component_id == Component.id,
         )
-        .join(
+        .outerjoin(
             ReferenceCompound,
             ReferenceCompound.id == ComponentReferenceMapping.reference_compound_id,
         )
@@ -380,7 +388,8 @@ def get_metabolite(met_bigg_id, session):
         comp_ann = session.execute(
             select(Annotation, ComponentAnnotationMapping)
             .options(
-                selectinload(Annotation.properties), selectinload(Annotation.links)
+                selectinload(Annotation.properties),
+                selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
             )
             .join(Annotation.component_mappings)
             .filter(ComponentAnnotationMapping.component_id == component.id)
@@ -421,7 +430,7 @@ def get_metabolite(met_bigg_id, session):
         "bigg_id": result_db[0],
         "name": result_db[1],
         "database_links": db_link_results,
-        "old_identifiers": old_id_results,
+        "old_ids": old_id_results,
         # "compartments_in_models": [],
         "components": components,
         "default_component": default_component,
@@ -545,7 +554,10 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
 
     comp_ann = session.execute(
         select(Annotation, ComponentAnnotationMapping)
-        .options(selectinload(Annotation.properties), selectinload(Annotation.links))
+        .options(
+            selectinload(Annotation.properties),
+            selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
+        )
         .join(Annotation.component_mappings)
         .filter(ComponentAnnotationMapping.component_id == component.id)
     ).all()
@@ -577,3 +589,276 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
         "model_specific": (result_db.Component.model_id is not None),
         "all_annotations": all_ann,
     }
+
+
+REF_ANNOTATIONS_SUBQ = (
+    subqueryload(ReferenceCompound.annotation_mappings)
+    .subqueryload(ReferenceCompoundAnnotationMapping.annotation)
+    .options(
+        subqueryload(Annotation.properties),
+        subqueryload(Annotation.links).joinedload(AnnotationLink.data_source),
+    )
+)
+COMP_ANNOTATIONS_SUBQ = (
+    subqueryload(Component.annotation_mappings)
+    .subqueryload(ComponentAnnotationMapping.annotation)
+    .options(
+        subqueryload(Annotation.properties),
+        subqueryload(Annotation.links).joinedload(AnnotationLink.data_source),
+    )
+)
+
+
+def get_component_object(
+    session: Session, id: utils.IDType, load_annotations: bool = True
+) -> Dict[str, Any]:
+    if not isinstance(load_annotations, bool):
+        return None
+
+    id_sel = utils.convert_id_to_query_filter(id, Component)
+    component_db = session.scalars(
+        select(Component)
+        .options(
+            subqueryload(Component.universal_component),
+            subqueryload(Component.model),
+            subqueryload(Component.compartmentalized_components).subqueryload(
+                CompartmentalizedComponent.compartment
+            ),
+            subqueryload(Component.reference_mappings)
+            .subqueryload(ComponentReferenceMapping.reference_compound)
+            .options(
+                subqueryload(ReferenceCompound.inchi),
+                *((REF_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+            ),
+            *((COMP_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+        )
+        .filter(id_sel)
+        .limit(1)
+    ).first()
+
+    if component_db is None:
+        raise utils.NotFoundError(f"No Component found with BiGG ID {id}")
+
+    return {"id": id, "object": component_db}
+
+
+def get_universal_component_object(
+    session, id: utils.IDType, load_annotations: bool = True
+):
+    if not isinstance(load_annotations, bool):
+        return None
+
+    id_sel = utils.convert_id_to_query_filter(id, UniversalComponent)
+    universal_component_db = session.scalars(
+        select(UniversalComponent)
+        .options(
+            subqueryload(UniversalComponent.components).options(
+                joinedload(Component.model),
+                subqueryload(Component.compartmentalized_components).subqueryload(
+                    CompartmentalizedComponent.compartment
+                ),
+                subqueryload(Component.reference_mappings)
+                .joinedload(ComponentReferenceMapping.reference_compound)
+                .options(
+                    joinedload(ReferenceCompound.inchi),
+                    *((REF_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+                ),
+                *((COMP_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+            )
+        )
+        .filter(id_sel)
+        .limit(1)
+    ).first()
+
+    if universal_component_db is None:
+        raise utils.NotFoundError(f"No UniversalComponent found with BiGG ID {id}")
+
+    return {"id": id, "object": universal_component_db}
+
+
+def get_compartmentalized_component_object(
+    session, id: utils.IDType, load_annotations: bool = True
+):
+    if not isinstance(load_annotations, bool):
+        return None
+
+    id_sel = utils.convert_id_to_query_filter(id, CompartmentalizedComponent)
+    comp_component_db = session.scalars(
+        select(CompartmentalizedComponent)
+        .options(
+            subqueryload(CompartmentalizedComponent.compartment),
+            subqueryload(CompartmentalizedComponent.component).options(
+                subqueryload(Component.universal_component),
+                subqueryload(Component.model),
+                subqueryload(Component.reference_mappings)
+                .subqueryload(ComponentReferenceMapping.reference_compound)
+                .options(
+                    subqueryload(ReferenceCompound.inchi),
+                    *((REF_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+                ),
+                *((COMP_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+            ),
+        )
+        .filter(id_sel)
+        .limit(1)
+    ).first()
+
+    if comp_component_db is None:
+        raise utils.NotFoundError(
+            f"No CompartmentalizedComponent found with BiGG ID {id}"
+        )
+
+    return {"id": id, "object": comp_component_db}
+
+
+def get_model_compartmentalized_component_object(
+    session,
+    id: utils.IDType,
+    model_id: utils.IDType,
+    load_annotations: bool = True,
+):
+    if not isinstance(load_annotations, bool):
+        return None
+
+    id_sel = utils.convert_id_to_query_filter(id, CompartmentalizedComponent)
+    model_sel = utils.convert_id_to_query_filter(model_id, Model)
+    comp_component_db = session.scalars(
+        select(ModelCompartmentalizedComponent)
+        .join(ModelCompartmentalizedComponent.compartmentalized_component)
+        .join(ModelCompartmentalizedComponent.model)
+        .join(CompartmentalizedComponent.compartment)
+        .join(CompartmentalizedComponent.component)
+        .join(Component.universal_component)
+        .options(
+            contains_eager(ModelCompartmentalizedComponent.model),
+            contains_eager(
+                ModelCompartmentalizedComponent.compartmentalized_component
+            ).options(
+                contains_eager(CompartmentalizedComponent.compartment),
+                contains_eager(CompartmentalizedComponent.component).options(
+                    contains_eager(Component.universal_component),
+                    subqueryload(Component.reference_mappings)
+                    .joinedload(ComponentReferenceMapping.reference_compound)
+                    .options(
+                        joinedload(ReferenceCompound.inchi),
+                        *((REF_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+                    ),
+                    *((COMP_ANNOTATIONS_SUBQ,) if load_annotations else ()),
+                ),
+            ),
+        )
+        .filter(id_sel & model_sel)
+        .limit(1)
+    ).first()
+
+    if comp_component_db is None:
+        raise utils.NotFoundError(
+            f"No ModelCompartmentalizedComponent found with BiGG ID {id} and model BiGG ID {model_id}"
+        )
+
+    return {
+        "id": id,
+        "model_id": model_id,
+        "object": comp_component_db,
+    }
+
+
+def get_any_components_by_identifiers(
+    session: Session, identifiers: utils.StrList, model_bigg_id: utils.OptStr = None
+):
+    model = None
+    if model_bigg_id is not None:
+        model = session.scalars(
+            select(Model).filter(Model.bigg_id == model_bigg_id).limit(1)
+        ).first()
+    if model is None:
+        model_sel = lambda x: (x.model_id == None)
+    else:
+        model_sel = lambda x: ((x.model_id == None) | (x.model_id == model.id))
+    ignored_identifiers = []
+    results = {}
+    for full_identifier in identifiers:
+        if not ":" in full_identifier:
+            ignored_identifiers.append(full_identifier)
+            continue
+        namespace, identifier = full_identifier.split(":", maxsplit=1)
+        idf = identifier
+        namespace = namespace.upper()
+        if namespace == "BIGGR" or namespace == "BIGG":
+            charge = None
+            if ":" in idf:
+                idf, charge = idf.rsplit(":", maxsplit=1)
+            compartment = None
+            if idf[-2] == "_":
+                compartment = idf[-1]
+                idf = idf[:-2]
+            universal_component_db = session.scalars(
+                select(UniversalComponent)
+                .join(UniversalComponent.old_bigg_ids)
+                .filter(ComponentIDMapping.old_bigg_id == idf)
+                .limit(1)
+            ).first()
+            if universal_component_db is None:
+                universal_component_db = session.scalars(
+                    select(UniversalComponent)
+                    .filter(UniversalComponent.bigg_id == idf)
+                    .filter(model_sel(UniversalComponent))
+                    .limit(1)
+                ).first()
+            if universal_component_db is None:
+                results[full_identifier] = None
+                continue
+            if charge is None and compartment is None:
+                results[full_identifier] = universal_component_db
+                continue
+            if charge is None:
+                universal_compartmentalized_component_db = session.scalars(
+                    select(UniversalCompartmentalizedComponent)
+                    .filter(
+                        UniversalCompartmentalizedComponent.bigg_id
+                        == f"{idf}_{compartment}"
+                    )
+                    .limit(1)
+                ).first()
+                if universal_compartmentalized_component_db is None:
+                    results[full_identifier] = None
+                    continue
+                results[full_identifier] = universal_compartmentalized_component_db
+                continue
+            if compartment is None:
+                component_db = session.scalars(
+                    select(Component)
+                    .filter(Component.bigg_id == f"{idf}:{charge}")
+                    .limit(1)
+                ).first()
+                if component_db is None:
+                    results[full_identifier] = None
+                    continue
+                results[full_identifier] = component_db
+                continue
+            compartmentalized_component_db = session.scalars(
+                select(CompartmentalizedComponent)
+                .filter(
+                    CompartmentalizedComponent.bigg_id
+                    == f"{idf}_{compartment}:{charge}"
+                )
+                .limit(1)
+            ).first()
+            if compartmentalized_component_db is None:
+                results[full_identifier] = None
+                continue
+            results[full_identifier] = compartmentalized_component_db
+            continue
+        if namespace == "CHEBI":
+            component_db = session.scalars(
+                select(Component)
+                .join(Component.reference_mappings)
+                .join(ComponentReferenceMapping.reference_compound)
+                .filter(ReferenceCompound.bigg_id == f"CHEBI:{identifier}")
+            ).first()
+            if component_db is None:
+                results[full_identifier] = None
+                continue
+            results[full_identifier] = component_db
+            continue
+    return results

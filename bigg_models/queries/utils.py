@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-
+from typing import List, NewType, Optional, Type, Union
 from bigg_models.version import __version__ as version, __api_version__ as api_version
 import bigg_models.handlers.utils as handler_utils
 
 from cobradb.models import (
+    Base,
     Component,
     CompartmentalizedComponent,
     DatabaseVersion,
@@ -21,6 +21,10 @@ from sqlalchemy import desc, asc, and_, not_
 from os.path import abspath, dirname, join
 
 root_directory = abspath(join(dirname(__file__), ".."))
+
+IDType = NewType("IDType", Union[str, int])
+StrList = NewType("StrList", List[str])
+OptStr = NewType("OptStr", Optional[str])
 
 
 class NotFoundError(Exception):
@@ -207,3 +211,11 @@ def database_version(session):
         "bigg_models_version": version,
         "api_version": api_version,
     }
+
+
+def convert_id_to_query_filter(bigg_id: IDType, obj_cls: Type[Base]):
+    if isinstance(bigg_id, int):
+        return obj_cls.id == bigg_id
+    if isinstance(bigg_id, str):
+        return obj_cls.bigg_id == bigg_id
+    raise ValueError()

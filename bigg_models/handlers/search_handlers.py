@@ -1,6 +1,6 @@
 from bigg_models.handlers import utils
 from bigg_models.queries import search_queries, model_queries
-import simplejson as json
+import json
 
 from tornado.web import HTTPError
 
