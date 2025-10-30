@@ -120,6 +120,7 @@ env = Environment(loader=PackageLoader("bigg_models", "templates"))
 env.filters["format_reference"] = lambda x: format_reference(x)
 env.filters["format_id"] = format_bigg_id
 env.filters["format_gene_reaction_rule"] = format_gene_reaction_rule
+env.filters["int_or_float"] = lambda x: int(x) if x.is_integer() else x
 
 # root directory
 directory = path.abspath(path.join(path.dirname(__file__), ".."))

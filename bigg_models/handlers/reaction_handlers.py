@@ -57,8 +57,8 @@ class UniversalReactionHandler(utils.BaseHandler):
 
     def get(self, reaction_bigg_id):
         try:
-            result = utils.safe_query(
-                reaction_queries.get_reaction_and_models, reaction_bigg_id
+            result = utils.do_safe_query(
+                reaction_queries.get_universal_reaction_and_models, reaction_bigg_id
             )
         except query_utils.RedirectError as e:
             self.redirect(
