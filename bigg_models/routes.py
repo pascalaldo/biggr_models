@@ -1,3 +1,6 @@
+from typing import Any, Dict, Optional, Type
+from tornado.routing import URLSpec
+from tornado.web import RequestHandler
 from bigg_models.handlers import (
     identifiers_handlers,
     utils,
@@ -13,6 +16,22 @@ from bigg_models.handlers import (
 )
 from os import path
 from tornado.web import RedirectHandler
+
+
+def url(
+    pattern: str,
+    handler: Type[RequestHandler],
+    kwargs: Optional[Dict[str, Any]] = None,
+    name: Optional[str] = None,
+) -> URLSpec:
+    if name is None:
+        return URLSpec(pattern, handler, kwargs)
+    if kwargs is None:
+        opts = {"name": name}
+    else:
+        opts = kwargs
+        opts["name"] = name
+    return URLSpec(pattern, handler, opts, name=name)
 
 
 def get_routes():
@@ -41,9 +60,10 @@ def get_routes():
             r"/api/%s/(?:models/)?universal/reactions/?$" % utils.api_v,
             reaction_handlers.UniversalReactionListHandler,
         ),
-        (
-            r"/(?:models/)?universal/reactions/?$",
-            reaction_handlers.UniversalReactionListDisplayHandler,
+        url(
+            r"/universal/reactions/?$",
+            reaction_handlers.UniversalReactionListViewHandler,
+            name="reactions",
         ),
         #
         (
@@ -55,9 +75,10 @@ def get_routes():
             r"/api/%s/(?:models/)?universal/metabolites/?$" % utils.api_v,
             metabolite_handlers.UniversalMetaboliteListHandler,
         ),
-        (
-            r"/(?:models/)?universal/metabolites/?$",
-            metabolite_handlers.UniversalMetaboliteListDisplayHandler,
+        url(
+            r"/universal/metabolites/?$",
+            metabolite_handlers.UniversalMetaboliteListViewHandler,
+            name="metabolites",
         ),
         #
         (
@@ -86,7 +107,7 @@ def get_routes():
         # By model
         #
         (r"/api/%s/models/?$" % utils.api_v, model_handlers.ModelListHandler),
-        (r"/models/?$", model_handlers.ModelsListDisplayHandler),
+        url(r"/models/?$", model_handlers.ModelsListViewHandler, name="models"),
         #
         (r"/(?:api/%s/)?models/([^/]+)/?$" % utils.api_v, model_handlers.ModelHandler),
         #
@@ -104,15 +125,20 @@ def get_routes():
             r"/api/%s/models/([^/]+)/reactions/?$" % utils.api_v,
             reaction_handlers.ReactionListHandler,
         ),
-        (r"/models/([^/]+)/reactions/?$", reaction_handlers.ReactionListDisplayHandler),
+        url(
+            r"/models/([^/]+)/reactions/?$",
+            reaction_handlers.ReactionListViewHandler,
+            name="model_reactions",
+        ),
         #
         (
             r"/api/%s/models/([^/]+)/metabolites/?$" % utils.api_v,
             metabolite_handlers.MetaboliteListHandler,
         ),
-        (
+        url(
             r"/models/([^/]+)/metabolites/?$",
-            metabolite_handlers.MetabolitesListDisplayHandler,
+            metabolite_handlers.MetaboliteListViewHandler,
+            name="model_metabolites",
         ),
         #
         (
@@ -129,7 +155,11 @@ def get_routes():
             r"/api/%s/models/([^/]+)/genes/?$" % utils.api_v,
             gene_handlers.GeneListHandler,
         ),
-        (r"/models/([^/]+)/genes/?$", gene_handlers.GeneListDisplayHandler),
+        url(
+            r"/models/([^/]+)/genes/?$",
+            gene_handlers.GeneListViewHandler,
+            name="model_genes",
+        ),
         #
         # Search
         (r"/api/%s/search$" % utils.api_v, search_handlers.SearchHandler),

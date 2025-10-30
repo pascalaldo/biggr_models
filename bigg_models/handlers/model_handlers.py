@@ -1,3 +1,4 @@
+from cobradb.models import Model, ModelCount
 from bigg_models.handlers import utils
 from bigg_models.queries import model_queries
 from os import path
@@ -40,6 +41,43 @@ class ModelsListDisplayHandler(utils.BaseHandler):
         template_data = {"results": {"models": "ajax"}}
         self.write(self.template.render(template_data))
         self.finish()
+
+
+class ModelsListViewHandler(utils.DataHandler):
+    title = "Models"
+    columns = [
+        utils.DataColumnSpec(
+            Model.bigg_id, "BiGG ID", hyperlink="/models/${row['model__bigg_id']}"
+        ),
+        utils.DataColumnSpec(Model.organism, "Organism"),
+        utils.DataColumnSpec(
+            ModelCount.metabolite_count,
+            "Metabolites",
+            requires=Model.model_count,
+            global_search=False,
+            hyperlink="/models/${row['model__bigg_id']}/metabolites",
+            search_type="number",
+        ),
+        utils.DataColumnSpec(
+            ModelCount.reaction_count,
+            "Reactions",
+            requires=Model.model_count,
+            global_search=False,
+            hyperlink="/models/${row['model__bigg_id']}/reactions",
+            search_type="number",
+        ),
+        utils.DataColumnSpec(
+            ModelCount.gene_count,
+            "Genes",
+            requires=Model.model_count,
+            global_search=False,
+            hyperlink="/models/${row['model__bigg_id']}/genes",
+            search_type="number",
+        ),
+    ]
+
+    def breadcrumbs(self):
+        return [("Home", "/"), ("Models", "/models/")]
 
 
 class ModelDownloadHandler(utils.BaseHandler):

@@ -1,3 +1,10 @@
+from cobradb.models import (
+    Model,
+    ModelReaction,
+    Reaction,
+    ReferenceReaction,
+    UniversalReaction,
+)
 from bigg_models.handlers import utils
 from bigg_models.queries import reaction_queries, utils as query_utils
 import re
@@ -50,6 +57,38 @@ class UniversalReactionListDisplayHandler(utils.BaseHandler):
 
         self.write(self.template.render(dictionary))
         self.finish()
+
+
+class UniversalReactionListViewHandler(utils.DataHandler):
+    title = "Universal Reactions"
+    columns = [
+        utils.DataColumnSpec(
+            UniversalReaction.bigg_id,
+            "BiGG ID",
+            hyperlink="/universal/reactions/${row['universalreaction__bigg_id']}",
+        ),
+        utils.DataColumnSpec(UniversalReaction.name, "Name"),
+        # utils.DataColumnSpec(
+        #     UniversalReaction.is_exchange, "Exchange", search_type="bool"
+        # ),
+        utils.DataColumnSpec(
+            ReferenceReaction.bigg_id, "Reference", requires=UniversalReaction.reference
+        ),
+        utils.DataColumnSpec(
+            UniversalReaction.is_transport, "Transport", search_type="bool"
+        ),
+        # utils.DataColumnSpec(UniversalReaction.is_pseudo, "Pseudo", search_type="bool"),
+    ]
+
+    def pre_filter(self, query):
+        return query.filter(UniversalReaction.model_id == None)
+
+    def breadcrumbs(self):
+        return [
+            ("Home", "/"),
+            ("Universal", None),
+            ("Reactions", "/universal/reactions/"),
+        ]
 
 
 class UniversalReactionHandler(utils.BaseHandler):
@@ -126,6 +165,59 @@ class ReactionListDisplayHandler(utils.BaseHandler):
         ]
 
         self.return_result(results)
+
+
+class ReactionListViewHandler(utils.DataHandler):
+    title = "Reactions"
+    columns = [
+        utils.DataColumnSpec(
+            ModelReaction.bigg_id,
+            "BiGG ID",
+            hyperlink="/models/${row['model__bigg_id']}/reactions/${row['modelreaction__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            UniversalReaction.name,
+            "Name",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+            ],
+        ),
+        utils.DataColumnSpec(
+            ReferenceReaction.bigg_id,
+            "Reference",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+                UniversalReaction.reference,
+            ],
+        ),
+        utils.DataColumnSpec(Model.bigg_id, "Model", requires=ModelReaction.model),
+        utils.DataColumnSpec(
+            UniversalReaction.is_transport,
+            "Transport",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+            ],
+            search_type="bool",
+        ),
+    ]
+
+    def prepare(self):
+        self.model_bigg_id = self.path_args[0]
+        super().prepare()
+
+    def pre_filter(self, query):
+        return query.filter(Model.bigg_id == self.model_bigg_id)
+
+    def breadcrumbs(self):
+        return [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (self.model_bigg_id, f"/models/{self.model_bigg_id}"),
+            ("Reactions", f"/models/{self.model_bigg_id}/reactions/"),
+        ]
 
 
 class ReactionHandler(utils.BaseHandler):

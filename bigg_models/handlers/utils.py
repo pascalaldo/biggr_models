@@ -1,6 +1,8 @@
 from datetime import datetime
+import re
+from typing import Any, Callable, Iterable, List, Optional, Type, TypeVar, Union
 from cobradb.models import Base, Session, MemoteResult, MemoteTest
-from sqlalchemy import Row
+from sqlalchemy import Row, and_, or_
 from bigg_models import __api_version__ as api_v
 from bigg_models.queries import search_queries, escher_map_queries, utils as query_utils
 import json
@@ -304,6 +306,282 @@ class PageableHandler(BaseHandler):
                 query_kwargs["sort_direction"] = sort_direction
 
         return query_kwargs
+
+
+def _interpret_bool(input: str) -> bool:
+    return input.upper() == "TRUE"
+
+
+def _interpret_asc(input: str) -> bool:
+    return input.upper() == "ASC"
+
+
+def col_str_search(query, col_spec: "DataColumnSpec"):
+    if (search_value := col_spec.search_value.strip()) == "":
+        return False, query
+    return True, query.filter(col_spec.prop.contains(search_value, autoescape=True))
+
+
+def col_bool_search(query, col_spec: "DataColumnSpec"):
+    if (search_value := col_spec.search_value.strip()) == "":
+        return False, query
+    value_as_bool = search_value.upper() == "TRUE"
+    return True, query.filter(col_spec.prop == value_as_bool)
+
+
+REGEX_COL_NUMBER_1 = re.compile(r"^((?P<eq>[\>\<]\=?) *)?(?P<nr>\d+(\.\d+)?)$")
+REGEX_COL_NUMBER_2 = re.compile(r"^(?P<nr1>\d+(\.\d+)?) *\- *(?P<nr2>\d+(\.\d+)?)$")
+
+
+def col_number_search(query, col_spec):
+    if (search_value := col_spec.search_value.strip()) == "":
+        return False, query
+
+    or_filters = []
+    for or_part in search_value.split(","):
+        and_filters = []
+        for and_part in or_part.split("&"):
+            part = and_part.strip()
+            m = REGEX_COL_NUMBER_1.match(part)
+            if m is not None:
+                print("Match 1")
+                print(m.groups())
+                number = float(m.group("nr"))
+                try:
+                    comp = m.group("eq")
+                except IndexError:
+                    comp = None
+                if comp is None:
+                    and_filters.append(col_spec.prop == number)
+                else:
+                    if comp == ">":
+                        and_filters.append(col_spec.prop > number)
+                    elif comp == ">=":
+                        and_filters.append(col_spec.prop >= number)
+                    elif comp == "<":
+                        and_filters.append(col_spec.prop < number)
+                    elif comp == "<=":
+                        and_filters.append(col_spec.prop <= number)
+                    else:
+                        print(f"Fail 1: {comp}")
+                        continue
+                continue
+            m = REGEX_COL_NUMBER_2.match(part)
+            if m is not None:
+                print("Match 2")
+                number1 = float(m.group("nr1"))
+                number2 = float(m.group("nr2"))
+                and_filters.append(col_spec.prop >= number1)
+                and_filters.append(col_spec.prop <= number2)
+        if len(and_filters) == 1:
+            or_filters.append(and_filters[0])
+        elif len(and_filters) > 1:
+            or_filters.append(and_(*and_filters))
+
+    if len(or_filters) == 0:
+        return False, query
+    elif len(or_filters) == 1:
+        return True, query.filter(or_filters[0])
+    else:
+        return True, query.filter(or_(*or_filters))
+
+
+class DataColumnSpec:
+    def __init__(
+        self,
+        prop: Any,
+        name: str,
+        requires=None,
+        global_search: bool = True,
+        hyperlink: Optional[str] = None,
+        search_type: str = "str",
+    ):
+        self.prop = prop
+        self.identifier: str = str(prop).lower().replace(".", "__")
+        self.name: str = name
+        self.global_search = global_search
+        self.requires: List[Any] = []
+        if isinstance(requires, Iterable):
+            self.requires.extend(requires)
+        elif requires is not None:
+            self.requires.append(requires)
+
+        self.searchable: bool = True
+        self.orderable: bool = True
+        self.search_value: str = ""
+        self.search_regex: bool = False
+        self.search_type = search_type
+        self.order_priority: Optional[int] = None
+        self.order_asc: bool = True
+        self.hyperlink = hyperlink
+
+    def search(self, query):
+        if self.search_value != "":
+            print(f"{self.identifier}: '{self.search_value}' ({self.search_type})")
+        if self.search_type == "str":
+            return col_str_search(query, self)
+        if self.search_type == "number":
+            return col_number_search(query, self)
+        if self.search_type == "bool":
+            return col_bool_search(query, self)
+        return False, query
+
+
+_TT = TypeVar("_TT")
+_TD = TypeVar("_TD")
+
+
+class DataHandler(BaseHandler):
+    template = env.get_template("data_table.html")
+    title = None
+    columns: List[DataColumnSpec] = []
+    start: int = 0
+    length = 20
+    draw: int = -1
+    name = None
+    search_value: str = ""
+    search_regex: bool = False
+
+    def initialize(self, **kwargs):
+        self.name = kwargs.get("name")
+
+    def breadcrumbs(self) -> Any:
+        return None
+
+    def pre_filter(self, query):
+        return query
+
+    def get(self, *args, **kwargs):
+        data = dict(
+            data_url=self.data_url,
+            columns=self.columns,
+        )
+
+        brcrmb = self.breadcrumbs()
+        if brcrmb is not None:
+            data["breadcrumbs"] = brcrmb
+
+        if self.title is not None:
+            data["title"] = self.title
+        self.write(self.template.render(data))
+        self.finish()
+
+    def post(self, *args, **kwargs):
+        data, total, filtered = self.data_query(query_utils.get_list)
+        self.write_data(data, total, filtered)
+
+    @property
+    def data_url(self):
+        if self.name is None:
+            raise HTTPError(status_code=500, reason="Internal error, unnamed route.")
+        return self.reverse_url(self.name, *self.path_args)
+
+    def _get_argument_of_type_or_default(
+        self, arg_name: str, arg_type: Callable[[Any], _TT], default: _TD = None
+    ) -> Union[_TT, _TD]:
+        arg_val = self.get_argument(arg_name, None)
+        if arg_val is None:
+            return default
+        try:
+            arg_val = arg_type(arg_val)
+        except:
+            return default
+        return arg_val
+
+    def _parse_data_tables_args(self):
+        arg_draw = self._get_argument_of_type_or_default("draw", int, None)
+        if arg_draw is None:
+            raise HTTPError(
+                status_code=400, reason="Could not parse datatables request."
+            )
+        self.draw = arg_draw
+        self.start = self._get_argument_of_type_or_default("start", int, 0)
+        self.length = self._get_argument_of_type_or_default("length", int, 20)
+
+        self.search_value = self._get_argument_of_type_or_default(
+            "search[value]", str, ""
+        )
+        self.search_regex = self._get_argument_of_type_or_default(
+            "search[regex]", _interpret_bool, False
+        )
+
+        for col_spec in self.columns:
+            col_spec.order_priority = None
+            col_spec.search_value = ""
+        i = 0
+        while (
+            col_identifier := self.get_argument(f"columns[{i}][data]", None)
+        ) is not None:
+            try:
+                col_spec = next(
+                    x for x in self.columns if x.identifier == col_identifier
+                )
+            except StopIteration:
+                raise HTTPError(
+                    status_code=400,
+                    reason="Could not parse datatables arguments.",
+                )
+            col_spec.searchable = self._get_argument_of_type_or_default(
+                f"columns[{i}][searchable]", _interpret_bool, col_spec.searchable
+            )
+            col_spec.orderable = self._get_argument_of_type_or_default(
+                f"columns[{i}][orderable]", _interpret_bool, col_spec.orderable
+            )
+            col_spec.search_value = self._get_argument_of_type_or_default(
+                f"columns[{i}][search][value]", str, col_spec.search_value
+            )
+            col_spec.search_regex = self._get_argument_of_type_or_default(
+                f"columns[{i}][search][regex]", _interpret_bool, col_spec.search_regex
+            )
+
+            i += 1
+
+        i = 0
+        while (
+            col_identifier := self.get_argument(f"order[{i}][name]", None)
+        ) is not None:
+            try:
+                col_spec = next(
+                    x for x in self.columns if x.identifier == col_identifier
+                )
+            except StopIteration:
+                raise HTTPError(
+                    status_code=400,
+                    reason="Could not parse datatables arguments.",
+                )
+            col_spec.order_priority = i
+            col_spec.order_asc = self._get_argument_of_type_or_default(
+                f"order[{i}][dir]", _interpret_asc, col_spec.order_asc
+            )
+
+            i += 1
+
+    def prepare(self):
+        if self.request.method == "POST":
+            self._parse_data_tables_args()
+
+    def data_query(self, f, **kwargs):
+        opts = dict(
+            column_specs=self.columns,
+            start=self.start,
+            length=self.length,
+            search_value=self.search_value,
+            search_regex=self.search_regex,
+            pre_filter=self.pre_filter,
+        )
+        opts = opts | kwargs
+        results = do_safe_query(f, **opts)
+        return results
+
+    def write_data(self, data: Any, total_count: int, filtered_count: int):
+        result = {
+            "draw": self.draw + 1,
+            "recordsTotal": total_count,
+            "recordsFiltered": filtered_count,
+            "data": data,
+        }
+        self.write(result)
+        self.finish()
 
 
 class AutocompleteHandler(BaseHandler):

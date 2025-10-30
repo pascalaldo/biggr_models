@@ -1,3 +1,11 @@
+from cobradb.models import (
+    Compartment,
+    CompartmentalizedComponent,
+    Component,
+    Model,
+    ModelCompartmentalizedComponent,
+    UniversalComponent,
+)
 from bigg_models.handlers import utils
 from bigg_models.queries import metabolite_queries, utils as query_utils
 
@@ -54,6 +62,28 @@ class UniversalMetaboliteListDisplayHandler(utils.BaseHandler):
         self.finish()
 
 
+class UniversalMetaboliteListViewHandler(utils.DataHandler):
+    title = "Universal Metabolites"
+    columns = [
+        utils.DataColumnSpec(
+            UniversalComponent.bigg_id,
+            "BiGG ID",
+            hyperlink="/universal/metabolites/${row['universalcomponent__bigg_id']}",
+        ),
+        utils.DataColumnSpec(UniversalComponent.name, "Name"),
+    ]
+
+    def pre_filter(self, query):
+        return query.filter(UniversalComponent.model_id == None)
+
+    def breadcrumbs(self):
+        return [
+            ("Home", "/"),
+            ("Universal", None),
+            ("Metabolites", "/universal/metabolites/"),
+        ]
+
+
 class UniversalMetaboliteHandler(utils.BaseHandler):
     template = utils.env.get_template("universal_metabolite.html")
 
@@ -70,6 +100,60 @@ class UniversalMetaboliteHandler(utils.BaseHandler):
                 (met_bigg_id, f"/universal/metabolites/{met_bigg_id}"),
             ]
             self.return_result(result)
+
+
+class MetaboliteListViewHandler(utils.DataHandler):
+    title = "Metabolites"
+    columns = [
+        utils.DataColumnSpec(
+            ModelCompartmentalizedComponent.bigg_id,
+            "BiGG ID",
+            hyperlink="/models/${row['model__bigg_id']}/metabolites/${row['modelcompartmentalizedcomponent__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            Component.name,
+            "Name",
+            requires=[
+                ModelCompartmentalizedComponent.compartmentalized_component,
+                CompartmentalizedComponent.component,
+            ],
+        ),
+        utils.DataColumnSpec(
+            Compartment.bigg_id,
+            "Compartment",
+            requires=[
+                ModelCompartmentalizedComponent.compartmentalized_component,
+                CompartmentalizedComponent.compartment,
+            ],
+        ),
+        utils.DataColumnSpec(
+            Model.bigg_id, "Model", requires=ModelCompartmentalizedComponent.model
+        ),
+        utils.DataColumnSpec(
+            (Component.model_id != None),
+            "Model-specific",
+            requires=[
+                ModelCompartmentalizedComponent.compartmentalized_component,
+                CompartmentalizedComponent.component,
+            ],
+            search_type="bool",
+        ),
+    ]
+
+    def prepare(self):
+        self.model_bigg_id = self.path_args[0]
+        super().prepare()
+
+    def pre_filter(self, query):
+        return query.filter(Model.bigg_id == self.model_bigg_id)
+
+    def breadcrumbs(self):
+        return [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (self.model_bigg_id, f"/models/{self.model_bigg_id}"),
+            ("Metabolites", f"/models/{self.model_bigg_id}/metabolites/"),
+        ]
 
 
 class MetaboliteListHandler(utils.PageableHandler):

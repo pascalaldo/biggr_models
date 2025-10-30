@@ -12128,5 +12128,13 @@ textarea.form-control-lg {
     display: none !important;
   }
 }
+.dt-container > div.row:first-child, .dt-container > div.row:nth-last-child(2) {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+.table-footer-search {
+  width: 100%;
+}
 
 /*# sourceMappingURL=custom.css.map */

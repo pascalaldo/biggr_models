@@ -18,7 +18,8 @@
 				{% set colspan = column.colspan %}
 				{% endif %}
 				{% endif %}
-				<th class="{{ class }}" {% if colspan !=1 %} colspan={{colspan}}{% endif %}>{{ col_name }}</th>
+				<th class="{{ class }}" {% if colspan !=1 %} colspan={{colspan}}{% endif %}>{{ col_name
+					}}</th>
 				{% endfor %}
 			</tr>
 		</thead>
@@ -32,3 +33,114 @@
 	</table>
 </div>
 {% endmacro%}
+{% macro data_table(table_id, columns, data_url) %}
+<table id="data_table_{{table_id}}" class="table table-hover mb-0 table-no-bottom-border">
+	<thead>
+		<tr>
+			{% for column in columns %}
+			<th>{{column.name}}</th>
+			{% endfor %}
+		</tr>
+	</thead>
+	<tfoot>
+		<tr>
+			{% for column in columns %}
+			<th>{{column.name}}</th>
+			{% endfor %}
+		</tr>
+	</tfoot>
+</table>
+<script>
+	let add_text_search = function (column) {
+		let title = column.footer().textContent;
+
+		// Create input element
+		let input = document.createElement('input');
+		input.classList.add("table-footer-search");
+		input.placeholder = title;
+		column.footer().replaceChildren(input);
+
+		// Event listener for user input
+		input.addEventListener('keyup', (event) => {
+			if (event.isComposing) {
+				return;
+			}
+			switch (event.key) {
+				case "ArrowDown":
+				case "ArrowUp":
+				case "ArrowLeft":
+				case "ArrowRight":
+					return;
+				case "Escape":
+					input.value = "";
+					break;
+			}
+			if (column.search() !== input.value) {
+				column.search(input.value).draw();
+			}
+		});
+	};
+	let add_bool_select_search = function (column) {
+		// Create select element
+		let select = document.createElement('select');
+		select.add(new Option(''));
+		column.footer().replaceChildren(select);
+
+		// Apply listener for user change in value
+		select.addEventListener('change', function () {
+			column
+				.search(select.value, {exact: true})
+				.draw();
+		});
+
+		// Add list of options
+		//column
+		//	.data()
+		//	.unique()
+		//	.sort()
+		//	.each(function (d, j) {
+		//		select.add(new Option(d));
+		//	});
+		select.add(new Option("true"));
+		select.add(new Option("false"));
+	};
+	let select_cols = {{columns| selectattr('search_type', 'equalto', 'bool') | map(attribute = 'identifier') | list() | tojson() }};
+	new DataTable('#data_table_{{table_id}}', {
+		ajax: {
+			url: '{{data_url}}',
+			type: 'POST'
+		},
+		columns: [
+			{% for column in columns %}
+				{
+			data: '{{column.identifier}}',
+			name: '{{column.identifier}}',
+					{% if column.hyperlink is not none %}
+	render: function(data, type, row) {
+		if (type === 'display') {
+			let link = `{{column.hyperlink}}`;
+			return '<a href="' + link + '">' + data + '</a>';
+		}
+		return data;
+	},
+	{% endif %}
+				},
+	{% endfor %}
+		],
+	processing: true,
+		serverSide: true,
+			initComplete: function () {
+				this.api()
+					.columns()
+					.every(function () {
+						let column = this;
+						if (select_cols.includes(column.dataSrc())) {
+							add_bool_select_search(column);
+						} else {
+							add_text_search(column);
+						};
+					});
+			}
+	});
+</script>
+{% endmacro %}

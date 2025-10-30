@@ -1,3 +1,4 @@
+from cobradb.models import Chromosome, Gene, Model, ModelGene
 from bigg_models.handlers import utils
 from bigg_models.queries import gene_queries
 
@@ -41,6 +42,62 @@ class GeneListDisplayHandler(utils.BaseHandler):
         }
         self.write(self.template.render(data))
         self.finish()
+
+
+class GeneListViewHandler(utils.DataHandler):
+    title = "Genes"
+    columns = [
+        utils.DataColumnSpec(
+            Gene.bigg_id,
+            "BiGG ID",
+            hyperlink="/models/${row['model__bigg_id']}/genes/${row['gene__bigg_id']}",
+            requires=ModelGene.gene,
+        ),
+        utils.DataColumnSpec(
+            Gene.name,
+            "Name",
+            requires=[
+                ModelGene.gene,
+            ],
+        ),
+        utils.DataColumnSpec(
+            Model.bigg_id,
+            "Model",
+            requires=[
+                ModelGene.model,
+            ],
+        ),
+        utils.DataColumnSpec(
+            Gene.mapped_to_genbank,
+            "Mapped",
+            requires=[
+                ModelGene.gene,
+            ],
+            search_type="bool",
+        ),
+        utils.DataColumnSpec(
+            Chromosome.ncbi_accession,
+            "Chromosome",
+            requires=[
+                Gene.chromosome,
+            ],
+        ),
+    ]
+
+    def prepare(self):
+        self.model_bigg_id = self.path_args[0]
+        super().prepare()
+
+    def pre_filter(self, query):
+        return query.filter(Model.bigg_id == self.model_bigg_id)
+
+    def breadcrumbs(self):
+        return [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (self.model_bigg_id, f"/models/{self.model_bigg_id}"),
+            ("Genes", f"/models/{self.model_bigg_id}/genes/"),
+        ]
 
 
 class GeneHandler(utils.BaseHandler):
