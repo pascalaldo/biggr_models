@@ -112,10 +112,10 @@
 		},
 		columns: [
 			{% for column in columns %}
-				{
+			{
 			data: '{{column.identifier}}',
 			name: '{{column.identifier}}',
-					{% if column.hyperlink is not none %}
+				{% if column.hyperlink is not none %}
 	render: function(data, type, row) {
 		if (type === 'display') {
 			let link = `{{column.hyperlink}}`;
@@ -124,7 +124,7 @@
 		return data;
 	},
 	{% endif %}
-				},
+			},
 	{% endfor %}
 		],
 	processing: true,

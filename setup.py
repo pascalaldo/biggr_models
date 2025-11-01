@@ -9,10 +9,10 @@ sys.path.insert(0, join(directory, "bigg_models"))
 version = __import__("version").__version__
 
 setup(
-    name="bigg_models",
+    name="biggr_models",
     version=version,
-    author="Justin Lu & Zachary King",
-    author_email="zaking@ucsd.edu",
+    author="Pascal Pieters",
+    author_email="paspie@biosustain.dtu.dk",
     url="http://bigg.ucsd.edu",
     packages=find_packages(),
     package_data={
@@ -20,11 +20,6 @@ setup(
             "static/assets/*",
             "static/css/*",
             "static/js/*",
-            "static/lib/*",
-            "static/lib/tablesorter/*",
-            "static/lib/tablesorter/addons/*",
-            "static/lib/tablesorter/addons/pager/*",
-            "static/lib/tablesorter/addons/pager/icons/*",
             "templates/*",
             "db_management/*",
         ]

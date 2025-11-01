@@ -12,15 +12,15 @@
         <table class="mt-2">
           <thead>
               {% for s in aligned_reactions.urm %}
-              <th>{{s}}</th>
+              <th class="ps-1 pt-1">{{s}}</th>
               {% endfor %}
           </thead>
-          <tbody class="table-group-divider" style="border-top-color: #CCCDCE;">
+          <tbody class="table-group-divider" style="border-top-color: #CCCDCE; border-top-style: dotted;">
           {% for k, v in aligned_reactions.items() %}
             {% if k != "urm" %}
             <tr>
               {% for s in v %}
-              <td>{{s}}</td>
+              <td class="ps-1 pt-1">{{s}}</td>
               {% endfor %}
             </tr>
             {% endif %}
@@ -50,7 +50,7 @@
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{urm.coefficient | int_or_float }}</a></td>
               <td><a href="{{link}}" class="d-block">{{metabolite.bigg_id | format_id("universal_comp_comp")}}</a></td>
               <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite.universal_component.name}}</a></td>
-        <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite.universal_component.default_component.reference_mappings|length == 0  %} - {% else %}{% for rm in metabolite.universal_component.default_component.reference_mappings %}{{rm.reference_compound.bigg_id | format_reference}}{%- if rm.reference_n -%}<span> (n={{rm.reference_n}})</span>{%- endif -%}{% endfor %}{% endif %}</a></td>
+        <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite.universal_component.default_component.reference_mappings|length == 0  %} - {% else %}{{ metabolite.universal_component.default_component.reference_mappings | map(attribute='reference_compound') | map(attribute='bigg_id') | map('format_reference') | join(', ') }}{% endif %}</a></td>
         <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if urm.reference_reaction_participant is none %} - {% else %}{{urm.reference_reaction_participant.coefficient }} [{{urm.reference_reaction_participant.side}}]{% endif %}</a></td>
         <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if urm.reference_reaction_participant is none %} - {% else %}{{urm.reference_reaction_participant.compartment}}{% endif %}</a></td>
         {% endcall %}

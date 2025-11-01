@@ -1,4 +1,5 @@
 from datetime import datetime
+from operator import itemgetter
 import re
 from typing import Any, Callable, Iterable, List, Optional, Type, TypeVar, Union
 from cobradb.models import Base, Session, MemoteResult, MemoteTest
@@ -436,11 +437,12 @@ class DataHandler(BaseHandler):
     title = None
     columns: List[DataColumnSpec] = []
     start: int = 0
-    length = 20
-    draw: int = -1
+    length: Optional[int] = None
+    draw: Optional[int] = None
     name = None
     search_value: str = ""
     search_regex: bool = False
+    api: bool = False
 
     def initialize(self, **kwargs):
         self.name = kwargs.get("name")
@@ -452,6 +454,11 @@ class DataHandler(BaseHandler):
         return query
 
     def get(self, *args, **kwargs):
+        if self.api:
+            return self.return_data(*args, **kwargs)
+        return self.return_page(*args, **kwargs)
+
+    def return_page(self, *args, **kwargs):
         data = dict(
             data_url=self.data_url,
             columns=self.columns,
@@ -467,6 +474,9 @@ class DataHandler(BaseHandler):
         self.finish()
 
     def post(self, *args, **kwargs):
+        return self.return_data(*args, **kwargs)
+
+    def return_data(self, *args, **kwargs):
         data, total, filtered = self.data_query(query_utils.get_list)
         self.write_data(data, total, filtered)
 
@@ -474,7 +484,19 @@ class DataHandler(BaseHandler):
     def data_url(self):
         if self.name is None:
             raise HTTPError(status_code=500, reason="Internal error, unnamed route.")
-        return self.reverse_url(self.name, *self.path_args)
+        # Resolve named groups, this is a bit of a workaround, since
+        # reverse_url does not support named groups.
+        args = [
+            (v, self.path_kwargs.get(k))
+            for k, v in self.application.wildcard_router.named_rules[
+                self.name
+            ].matcher.regex.groupindex.items()
+        ]
+        args = [
+            "" if x is None else x
+            for x in map(itemgetter(1), sorted(args, key=itemgetter(0)))
+        ]
+        return self.reverse_url(self.name, *args)
 
     def _get_argument_of_type_or_default(
         self, arg_name: str, arg_type: Callable[[Any], _TT], default: _TD = None
@@ -489,14 +511,9 @@ class DataHandler(BaseHandler):
         return arg_val
 
     def _parse_data_tables_args(self):
-        arg_draw = self._get_argument_of_type_or_default("draw", int, None)
-        if arg_draw is None:
-            raise HTTPError(
-                status_code=400, reason="Could not parse datatables request."
-            )
-        self.draw = arg_draw
+        self.draw = self._get_argument_of_type_or_default("draw", int, None)
         self.start = self._get_argument_of_type_or_default("start", int, 0)
-        self.length = self._get_argument_of_type_or_default("length", int, 20)
+        self.length = self._get_argument_of_type_or_default("length", int, None)
 
         self.search_value = self._get_argument_of_type_or_default(
             "search[value]", str, ""
@@ -557,7 +574,11 @@ class DataHandler(BaseHandler):
             i += 1
 
     def prepare(self):
-        if self.request.method == "POST":
+        for k, v in self.path_kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+        self.api = self.path_kwargs.get("api") is not None
+        if self.request.method == "POST" or self.api:
             self._parse_data_tables_args()
 
     def data_query(self, f, **kwargs):
@@ -575,11 +596,12 @@ class DataHandler(BaseHandler):
 
     def write_data(self, data: Any, total_count: int, filtered_count: int):
         result = {
-            "draw": self.draw + 1,
             "recordsTotal": total_count,
             "recordsFiltered": filtered_count,
             "data": data,
         }
+        if self.draw is not None:
+            result["draw"] = self.draw + 1
         self.write(result)
         self.finish()
 

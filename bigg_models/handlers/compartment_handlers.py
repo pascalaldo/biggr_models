@@ -3,20 +3,23 @@ from bigg_models.handlers import utils
 from cobradb.models import Compartment
 
 
-# Compartments
-class CompartmentListHandler(utils.BaseHandler):
-    template = utils.env.get_template("compartments.html")
+class CompartmentListViewHandler(utils.DataHandler):
+    title = "Compartments"
+    columns = [
+        utils.DataColumnSpec(
+            Compartment.bigg_id,
+            "BiGG ID",
+            hyperlink="/compartments/${row['compartment__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            Compartment.name,
+            "Name",
+            hyperlink="/compartments/${row['compartment__bigg_id']}",
+        ),
+    ]
 
-    def get(self):
-        session = utils.Session()
-        results = {
-            "compartments": [
-                {"bigg_id": x[0], "name": x[1]}
-                for x in session.query(Compartment.bigg_id, Compartment.name)
-            ]
-        }
-        session.close()
-        self.return_result(results)
+    def breadcrumbs(self):
+        return [("Home", "/"), ("Compartments", "/compartments/")]
 
 
 class CompartmentHandler(utils.BaseHandler):

@@ -35,19 +35,9 @@ def url(
 
 
 def get_routes():
+    api_regex = r"(?P<api>/api/%s)?" % utils.api_v
     routes = [
         (r"/", utils.TemplateHandler, {"template_name": "index.html"}),
-        #
-        # Universal
-        #
-        # (
-        #     r"/api/%s/objects/component/([^/]+)/?$" % utils.api_v,
-        #     metabolite_handlers.ComponentHandler,
-        # ),
-        # (
-        #     r"/api/%s/objects/compartmentalized_component/([^/]+)/?$" % utils.api_v,
-        #     metabolite_handlers.CompartmentalizedComponentHandler,
-        # ),
         (
             r"/api/%s/objects/?$" % utils.api_v,
             object_handlers.ObjectHandler,
@@ -56,12 +46,8 @@ def get_routes():
             r"/api/%s/identifiers/?$" % utils.api_v,
             identifiers_handlers.IdentifiersHandler,
         ),
-        (
-            r"/api/%s/(?:models/)?universal/reactions/?$" % utils.api_v,
-            reaction_handlers.UniversalReactionListHandler,
-        ),
         url(
-            r"/universal/reactions/?$",
+            api_regex + r"/universal/reactions/?$",
             reaction_handlers.UniversalReactionListViewHandler,
             name="reactions",
         ),
@@ -70,13 +56,8 @@ def get_routes():
             r"/(?:api/%s/)?(?:models/)?universal/reactions/([^/]+)/?$" % utils.api_v,
             reaction_handlers.UniversalReactionHandler,
         ),
-        #
-        (
-            r"/api/%s/(?:models/)?universal/metabolites/?$" % utils.api_v,
-            metabolite_handlers.UniversalMetaboliteListHandler,
-        ),
         url(
-            r"/universal/metabolites/?$",
+            api_regex + r"/universal/metabolites/?$",
             metabolite_handlers.UniversalMetaboliteListViewHandler,
             name="metabolites",
         ),
@@ -86,9 +67,10 @@ def get_routes():
             metabolite_handlers.UniversalMetaboliteHandler,
         ),
         #
-        (
-            r"/(?:api/%s/)?compartments/?$" % utils.api_v,
-            compartment_handlers.CompartmentListHandler,
+        url(
+            api_regex + r"/compartments/?$",
+            compartment_handlers.CompartmentListViewHandler,
+            name="compartments",
         ),
         #
         (
@@ -96,8 +78,11 @@ def get_routes():
             compartment_handlers.CompartmentHandler,
         ),
         #
-        (r"/api/%s/genomes/?$" % utils.api_v, genome_handlers.GenomeListHandler),
-        (r"/genomes/?$", genome_handlers.GenomeListDisplayHandler),
+        url(
+            api_regex + r"/genomes/?$",
+            genome_handlers.GenomeListViewHandler,
+            name="genomes",
+        ),
         #
         (
             r"/(?:api/%s/)?genomes/([^/]+)/?$" % utils.api_v,
@@ -106,8 +91,11 @@ def get_routes():
         #
         # By model
         #
-        (r"/api/%s/models/?$" % utils.api_v, model_handlers.ModelListHandler),
-        url(r"/models/?$", model_handlers.ModelsListViewHandler, name="models"),
+        url(
+            api_regex + r"/models/?$",
+            model_handlers.ModelsListViewHandler,
+            name="models",
+        ),
         #
         (r"/(?:api/%s/)?models/([^/]+)/?$" % utils.api_v, model_handlers.ModelHandler),
         #
@@ -120,25 +108,20 @@ def get_routes():
             r"/(?:api/%s/)?models/([^/]+)/reactions/([^/]+)/?$" % utils.api_v,
             reaction_handlers.ReactionHandler,
         ),
-        #
-        (
-            r"/api/%s/models/([^/]+)/reactions/?$" % utils.api_v,
-            reaction_handlers.ReactionListHandler,
-        ),
         url(
-            r"/models/([^/]+)/reactions/?$",
+            api_regex + r"/models/(?P<model_bigg_id>[^/]+)/reactions/?$",
             reaction_handlers.ReactionListViewHandler,
             name="model_reactions",
         ),
-        #
-        (
-            r"/api/%s/models/([^/]+)/metabolites/?$" % utils.api_v,
-            metabolite_handlers.MetaboliteListHandler,
-        ),
         url(
-            r"/models/([^/]+)/metabolites/?$",
+            api_regex + r"/models/(?P<model_bigg_id>[^/]+)/metabolites/?$",
             metabolite_handlers.MetaboliteListViewHandler,
             name="model_metabolites",
+        ),
+        url(
+            api_regex + r"/models/(?P<model_bigg_id>[^/]+)/genes/?$",
+            gene_handlers.GeneListViewHandler,
+            name="model_genes",
         ),
         #
         (
@@ -149,16 +132,6 @@ def get_routes():
         (
             r"/(?:api/%s/)?models/([^/]+)/genes/([^/]+)/?$" % utils.api_v,
             gene_handlers.GeneHandler,
-        ),
-        #
-        (
-            r"/api/%s/models/([^/]+)/genes/?$" % utils.api_v,
-            gene_handlers.GeneListHandler,
-        ),
-        url(
-            r"/models/([^/]+)/genes/?$",
-            gene_handlers.GeneListViewHandler,
-            name="model_genes",
         ),
         #
         # Search
@@ -203,13 +176,6 @@ def get_routes():
             r"/static/(.*)$",
             utils.StaticFileHandlerWithEncoding,
             {"path": path.join(utils.directory, "static")},
-        ),
-        #
-        # redirects
-        (
-            r"/multiecoli/?$",
-            RedirectHandler,
-            {"url": "http://bigg1.ucsd.edu/multiecoli"},
         ),
         (r"/interop-query/query-by-gene/?$", db_interop_handlers.QueryByGeneHandler),
         (

@@ -172,7 +172,7 @@ class SearchHandler(utils.BaseHandler):
 
 
 class SearchDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
+    template = utils.env.get_template("data_table.html")
 
     def get(self):
         data = {
@@ -182,7 +182,6 @@ class SearchDisplayHandler(utils.BaseHandler):
                 "metabolites": "ajax",
                 "genes": "ajax",
             },
-            "tablesorter_size": 20,
         }
         self.write(self.template.render(data))
         self.finish()
@@ -204,7 +203,7 @@ class AdvancedSearchHandler(utils.BaseHandler):
 
 
 class AdvancedSearchExternalIDHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("listview.html")
 
     def post(self):
         query_string = self.get_argument("query", "")
@@ -236,7 +235,7 @@ class AdvancedSearchExternalIDHandler(utils.BaseHandler):
 
 
 class AdvancedSearchResultsHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("data_table.html")
 
     def post(self):
         query_strings = [

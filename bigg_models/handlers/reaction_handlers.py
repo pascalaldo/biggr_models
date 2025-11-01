@@ -11,54 +11,6 @@ import re
 from cobradb.parse import hash_metabolite_dictionary
 
 
-# reactions
-class UniversalReactionListHandler(utils.PageableHandler):
-    def get(self):
-        kwargs = self._get_pager_args(default_sort_column="bigg_id")
-
-        # run the reaction_queries
-        raw_results = utils.safe_query(
-            reaction_queries.get_universal_reactions, **kwargs
-        )
-
-        if "include_link_urls" in self.request.query_arguments:
-            raw_results = [
-                dict(
-                    x,
-                    link_urls={"bigg_id": "/universal/reactions/{bigg_id}".format(**x)},
-                )
-                for x in raw_results
-            ]
-        result = {
-            "results": [dict(x, model_bigg_id="Universal") for x in raw_results],
-            "results_count": utils.safe_query(
-                reaction_queries.get_universal_reactions_count
-            ),
-        }
-
-        self.write(result)
-        self.finish()
-
-
-class UniversalReactionListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
-
-    def get(self):
-        dictionary = {
-            "results": {"reactions": "ajax"},
-            "hide_organism": True,
-            "page_name": "universal_reaction_list",
-        }
-        dictionary["breadcrumbs"] = [
-            ("Home", "/"),
-            ("Universal", None),
-            ("Reactions", "/universal/reactions/"),
-        ]
-
-        self.write(self.template.render(dictionary))
-        self.finish()
-
-
 class UniversalReactionListViewHandler(utils.DataHandler):
     title = "Universal Reactions"
     columns = [
@@ -117,58 +69,10 @@ class UniversalReactionHandler(utils.BaseHandler):
             self.return_result(result)
 
 
-class ReactionListHandler(utils.PageableHandler):
-    def get(self, model_bigg_id):
-        kwargs = self._get_pager_args(default_sort_column="bigg_id")
-
-        raw_results = utils.safe_query(
-            reaction_queries.get_model_reactions, model_bigg_id, **kwargs
-        )
-        # add the URL
-        if "include_link_urls" in self.request.query_arguments:
-            raw_results = [
-                dict(
-                    x,
-                    link_urls={
-                        "bigg_id": "/models/{model_bigg_id}/reactions/{bigg_id}".format(
-                            **x
-                        )
-                    },
-                )
-                for x in raw_results
-            ]
-        result = {
-            "results": raw_results,
-            "results_count": utils.safe_query(
-                reaction_queries.get_model_reactions_count,
-                model_bigg_id,
-            ),
-        }
-
-        self.write(result)
-        self.finish()
-
-
-class ReactionListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
-
-    def get(self, model_bigg_id):
-        results = {
-            "results": {"reactions": "ajax"},
-            "page_name": "reaction_list",
-        }
-        results["breadcrumbs"] = [
-            ("Home", "/"),
-            ("Models", "/models/"),
-            (model_bigg_id, f"/models/{model_bigg_id}"),
-            ("Reactions", f"/models/{model_bigg_id}/reactions/"),
-        ]
-
-        self.return_result(results)
-
-
 class ReactionListViewHandler(utils.DataHandler):
     title = "Reactions"
+    model_bigg_id = None
+
     columns = [
         utils.DataColumnSpec(
             ModelReaction.bigg_id,
@@ -203,10 +107,6 @@ class ReactionListViewHandler(utils.DataHandler):
             search_type="bool",
         ),
     ]
-
-    def prepare(self):
-        self.model_bigg_id = self.path_args[0]
-        super().prepare()
 
     def pre_filter(self, query):
         return query.filter(Model.bigg_id == self.model_bigg_id)
