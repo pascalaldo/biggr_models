@@ -88,6 +88,15 @@ def get_routes():
             r"/(?:api/%s/)?genomes/([^/]+)/?$" % utils.api_v,
             genome_handlers.GenomeHandler,
         ),
+        url(
+            r"/collections/?$",
+            model_handlers.ModelCollectionsTreeViewHandler,
+        ),
+        url(
+            api_regex + r"/collections/(?P<collection_bigg_id>[^/]+)/?$",
+            model_handlers.ModelCollectionHandler,
+            name="model_collection",
+        ),
         #
         # By model
         #
@@ -142,10 +151,10 @@ def get_routes():
         ),
         (r"/search$", search_handlers.SearchDisplayHandler),
         (r"/advanced_search$", search_handlers.AdvancedSearchHandler),
-        (
-            r"/advanced_search_external_id_results$",
-            search_handlers.AdvancedSearchExternalIDHandler,
-        ),
+        # (
+        #     r"/advanced_search_external_id_results$",
+        #     search_handlers.AdvancedSearchExternalIDHandler,
+        # ),
         (r"/advanced_search_results$", search_handlers.AdvancedSearchResultsHandler),
         (r"/advanced_search_sequences$", search_handlers.AdvancedSearchSequences),
         (r"/autocomplete$", utils.AutocompleteHandler),

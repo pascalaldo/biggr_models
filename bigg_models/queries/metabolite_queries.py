@@ -52,7 +52,7 @@ ANNOTATION_TYPES = {
 def get_universal_metabolites_count(session):
     return session.scalars(
         select(func.count(UniversalComponent.id)).filter(
-            UniversalComponent.model_id == None
+            UniversalComponent.collection_id == None
         )
     ).first()
 
@@ -103,7 +103,7 @@ def get_universal_metabolites(
 
     # set up the query
     query = select(UniversalComponent.bigg_id, UniversalComponent.name).filter(
-        UniversalComponent.model_id == None
+        UniversalComponent.collection_id == None
     )
 
     # order and limit
@@ -586,7 +586,7 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
         "escher_maps": m_escher_maps,
         "other_models_with_metabolite": model_result,
         "references": references,
-        "model_specific": (result_db.Component.model_id is not None),
+        "collection_specific": (result_db.Component.collection_id is not None),
         "all_annotations": all_ann,
     }
 
@@ -772,9 +772,11 @@ def get_any_components_by_identifiers(
             select(Model).filter(Model.bigg_id == model_bigg_id).limit(1)
         ).first()
     if model is None:
-        model_sel = lambda x: (x.model_id == None)
+        model_sel = lambda x: (x.collection_id == None)
     else:
-        model_sel = lambda x: ((x.model_id == None) | (x.model_id == model.id))
+        model_sel = lambda x: (
+            (x.collection_id == None) | (x.collection_id == model.collection_id)
+        )
     ignored_identifiers = []
     results = {}
     for full_identifier in identifiers:

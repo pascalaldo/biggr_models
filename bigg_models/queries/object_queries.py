@@ -15,6 +15,7 @@ from cobradb.models import (
     MemoteResult,
     MemoteTest,
     Model,
+    ModelCollection,
     ModelCompartmentalizedComponent,
     Publication,
     Reaction,
@@ -36,10 +37,12 @@ OBJECT_DEFAULT_LOAD = {
     Model: (
         joinedload(Model.genome),
         joinedload(Model.model_count),
+        joinedload(Model.collection),
         subqueryload(Model.publication_models),
     ),
+    ModelCollection: (),
     Reaction: (
-        joinedload(Reaction.model),
+        joinedload(Reaction.collection),
         subqueryload(Reaction.matrix).joinedload(
             ReactionMatrix.compartmentalized_component
         ),
@@ -53,7 +56,7 @@ OBJECT_DEFAULT_LOAD = {
     Component: (),
     UniversalComponent: (
         joinedload(UniversalComponent.reference_mapping),
-        joinedload(UniversalComponent.model),
+        joinedload(UniversalComponent.collection),
         subqueryload(UniversalComponent.components),
     ),
     CompartmentalizedComponent: (joinedload(CompartmentalizedComponent.compartment),),

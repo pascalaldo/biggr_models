@@ -1,0 +1,74 @@
+{% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
+{% block title %}Model Collections{% endblock %}
+{% block head %}
+<link href="/static/css/treeview.css" rel="stylesheet">
+{% endblock %}
+{% macro treenode(node) %}
+{% if node.node_type == "taxon" and node.name == "root" %}
+<ul class="tree">
+	{% for child in node.children %}
+	{{treenode(child)}}
+	{% endfor %}
+</ul>
+{% else %}
+{% if node.node_type == "taxon" %}
+{% set li_class = "li-tax" %}
+{% elif node.node_type == "model" %}
+{% set li_class = "li-model" %}
+{% elif node.node_type == "collection" %}
+{% if node.children|length == 1%}
+{% set li_class = "li-collection collection-single" %}
+{% else %}
+{% set li_class = "li-collection collection-multi" %}
+{% endif %}
+{% endif %}
+<li class="{{li_class}}">
+	<details {% if node.children and node.children|length> 5 %}closed{% else %}open{% endif %}>
+		{% if node.hidden_taxons %}
+		<summary>{% for hidden_taxon in node.hidden_taxons %}{{hidden_taxon[1]}} &#8729; {% endfor %}<em>{{node.name}}</em>
+		</summary>
+		{% else %}
+		{% if node.node_type == "model" %}
+		<summary><em><a href="/models/{{node.name}}/">{{node.name}}</a></em>{% if node.model.organism %} <span
+				class='disp-tax'>{{node.model.organism}}</span>{% endif %}</summary>
+		{% elif node.node_type == "collection" %}
+		<summary><em><a href="/collections/{{node.name}}/">{{node.name}}</a></em>{% if node.collection.oneliner %} <span
+				class='disp-tax'>{{node.collection.oneliner}}</span>{% endif %}</summary>
+		{% else %}
+		<summary><em>{{node.name}}</em></summary>
+		{% endif %}
+		{% endif %}
+		{% if node.children %}
+		<ul>
+			{% for child in node.children %}
+			{{treenode(child)}}
+			{% endfor %}
+		</ul>
+		{% endif %}
+	</details>
+</li>
+{% endif %}
+{% endmacro %}
+{% block body %}
+<div class="row">
+	<div class="col-12">
+		<div class="card mb-3">
+			<div class="card-header border-bottom-0">
+				<h5 class="mb-0">Models and Model Collections</h5>
+			</div>
+			<div class="card-body p-3 text-bg-light border-1 border-bottom border-secondary-subtle fs-6 mb-2">Models and model
+				collections
+				are
+				organized
+				on the taxonomic tree. Collections are
+				anchored in
+				the tree at the point of the common parent of all models in the collection. Branches of the tree that do not
+				have side-branches are partially collapsed.</div>
+
+			<div class="card-body p-0 pb-2">
+				{{treenode(tree)}}
+			</div>
+		</div>
+	</div>
+	{% endblock %}

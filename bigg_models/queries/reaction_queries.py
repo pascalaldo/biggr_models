@@ -38,7 +38,7 @@ def get_universal_reactions_count(session):
     """Return the number of universal reactions."""
     return session.scalars(
         select(func.count(UniversalReaction.id)).filter(
-            UniversalReaction.model_id == None
+            UniversalReaction.collection_id == None
         )
     ).first()
 
@@ -89,7 +89,7 @@ def get_universal_reactions(
 
     # set up the query
     query = select(UniversalReaction.bigg_id, UniversalReaction.name).filter(
-        UniversalReaction.model_id == None
+        UniversalReaction.collection_id == None
     )
 
     # order and limit
@@ -470,7 +470,7 @@ def get_reference_for_reaction(reaction_bigg_id, session):
             subqueryload(
                 ReferenceReaction.universal_reactions.and_(
                     UniversalReaction.bigg_id != reaction_bigg_id,
-                    UniversalReaction.model_id == None,
+                    UniversalReaction.collection_id == None,
                 )
             )
         )

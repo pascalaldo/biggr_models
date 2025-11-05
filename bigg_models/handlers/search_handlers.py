@@ -202,36 +202,37 @@ class AdvancedSearchHandler(utils.BaseHandler):
         self.finish()
 
 
-class AdvancedSearchExternalIDHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
-
-    def post(self):
-        query_string = self.get_argument("query", "")
-        database_source = self.get_argument("database_source", "")
-        session = utils.Session()
-        metabolites = search_queries.get_metabolites_for_database_id(
-            session, query_string, database_source
-        )
-        reactions = search_queries.get_reactions_for_database_id(
-            session, query_string, database_source
-        )
-        genes = search_queries.get_genes_for_database_id(
-            session, query_string, database_source
-        )
-        session.close()
-        dictionary = {
-            "results": {
-                "metabolites": metabolites,
-                "reactions": reactions,
-                "genes": genes,
-            },
-            "no_pager": True,
-            "hide_organism": True,
-            "page_name": "advanced_search_external_id_results",
-        }
-
-        self.write(self.template.render(dictionary))
-        self.finish()
+# class AdvancedSearchExternalIDHandler(utils.BaseHandler):
+#     template = utils.env.get_template("listview.html")
+#
+#     def post(self):
+#         query_string = self.get_argument("query", "")
+#         database_source = self.get_argument("database_source", "")
+#         session = utils.Session()
+#         metabolites = search_queries.get_metabolites_for_database_id(
+#             session, query_string, database_source
+#         )
+#         reactions = search_queries.get_reactions_for_database_id(
+#             session, query_string, database_source
+#         )
+#         genes = search_queries.get_genes_for_database_id(
+#             session, query_string, database_source
+#         )
+#         session.close()
+#         dictionary = {
+#             "results": {
+#                 "metabolites": metabolites,
+#                 "reactions": reactions,
+#                 "genes": genes,
+#             },
+#             "no_pager": True,
+#             "hide_organism": True,
+#             "page_name": "advanced_search_external_id_results",
+#         }
+#
+#         self.write(self.template.render(dictionary))
+#         self.finish()
+#
 
 
 class AdvancedSearchResultsHandler(utils.BaseHandler):

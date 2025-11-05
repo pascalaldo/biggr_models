@@ -25,7 +25,7 @@ class UniversalMetaboliteListViewHandler(utils.DataHandler):
     ]
 
     def pre_filter(self, query):
-        return query.filter(UniversalComponent.model_id == None)
+        return query.filter(UniversalComponent.collection_id == None)
 
     def breadcrumbs(self):
         return [
@@ -82,8 +82,8 @@ class MetaboliteListViewHandler(utils.DataHandler):
             Model.bigg_id, "Model", requires=ModelCompartmentalizedComponent.model
         ),
         utils.DataColumnSpec(
-            (Component.model_id != None),
-            "Model-specific",
+            (Component.collection_id != None),
+            "Collection-specific",
             requires=[
                 ModelCompartmentalizedComponent.compartmentalized_component,
                 CompartmentalizedComponent.component,

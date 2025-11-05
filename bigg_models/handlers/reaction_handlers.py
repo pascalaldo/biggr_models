@@ -33,7 +33,7 @@ class UniversalReactionListViewHandler(utils.DataHandler):
     ]
 
     def pre_filter(self, query):
-        return query.filter(UniversalReaction.model_id == None)
+        return query.filter(UniversalReaction.collection_id == None)
 
     def breadcrumbs(self):
         return [

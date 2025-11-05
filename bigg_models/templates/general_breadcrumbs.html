@@ -1,13 +1,15 @@
 {% if breadcrumbs %}
-<div class="row">
-	<ol class="breadcrumb breadcrumb-chevron p-3 bg-body-tertiary rounded-3">
-		{% for crumb, crumb_link in breadcrumbs %}
-		<li class="breadcrumb-item">
-			{% if crumb_link %}
-			<a class="link-body-emphasis text-decoration-none" href="{{crumb_link}}">{{crumb}}</a>
-			{% else %}{{crumb}}{% endif %}
-		</li>
-		{% endfor %}
-	</ol>
+<div class="mb-2 pt-1">
+	<div class="container">
+		<ol class="breadcrumb breadcrumb-chevron p-3 pt-1 pb-1 mb-0">
+			{% for crumb, crumb_link in breadcrumbs %}
+			<li class="breadcrumb-item">
+				{% if crumb_link %}
+				<a class="link-body-emphasis text-decoration-none" href="{{crumb_link}}">{{crumb}}</a>
+				{% else %}{{crumb}}{% endif %}
+			</li>
+			{% endfor %}
+		</ol>
+	</div>
 </div>
 {% endif %}

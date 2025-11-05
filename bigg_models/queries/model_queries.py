@@ -1,5 +1,7 @@
+from typing import Iterable, List, Optional, Tuple, Union
 from sqlalchemy.orm import Session, joinedload, subqueryload
 from bigg_models.queries import utils, escher_map_queries
+from dataclasses import dataclass
 
 from cobradb.util import ref_tuple_to_str
 from cobradb import settings
@@ -7,8 +9,11 @@ from cobradb.models import (
     Genome,
     Model,
     ModelCount,
+    ModelCollection,
     Publication,
     PublicationModel,
+    Taxon,
+    TaxonomicRank,
 )
 
 from sqlalchemy import func, select
@@ -101,18 +106,26 @@ def get_models(
 def get_model_and_counts(
     model_bigg_id, session, static_model_dir=None, static_multistrain_dir=None
 ):
-    model_db = session.execute(
+    model_db = session.scalars(
         select(
             Model,
-            ModelCount,
-            Genome,
-            Publication.reference_type,
-            Publication.reference_id,
+            # ModelCount,
+            # Genome,
+            # Publication.reference_type,
+            # Publication.reference_id,
         )
-        .join(Model.model_count)
-        .join(Model.genome)
-        .join(Model.publication_models)
-        .join(PublicationModel.publication)
+        .options(
+            joinedload(Model.collection),
+            joinedload(Model.model_count),
+            joinedload(Model.genome),
+            subqueryload(Model.publication_models).joinedload(
+                PublicationModel.publication
+            ),
+        )
+        # .join(Model.model_count)
+        # .join(Model.genome)
+        # .join(Model.publication_models)
+        # .join(PublicationModel.publication)
         .filter(Model.bigg_id == model_bigg_id)
         .limit(1)
     ).first()
@@ -120,33 +133,38 @@ def get_model_and_counts(
         raise utils.NotFoundError("No Model found with BiGG ID " + model_bigg_id)
 
     # genome ref
-    if model_db[2] is None:
+    if model_db.genome is None:
         genome_ref_string = genome_name = None
     else:
-        genome_name = model_db[2].accession_value
-        genome_ref_string = ref_tuple_to_str(model_db[2].accession_type, genome_name)
-    m_escher_maps = escher_map_queries.get_escher_maps_for_model(
-        model_db[0].id, session
-    )
+        genome_name = model_db.genome.accession_value
+        genome_ref_string = ref_tuple_to_str(
+            model_db.genome.accession_type, genome_name
+        )
+    m_escher_maps = escher_map_queries.get_escher_maps_for_model(model_db.id, session)
     result = {
-        "model_bigg_id": model_db[0].bigg_id,
-        "published_filename": model_db[0].published_filename,
-        "organism": getattr(model_db[2], "organism", None),
+        "model_bigg_id": model_db.bigg_id,
+        "collection_bigg_id": model_db.collection.bigg_id,
+        "published_filename": model_db.published_filename,
+        "organism": getattr(model_db, "organism", None),
         "genome_name": genome_name,
         "genome_ref_string": genome_ref_string,
-        "metabolite_count": model_db[1].metabolite_count,
-        "reaction_count": model_db[1].reaction_count,
-        "gene_count": model_db[1].gene_count,
-        "reference_type": model_db[3],
-        "reference_id": model_db[4],
+        "metabolite_count": model_db.model_count.metabolite_count,
+        "reaction_count": model_db.model_count.reaction_count,
+        "gene_count": model_db.model_count.gene_count,
+        "reference_type": [
+            x.publication.reference_type for x in model_db.publication_models
+        ][0],
+        "reference_id": [
+            x.publication.reference_type for x in model_db.publication_models
+        ][0],
         "escher_maps": m_escher_maps,
-        "model_modified_date": model_db[0].date_modified.strftime("%b %d, %Y"),
+        "model_modified_date": model_db.date_modified.strftime("%b %d, %Y"),
         # "last_updated": session.query(DatabaseVersion)
         # .first()
         # .date_time.strftime("%b %d, %Y"),
     }
 
-    memote_result_db = get_general_results_for_model(session, model_db[0].id)
+    memote_result_db = get_general_results_for_model(session, model_db.id)
     result["memote_result"] = memote_result_db
 
     if static_model_dir:
@@ -211,3 +229,162 @@ def get_model_object(
         raise utils.NotFoundError(f"No Model found with BiGG ID {id}")
 
     return {"id": id, "object": model_db}
+
+
+def get_taxons_recursively(session: Session, starting_id: Union[int, Iterable[int]]):
+    # WITH RECURSIVE cte AS (SELECT id, name, parent_id FROM taxonomy t WHERE t.id = 668369 UNION SELECT t2.id, t2.name, t2.parent_id FROM taxonomy t2 JOIN cte ON cte.parent_id = t2.id) SELECT * FROM cte;
+    topq = select(Taxon.id, Taxon.parent_id, Taxon.name, Taxon.rank_id)
+    if isinstance(starting_id, Iterable):
+        topq = topq.filter(Taxon.id.in_(starting_id))
+    else:
+        topq = topq.filter(Taxon.id == starting_id)
+    topq = topq.cte("cte", recursive=True)
+
+    bottomq = select(Taxon.id, Taxon.parent_id, Taxon.name, Taxon.rank_id)
+    bottomq = bottomq.join(topq, Taxon.id == topq.c.parent_id)
+
+    recursive_q = topq.union(bottomq)
+    q = select(recursive_q)
+    return session.execute(q).all()
+
+
+@dataclass
+class TreeNode:
+    name: str
+    children: List["TreeNode"]
+
+    def recursive_collapse(self, parent=None, stops=None):
+        children = self.children[:]
+        for child in children:
+            child.recursive_collapse(self, stops=stops)
+
+    @property
+    def node_type(self):
+        return self.__class__.__name__.lower().replace("treenode", "")
+
+    def __repr__(self):
+        return self._indented_repr()
+
+    def __str__(self):
+        return self._indented_repr()
+
+    def _indented_repr(self, depth: int = 0):
+        s = [f"{'  ' * depth}<{self.__class__.__name__} name='{self.name}'>"]
+        for child in self.children:
+            s.append(child._indented_repr(depth + 1))
+        return "\n".join(s)
+
+
+@dataclass
+class TaxonTreeNode(TreeNode):
+    tax_id: int
+    rank_id: int
+    hidden_taxons: Optional[List[Tuple[int, str, int]]] = None
+
+    def recursive_collapse(self, parent=None, stops=None):
+        keep_going = True
+        while keep_going:
+            keep_going = False
+            if stops is not None and self.rank_id in stops:
+                break
+            if len(self.children) == 1 and isinstance(
+                single_child := self.children[0], TaxonTreeNode
+            ):
+                if self.name != "cellular organisms":
+                    # Remove 'cellular organisms' from the tree
+                    if self.hidden_taxons is None:
+                        self.hidden_taxons = []
+                    self.hidden_taxons.append((self.tax_id, self.name, self.rank_id))
+                self.tax_id = single_child.tax_id
+                self.rank_id = single_child.rank_id
+                self.name = single_child.name
+                self.children = single_child.children
+                keep_going = True
+
+        super().recursive_collapse(parent=parent, stops=stops)
+
+
+@dataclass
+class CollectionTreeNode(TreeNode):
+    collection: ModelCollection
+
+    def recursive_collapse(self, parent=None, stops=None):
+        if parent is None:
+            return
+        # Collapse single-model collections in the tree
+        if len(self.children) == 1:
+            parent.children.remove(self)
+            single_child = self.children[0]
+            parent.children.append(single_child)
+            single_child.recursive_collapse(parent, stops=stops)
+
+
+@dataclass
+class ModelTreeNode(TreeNode):
+    model: Model
+
+
+def get_model_collections_and_taxons(session: Session):
+    collections_db = session.scalars(
+        select(ModelCollection).options(subqueryload(ModelCollection.models))
+    ).all()
+
+    tax_ids = set()
+    for collection in collections_db:
+        tax_ids.add(collection.taxon_id)
+        # for model in collection.models:
+        #     tax_ids.add(model.taxon_id)
+    try:
+        tax_ids.remove(None)
+    except KeyError:
+        pass
+
+    stop_rank_ids = list(
+        session.scalars(
+            select(TaxonomicRank.id).filter(
+                TaxonomicRank.name.in_(["domain", "family", "class", "species"])
+            )
+        ).all()
+    )
+
+    taxons = get_taxons_recursively(session, starting_id=tax_ids)
+
+    tree = next(
+        TaxonTreeNode(name=name, tax_id=tax_id, rank_id=rank_id, children=[])
+        for tax_id, _, name, rank_id in taxons
+        if name == "root"
+    )
+
+    front: List[TaxonTreeNode] = [tree]
+    while front:
+        old_front = front
+        front = []
+        for node in old_front:
+            new_nodes_gen = (
+                TaxonTreeNode(name=name, tax_id=tax_id, rank_id=rank_id, children=[])
+                for tax_id, parent_id, name, rank_id in taxons
+                if parent_id == node.tax_id and tax_id != node.tax_id
+            )
+            for new_node in new_nodes_gen:
+                node.children.append(new_node)
+                front.append(new_node)
+            collection_node_gen = [
+                CollectionTreeNode(
+                    name=collection.bigg_id,
+                    collection=collection,
+                    children=[
+                        ModelTreeNode(name=model.bigg_id, model=model, children=[])
+                        for model in collection.models
+                    ],
+                )
+                for collection in collections_db
+                if collection.taxon_id == node.tax_id
+            ]
+            node.children.extend(collection_node_gen)
+
+    # Join taxon nodes with only one (taxon) child.
+    for child in tree.children:
+        if isinstance(child, TaxonTreeNode):
+            child.recursive_collapse(parent=tree, stops=stop_rank_ids)
+
+    return {"tree": tree}
