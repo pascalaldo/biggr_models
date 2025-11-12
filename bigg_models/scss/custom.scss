@@ -4,8 +4,8 @@
 @import "../../node_modules/bootstrap/scss/variables-dark";
 
 $enable-shadows: true;
-$card-box-shadow: 0 8px 12px rgba(13,13,18,.04);
-$card-border-radius: 4px;
+$card-box-shadow: 0 8px 12px rgba(13,13,18,.02);
+$card-border-radius: 3px;
 
 $list-group-item-padding-y: 0.3rem;
 $list-group-item-padding-x: 0.6rem;
@@ -116,3 +116,12 @@ $linkout-accordion-icon-width: 1.1rem;
 // Utilities
 @import "../../node_modules/bootstrap/scss/utilities/api";
 // @import "../../node_modules/bootstrap/scss/bootstrap";
+
+// Datatables fixes
+.dt-container > div.row:first-child, .dt-container > div.row:nth-last-child(2) {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+.table-footer-search {
+  width: 100%;
+}

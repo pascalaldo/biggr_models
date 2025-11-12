@@ -1,6 +1,6 @@
 from bigg_models.handlers import utils
 from bigg_models.queries import search_queries, model_queries
-import simplejson as json
+import json
 
 from tornado.web import HTTPError
 
@@ -172,7 +172,7 @@ class SearchHandler(utils.BaseHandler):
 
 
 class SearchDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
+    template = utils.env.get_template("data_table.html")
 
     def get(self):
         data = {
@@ -182,7 +182,6 @@ class SearchDisplayHandler(utils.BaseHandler):
                 "metabolites": "ajax",
                 "genes": "ajax",
             },
-            "tablesorter_size": 20,
         }
         self.write(self.template.render(data))
         self.finish()
@@ -203,40 +202,41 @@ class AdvancedSearchHandler(utils.BaseHandler):
         self.finish()
 
 
-class AdvancedSearchExternalIDHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
-
-    def post(self):
-        query_string = self.get_argument("query", "")
-        database_source = self.get_argument("database_source", "")
-        session = utils.Session()
-        metabolites = search_queries.get_metabolites_for_database_id(
-            session, query_string, database_source
-        )
-        reactions = search_queries.get_reactions_for_database_id(
-            session, query_string, database_source
-        )
-        genes = search_queries.get_genes_for_database_id(
-            session, query_string, database_source
-        )
-        session.close()
-        dictionary = {
-            "results": {
-                "metabolites": metabolites,
-                "reactions": reactions,
-                "genes": genes,
-            },
-            "no_pager": True,
-            "hide_organism": True,
-            "page_name": "advanced_search_external_id_results",
-        }
-
-        self.write(self.template.render(dictionary))
-        self.finish()
+# class AdvancedSearchExternalIDHandler(utils.BaseHandler):
+#     template = utils.env.get_template("listview.html")
+#
+#     def post(self):
+#         query_string = self.get_argument("query", "")
+#         database_source = self.get_argument("database_source", "")
+#         session = utils.Session()
+#         metabolites = search_queries.get_metabolites_for_database_id(
+#             session, query_string, database_source
+#         )
+#         reactions = search_queries.get_reactions_for_database_id(
+#             session, query_string, database_source
+#         )
+#         genes = search_queries.get_genes_for_database_id(
+#             session, query_string, database_source
+#         )
+#         session.close()
+#         dictionary = {
+#             "results": {
+#                 "metabolites": metabolites,
+#                 "reactions": reactions,
+#                 "genes": genes,
+#             },
+#             "no_pager": True,
+#             "hide_organism": True,
+#             "page_name": "advanced_search_external_id_results",
+#         }
+#
+#         self.write(self.template.render(dictionary))
+#         self.finish()
+#
 
 
 class AdvancedSearchResultsHandler(utils.BaseHandler):
-    template = utils.env.get_template("list_display.html")
+    template = utils.env.get_template("data_table.html")
 
     def post(self):
         query_strings = [

@@ -1,17 +1,37 @@
 {% extends "general_main.html" %}
 {% import "general_card_macros.html" as cards %}
 {% import "general_table_macros.html" as tables %}
-{% block title %}BiGG Reaction: {{bigg_id}}{% endblock %}
+{% block title %}BiGG Reaction: {{universal_reaction.bigg_id}}{% endblock %}
 {% block body %}
 <div class="row">
   <div class="col-12">
-    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", [reference], "linkouts_reaction_ui.html", all_annotations) %}
+    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", [universal_reaction.reference], "linkouts_reaction_ui.html", all_annotations) %}
       <div class="card-body">
-      <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span> {{bigg_id | format_id("reaction")}}</h5>
-        {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
+      <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span> {{universal_reaction.bigg_id | format_id("reaction")}}</h5>
+        {% if universal_reaction.name is not none %}<p class="card-text">{{universal_reaction.name}}</p>{% endif %}
+        <table class="mt-2">
+          <thead>
+              {% for s in aligned_reactions.urm %}
+              <th class="ps-1 pt-1">{{s}}</th>
+              {% endfor %}
+          </thead>
+          <tbody class="table-group-divider" style="border-top-color: #CCCDCE; border-top-style: dotted;">
+          {% for k, v in aligned_reactions.items() %}
+            {% if k != "urm" %}
+            <tr>
+              {% for s in v %}
+              <td class="ps-1 pt-1">{{s}}</td>
+              {% endfor %}
+            </tr>
+            {% endif %}
+          {% endfor %}
+          </tbody>
+        </table>
       </div>
       {% call cards.flush_list_group(accent=True) %}
-        {{ cards.flush_list_group_item(value=reaction_string, accent=True) }}
+    {% if universal_reaction.is_exchange %}{{ cards.flush_list_group_item(value="Exchange reaction", accent=True) }}{% endif %}
+    {% if universal_reaction.is_transport %}{{ cards.flush_list_group_item(value="Transport reaction", accent=True) }}{% endif %}
+    {% if universal_reaction.is_pseudo %}{{ cards.flush_list_group_item(value="Pseudoreaction", accent=True) }}{% endif %}
       {% endcall %}
     {% endcall %}
   </div>
@@ -22,16 +42,17 @@
         <h5 class="mb-0">Reaction Participants</h5>
       </div>
       <div class="card-body p-0">
-        {% call(metabolite) tables.simple_table([{"name": "Stoich.", "colspan": 2}, {"name": "BiGG ID", "class": "w-25"}, "Name", {"name": "Reference", "class": "border-start"}, "x [side]", "Compartment"], metabolites) %}
-              {% set link -%}/models/universal/metabolites/{{metabolite['base_bigg_id']}}{%- endset %}
-              {% set ref_n = metabolite['reference_participant']['reference_n'] %}
-              <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/{%- if metabolite["coefficient"] < 0 -%}substrate_logo{%- else -%}product_logo{%- endif -%}.svg" style="height: 1em;" /></a></td>
-              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['coefficient_int_or_float']}}</a></td>
+        {% call(urm) tables.simple_table([{"name": "Stoich.", "colspan": 2}, {"name": "BiGG ID", "class": "w-25"}, "Name", {"name": "Reference", "class": "border-start"}, "x [side]", "Compartment"], universal_reaction.matrix) %}
+              {% set metabolite = urm.universal_compartmentalized_component %}
+              {% set link -%}/models/universal/metabolites/{{metabolite.universal_component.bigg_id}}{%- endset %}
+              {% set ref_n = urm.reference_reaction_participant.reference_n %}
+              <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/{%- if urm.coefficient < 0 -%}substrate_logo{%- else -%}product_logo{%- endif -%}.svg" style="height: 1em;" /></a></td>
+              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{urm.coefficient | int_or_float }}</a></td>
               <td><a href="{{link}}" class="d-block">{{metabolite.bigg_id | format_id("universal_comp_comp")}}</a></td>
-              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['name']}}</a></td>
-        <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference'] is none %} - {% else %}{{metabolite['reference']['bigg_id'] | format_reference}}{% endif %}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
-        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference_participant'] is none %} - {% else %}{{metabolite['reference_participant']['coefficient']}} [{{metabolite['reference_participant']['side']}}]{% endif %}</a></td>
-        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference_participant'] is none %} - {% else %}{{metabolite['reference_participant']['compartment']}}{% endif %}</a></td>
+              <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite.universal_component.name}}</a></td>
+        <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite.universal_component.default_component.reference_mappings|length == 0  %} - {% else %}{{ metabolite.universal_component.default_component.reference_mappings | map(attribute='reference_compound') | map(attribute='bigg_id') | map('format_reference') | join(', ') }}{% endif %}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if urm.reference_reaction_participant is none %} - {% else %}{{urm.reference_reaction_participant.coefficient }} [{{urm.reference_reaction_participant.side}}]{% endif %}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if urm.reference_reaction_participant is none %} - {% else %}{{urm.reference_reaction_participant.compartment}}{% endif %}</a></td>
         {% endcall %}
       </div>
     </div>
@@ -42,15 +63,15 @@
         <h5 class="mb-0">In BiGGr Models</h5>
       </div>
       <div class="card-body p-0">
-        {% call(model) tables.simple_table(["Organism", "Model"], models_containing_reaction) %}
-            {% set link -%}/models/{{model['bigg_id']}}/reactions/{{bigg_id}}{%- endset %}
+        {% call(model_reaction) tables.simple_table(["Organism", "Model"], model_reactions) %}
+            {% set link -%}/models/{{model_reaction.model.bigg_id}}/reactions/{{model_reaction.bigg_id}}{%- endset %}
               <td>
                 <a href="{{link}}" class="d-block text-reset text-decoration-none">
-                  {% if model['organism'] is none %}-{% else %}{{model['organism']}}{% endif %}</a>
+                  {% if model_reaction.model.organism is none %}-{% else %}{{model_reaction.model.organism}}{% endif %}</a>
               </td>
               <td>
                 <a href="{{link}}" class="d-block">
-                  {{model['bigg_id']}}
+                  {{model_reaction.model.bigg_id}}
                 </a>
               </td>
         {% endcall %}

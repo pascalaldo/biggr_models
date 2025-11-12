@@ -5,19 +5,22 @@
 {% block body %}
 <div class="row">
   <div class="col-12">
-    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html", references, "linkouts_metabolite_ui.html", all_annotations) %}
-      <div class="card-body">
+    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html",
+    references, "linkouts_metabolite_ui.html", all_annotations) %}
+    <div class="card-body">
       <h5 class="card-title">{{bigg_id | format_id("comp_comp")}}</h5>
-        {% if name %}<p class="card-text">{{name}}</p>{% endif %}
-        {% if model_specific %}<div class="alert alert-primary mt-1 mb-0 p-1 ps-2 pe-2">This is a non-standardized model-specific entry.</div>{% endif %}
-      </div>
-      {% call cards.flush_list_group(accent=True) %}
-        {{ cards.flush_list_group_item("Model", model_bigg_id, "/models/"~model_bigg_id, accent=True) }}
-        {{ cards.flush_list_group_item("Compartment", compartment_bigg_id~" - "~compartment_name, accent=True) }}
-        {{ cards.flush_list_group_item("Charge", charge, accent=True) }}
-        {{ cards.flush_list_group_item("Formula", formula, accent=True) }}
-        {{ cards.flush_list_group_item("Universal Metabolite", universal_id, link="/universal/metabolites/"~universal_id, accent=True) }}
-      {% endcall %}
+      {% if name %}<p class="card-text">{{name}}</p>{% endif %}
+      {% if collection_specific %}<div class="alert alert-primary mt-1 mb-0 p-1 ps-2 pe-2">This is a non-standardized
+        entry, specific to this model collection.</div>{% endif %}
+    </div>
+    {% call cards.flush_list_group(accent=True) %}
+    {{ cards.flush_list_group_item("Model", model_bigg_id, "/models/"~model_bigg_id, accent=True) }}
+    {{ cards.flush_list_group_item("Compartment", compartment_bigg_id~" - "~compartment_name, accent=True) }}
+    {{ cards.flush_list_group_item("Charge", charge, accent=True) }}
+    {{ cards.flush_list_group_item("Formula", formula, accent=True) }}
+    {{ cards.flush_list_group_item("Universal Metabolite", universal_id, link="/universal/metabolites/"~universal_id,
+    accent=True) }}
+    {% endcall %}
     {% endcall %}
   </div>
   <div class="col-12">
@@ -27,10 +30,11 @@
       </div>
       <div class="card-body p-0">
         {% call(reaction) tables.simple_table(["&nbsp;", "BiGG ID", "Name"], reactions) %}
-          {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
-          <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#reaction_S" style="height: 1em;" /></a></td>
-          <td><a href="{{link}}" class="d-block">{{reaction['bigg_id'] | format_id("reaction") }}</a></td>
-          <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
+        {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
+        <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#reaction_S"
+              style="height: 1em;" /></a></td>
+        <td><a href="{{link}}" class="d-block">{{reaction['bigg_id'] | format_id("reaction") }}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
         {% endcall %}
       </div>
     </div>

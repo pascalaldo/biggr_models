@@ -1,7 +1,5 @@
 anyio>=4.8.0,<4.9.0
 Jinja2
-simplejson
-progressbar2
 SQLAlchemy>=2.0.0,<2.1.0
 cobra>=0.14.2,<0.30.0
 python-libsbml>=5.20.0,<5.21.0

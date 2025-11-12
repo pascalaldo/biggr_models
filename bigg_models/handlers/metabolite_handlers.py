@@ -1,57 +1,43 @@
+from typing import Optional
+from cobradb.models import (
+    Compartment,
+    CompartmentalizedComponent,
+    Component,
+    Model,
+    ModelCompartmentalizedComponent,
+    ReferenceCompound,
+    UniversalComponent,
+)
 from bigg_models.handlers import utils
 from bigg_models.queries import metabolite_queries, utils as query_utils
 
-from cobradb.parse import split_compartment
 import re
 
 
-class UniversalMetaboliteListHandler(utils.PageableHandler):
-    def get(self):
-        # get arguments
-        kwargs = self._get_pager_args(default_sort_column="bigg_id")
+class UniversalMetaboliteListViewHandler(utils.DataHandler):
+    title = "Universal Metabolites"
+    columns = [
+        utils.DataColumnSpec(
+            UniversalComponent.bigg_id,
+            "BiGG ID",
+            hyperlink="/universal/metabolites/${row['universalcomponent__bigg_id']}",
+        ),
+        utils.DataColumnSpec(UniversalComponent.name, "Name"),
+    ]
+    page_data = {
+        "card_lead": "List of universal metabolites in the database. Each univeral metabolite can have multiple metabolite instances that represent different protonation states. Click a row in the table below to display these different metabolite instances.",
+        "row_icon": "molecule_S",
+    }
 
-        raw_results = utils.safe_query(
-            metabolite_queries.get_universal_metabolites, **kwargs
-        )
+    def pre_filter(self, query):
+        return query.filter(UniversalComponent.collection_id == None)
 
-        # add links and universal
-        if "include_link_urls" in self.request.query_arguments:
-            raw_results = [
-                dict(
-                    x,
-                    link_urls={
-                        "bigg_id": "/universal/metabolites/{bigg_id}".format(**x)
-                    },
-                )
-                for x in raw_results
-            ]
-        result = {
-            "results": [dict(x, model_bigg_id="Universal") for x in raw_results],
-            "results_count": utils.safe_query(
-                metabolite_queries.get_universal_metabolites_count
-            ),
-        }
-
-        self.write(result)
-        self.finish()
-
-
-class UniversalMetaboliteListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
-
-    def get(self):
-        data = {
-            "results": {"metabolites": "ajax"},
-            "hide_organism": True,
-            "page_name": "universal_metabolite_list",
-        }
-        data["breadcrumbs"] = [
+    def breadcrumbs(self):
+        return [
             ("Home", "/"),
             ("Universal", None),
             ("Metabolites", "/universal/metabolites/"),
         ]
-        self.write(self.template.render(data))
-        self.finish()
 
 
 class UniversalMetaboliteHandler(utils.BaseHandler):
@@ -72,56 +58,55 @@ class UniversalMetaboliteHandler(utils.BaseHandler):
             self.return_result(result)
 
 
-class MetaboliteListHandler(utils.PageableHandler):
-    def get(self, model_bigg_id):
-        kwargs = self._get_pager_args(default_sort_column="bigg_id")
+class MetaboliteListViewHandler(utils.DataHandler):
+    title = "Metabolites"
+    model_bigg_id: Optional[str] = None
+    columns = [
+        utils.DataColumnSpec(
+            ModelCompartmentalizedComponent.bigg_id,
+            "BiGG ID",
+            hyperlink="/models/${row['model__bigg_id']}/metabolites/${row['modelcompartmentalizedcomponent__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            Component.name,
+            "Name",
+            requires=[
+                ModelCompartmentalizedComponent.compartmentalized_component,
+                CompartmentalizedComponent.component,
+            ],
+        ),
+        utils.DataColumnSpec(
+            Compartment.bigg_id,
+            "Compartment",
+            requires=[
+                ModelCompartmentalizedComponent.compartmentalized_component,
+                CompartmentalizedComponent.compartment,
+            ],
+        ),
+        utils.DataColumnSpec(
+            Model.bigg_id, "Model", requires=ModelCompartmentalizedComponent.model
+        ),
+        utils.DataColumnSpec(
+            (Component.collection_id != None),
+            "Collection-specific",
+            requires=[
+                ModelCompartmentalizedComponent.compartmentalized_component,
+                CompartmentalizedComponent.component,
+            ],
+            search_type="bool",
+        ),
+    ]
 
-        # run the metabolite_queries
-        raw_results = utils.safe_query(
-            metabolite_queries.get_model_metabolites, model_bigg_id, **kwargs
-        )
-        # add the URL
-        if "include_link_urls" in self.request.query_arguments:
-            raw_results = [
-                dict(
-                    x,
-                    link_urls={
-                        "bigg_id": "/models/{model_bigg_id}/metabolites/{bigg_id}".format(
-                            **x
-                        )
-                    },
-                )
-                for x in raw_results
-            ]
-        result = {
-            "results": raw_results,
-            "results_count": utils.safe_query(
-                metabolite_queries.get_model_metabolites_count,
-                model_bigg_id,
-            ),
-        }
+    def pre_filter(self, query):
+        return query.filter(Model.bigg_id == self.model_bigg_id)
 
-        self.write(result)
-        self.finish()
-
-
-class MetabolitesListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
-
-    def get(self, model_bigg_id):
-        data = {
-            "results": {"metabolites": "ajax"},
-            "page_name": "metabolite_list",
-        }
-        data["breadcrumbs"] = [
+    def breadcrumbs(self):
+        return [
             ("Home", "/"),
             ("Models", "/models/"),
-            (model_bigg_id, f"/models/{model_bigg_id}"),
-            ("Metabolites", f"/models/{model_bigg_id}/metabolites/"),
+            (self.model_bigg_id, f"/models/{self.model_bigg_id}"),
+            ("Metabolites", f"/models/{self.model_bigg_id}/metabolites/"),
         ]
-
-        self.write(self.template.render(data))
-        self.finish()
 
 
 class MetaboliteHandler(utils.BaseHandler):

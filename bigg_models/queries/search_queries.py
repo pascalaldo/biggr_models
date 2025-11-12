@@ -22,7 +22,7 @@ from cobradb.models import (
     Synonym,
 )
 
-from cobradb.model_loading import parse
+from cobradb import parse
 from sqlalchemy import select, func, or_, and_
 from itertools import chain
 

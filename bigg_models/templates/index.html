@@ -14,7 +14,7 @@
   {% block head %}{% endblock %}
 </head>
 
-<body class="bg-primary">
+<body class="">
   {% include "general_color_mode_switcher.html" %}
   <main>
     {% include "general_navbar.html" %}
@@ -22,7 +22,7 @@
       {% block body %}
       <div class="row justify-content-center">
         <div class="col-md-6">
-          <div class="card text-bg-warning mb-3">
+          <div class="card bg-warning-subtle mb-3">
             <div class="card-header">
               <h5 class="card-title">Under Active Development</h5>
             </div>
@@ -35,32 +35,62 @@
       </div>
       <div class="row">
         <div class="col-md-4">
-          <div class="card text-bg-info mb-3">
+          <div class="card bg-primary-subtle mb-3">
+            <div class="card-header">
+              <h5 class="card-title">Collections</h5>
+            </div>
+            <div class="card-body text-center">
+              <a href="/collections/" class="btn btn-info">Browse collections</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card bg-primary-subtle mb-3">
             <div class="card-header">
               <h5 class="card-title">Models</h5>
             </div>
             <div class="card-body text-center">
-              <a href="/models/" class="btn btn-light">Browse models</a>
+              <a href="/models/" class="btn btn-info">Browse models</a>
             </div>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="card text-bg-info mb-3">
+          <div class="card bg-primary-subtle mb-3">
             <div class="card-header">
               <h5 class="card-title">Metabolites</h5>
             </div>
             <div class="card-body text-center">
-              <a href="/universal/metabolites/" class="btn btn-light">Browse metabolites</a>
+              <a href="/universal/metabolites/" class="btn btn-info">Browse metabolites</a>
             </div>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="card text-bg-info mb-3">
+          <div class="card bg-primary-subtle mb-3">
             <div class="card-header">
               <h5 class="card-title">Reactions</h5>
             </div>
             <div class="card-body text-center">
-              <a href="/universal/reactions/" class="btn btn-light">Browse reactions</a>
+              <a href="/universal/reactions/" class="btn btn-info">Browse reactions</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card bg-primary-subtle mb-3">
+            <div class="card-header">
+              <h5 class="card-title">Genomes</h5>
+            </div>
+            <div class="card-body text-center">
+              <a href="/genomes/" class="btn btn-info">Browse genomes</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card bg-primary-subtle mb-3">
+            <div class="card-header">
+              <h5 class="card-title">Compartments</h5>
+            </div>
+            <div class="card-body text-center">
+              <a href="/compartments/" class="btn btn-info">Browse compartments</a>
             </div>
           </div>
         </div>

@@ -1,55 +1,49 @@
+from cobradb.models import (
+    Model,
+    ModelReaction,
+    Reaction,
+    ReferenceReaction,
+    UniversalReaction,
+)
 from bigg_models.handlers import utils
 from bigg_models.queries import reaction_queries, utils as query_utils
 import re
 from cobradb.parse import hash_metabolite_dictionary
 
 
-# reactions
-class UniversalReactionListHandler(utils.PageableHandler):
-    def get(self):
-        kwargs = self._get_pager_args(default_sort_column="bigg_id")
+class UniversalReactionListViewHandler(utils.DataHandler):
+    title = "Universal Reactions"
+    columns = [
+        utils.DataColumnSpec(
+            UniversalReaction.bigg_id,
+            "BiGG ID",
+            hyperlink="/universal/reactions/${row['universalreaction__bigg_id']}",
+        ),
+        utils.DataColumnSpec(UniversalReaction.name, "Name"),
+        # utils.DataColumnSpec(
+        #     UniversalReaction.is_exchange, "Exchange", search_type="bool"
+        # ),
+        utils.DataColumnSpec(
+            ReferenceReaction.bigg_id, "Reference", requires=UniversalReaction.reference
+        ),
+        utils.DataColumnSpec(
+            UniversalReaction.is_transport, "Transport", search_type="bool"
+        ),
+        # utils.DataColumnSpec(UniversalReaction.is_pseudo, "Pseudo", search_type="bool"),
+    ]
+    page_data = {
+        "row_icon": "reaction_S",
+    }
 
-        # run the reaction_queries
-        raw_results = utils.safe_query(
-            reaction_queries.get_universal_reactions, **kwargs
-        )
+    def pre_filter(self, query):
+        return query.filter(UniversalReaction.collection_id == None)
 
-        if "include_link_urls" in self.request.query_arguments:
-            raw_results = [
-                dict(
-                    x,
-                    link_urls={"bigg_id": "/universal/reactions/{bigg_id}".format(**x)},
-                )
-                for x in raw_results
-            ]
-        result = {
-            "results": [dict(x, model_bigg_id="Universal") for x in raw_results],
-            "results_count": utils.safe_query(
-                reaction_queries.get_universal_reactions_count
-            ),
-        }
-
-        self.write(result)
-        self.finish()
-
-
-class UniversalReactionListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
-
-    def get(self):
-        dictionary = {
-            "results": {"reactions": "ajax"},
-            "hide_organism": True,
-            "page_name": "universal_reaction_list",
-        }
-        dictionary["breadcrumbs"] = [
+    def breadcrumbs(self):
+        return [
             ("Home", "/"),
             ("Universal", None),
             ("Reactions", "/universal/reactions/"),
         ]
-
-        self.write(self.template.render(dictionary))
-        self.finish()
 
 
 class UniversalReactionHandler(utils.BaseHandler):
@@ -57,8 +51,8 @@ class UniversalReactionHandler(utils.BaseHandler):
 
     def get(self, reaction_bigg_id):
         try:
-            result = utils.safe_query(
-                reaction_queries.get_reaction_and_models, reaction_bigg_id
+            result = utils.do_safe_query(
+                reaction_queries.get_universal_reaction_and_models, reaction_bigg_id
             )
         except query_utils.RedirectError as e:
             self.redirect(
@@ -78,54 +72,55 @@ class UniversalReactionHandler(utils.BaseHandler):
             self.return_result(result)
 
 
-class ReactionListHandler(utils.PageableHandler):
-    def get(self, model_bigg_id):
-        kwargs = self._get_pager_args(default_sort_column="bigg_id")
+class ReactionListViewHandler(utils.DataHandler):
+    title = "Reactions"
+    model_bigg_id = None
 
-        raw_results = utils.safe_query(
-            reaction_queries.get_model_reactions, model_bigg_id, **kwargs
-        )
-        # add the URL
-        if "include_link_urls" in self.request.query_arguments:
-            raw_results = [
-                dict(
-                    x,
-                    link_urls={
-                        "bigg_id": "/models/{model_bigg_id}/reactions/{bigg_id}".format(
-                            **x
-                        )
-                    },
-                )
-                for x in raw_results
-            ]
-        result = {
-            "results": raw_results,
-            "results_count": utils.safe_query(
-                reaction_queries.get_model_reactions_count,
-                model_bigg_id,
-            ),
-        }
+    columns = [
+        utils.DataColumnSpec(
+            ModelReaction.bigg_id,
+            "BiGG ID",
+            hyperlink="/models/${row['model__bigg_id']}/reactions/${row['modelreaction__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            UniversalReaction.name,
+            "Name",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+            ],
+        ),
+        utils.DataColumnSpec(
+            ReferenceReaction.bigg_id,
+            "Reference",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+                UniversalReaction.reference,
+            ],
+        ),
+        utils.DataColumnSpec(Model.bigg_id, "Model", requires=ModelReaction.model),
+        utils.DataColumnSpec(
+            UniversalReaction.is_transport,
+            "Transport",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+            ],
+            search_type="bool",
+        ),
+    ]
 
-        self.write(result)
-        self.finish()
+    def pre_filter(self, query):
+        return query.filter(Model.bigg_id == self.model_bigg_id)
 
-
-class ReactionListDisplayHandler(utils.BaseHandler):
-    template = utils.env.get_template("listview.html")
-
-    def get(self, model_bigg_id):
-        results = {
-            "results": {"reactions": "ajax"},
-            "page_name": "reaction_list",
-        }
-        results["breadcrumbs"] = [
+    def breadcrumbs(self):
+        return [
             ("Home", "/"),
             ("Models", "/models/"),
-            (model_bigg_id, f"/models/{model_bigg_id}"),
-            ("Reactions", f"/models/{model_bigg_id}/reactions/"),
+            (self.model_bigg_id, f"/models/{self.model_bigg_id}"),
+            ("Reactions", f"/models/{self.model_bigg_id}/reactions/"),
         ]
-
-        self.return_result(results)
 
 
 class ReactionHandler(utils.BaseHandler):

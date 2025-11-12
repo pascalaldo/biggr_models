@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
+from typing import List, NewType, Optional, Type, Union
 
+from sqlalchemy.orm import Session
 from bigg_models.version import __version__ as version, __api_version__ as api_version
 import bigg_models.handlers.utils as handler_utils
 
 from cobradb.models import (
+    Base,
     Component,
     CompartmentalizedComponent,
     DatabaseVersion,
@@ -17,10 +19,14 @@ from cobradb.models import (
     PublicationModel,
 )
 
-from sqlalchemy import desc, asc, and_, not_
+from sqlalchemy import desc, asc, and_, func, not_, or_, select
 from os.path import abspath, dirname, join
 
 root_directory = abspath(join(dirname(__file__), ".."))
+
+IDType = NewType("IDType", Union[str, int])
+StrList = NewType("StrList", List[str])
+OptStr = NewType("OptStr", Optional[str])
 
 
 class NotFoundError(Exception):
@@ -29,6 +35,78 @@ class NotFoundError(Exception):
 
 class RedirectError(Exception):
     pass
+
+
+def get_list(
+    session: Session,
+    column_specs: List["handler_utils.DataColumnSpec"],
+    start: int = 0,
+    length: Optional[int] = None,
+    search_value: str = "",
+    search_regex: bool = False,
+    pre_filter=None,
+):
+    joins = {}
+    for y in column_specs:
+        for x in y.requires:
+            if (x_str := str(x)) not in joins:
+                joins[x_str] = x
+    query = select(*(x.prop for x in column_specs))
+    for x in joins.values():
+        query = query.join(x, isouter=True)
+    if pre_filter is not None:
+        query = pre_filter(query)
+    total_count = session.scalar(select(func.count()).select_from(query.subquery()))
+
+    applied_filters = False
+    # Global search
+    search_value = search_value.strip()
+    if search_value != "":
+        applied_filters = True
+        query = query.filter(
+            or_(
+                *(
+                    x.prop.contains(search_value)
+                    for x in column_specs
+                    if x.global_search
+                )
+            )
+        )
+    # Column searches
+    for col_spec in column_specs:
+        changed, query = col_spec.search(query)
+        applied_filters = applied_filters or changed
+
+    if applied_filters:
+        filtered_count = session.scalar(
+            select(func.count()).select_from(query.subquery())
+        )
+    else:
+        filtered_count = total_count
+
+    # Ordering
+    for i in range(len(column_specs)):
+        try:
+            col_spec = next(x for x in column_specs if x.order_priority == i)
+        except StopIteration:
+            break
+        if col_spec.order_asc:
+            query = query.order_by(col_spec.prop)
+        else:
+            query = query.order_by(col_spec.prop.desc())
+
+    if start > 0:
+        query = query.offset(start)
+    if length is not None:
+        query = query.limit(length)
+
+    raw_result = session.execute(query).all()
+    result = [
+        {col_spec.identifier: col_data for col_spec, col_data in zip(column_specs, row)}
+        for row in raw_result
+    ]
+
+    return result, total_count, filtered_count
 
 
 def _shorten_name(name, l=100):
@@ -207,3 +285,11 @@ def database_version(session):
         "bigg_models_version": version,
         "api_version": api_version,
     }
+
+
+def convert_id_to_query_filter(bigg_id: IDType, obj_cls: Type[Base]):
+    if isinstance(bigg_id, int):
+        return obj_cls.id == bigg_id
+    if isinstance(bigg_id, str):
+        return obj_cls.bigg_id == bigg_id
+    raise ValueError()

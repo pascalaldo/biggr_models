@@ -1,7 +1,12 @@
-from cobradb.models import Session
+from datetime import datetime
+from operator import itemgetter
+import re
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, Union
+from cobradb.models import Base, Session, MemoteResult, MemoteTest
+from sqlalchemy import Row, and_, or_
 from bigg_models import __api_version__ as api_v
 from bigg_models.queries import search_queries, escher_map_queries, utils as query_utils
-import simplejson as json
+import json
 from tornado.web import (
     RequestHandler,
     StaticFileHandler,
@@ -11,6 +16,48 @@ from tornado.web import (
 from jinja2 import Environment, PackageLoader
 from os import path
 import mimetypes
+from pprint import pprint
+
+
+MODELS_CLASS_MAP = {x.__name__: x for x in Base.__subclasses__()}
+
+
+class BiGGrJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if o is None:
+            return None
+        if isinstance(o, Row):
+            return o._tuple()
+        if isinstance(o, (MemoteTest, MemoteResult)):
+            print(vars(o))
+            print(dir(o))
+            print(o._to_shallow_dict())
+            return o._to_shallow_dict()
+        if isinstance(o, Base):
+            return o._to_shallow_dict()
+        if isinstance(o, datetime):
+            return {"_type": "datetime", "iso": o.isoformat()}
+        # Let the base class default method raise the TypeError
+        return super().default(o)
+
+
+def biggr_json_object_hook(o):
+    if o is None:
+        return None
+    if not isinstance(o, dict):
+        return o
+    if "_type" not in o:
+        return o
+    if o["_type"] == "datetime":
+        if isoformat := o.get("iso"):
+            return datetime.fromisoformat(isoformat)
+        else:
+            return None
+    if o["_type"] in MODELS_CLASS_MAP:
+        model_class = MODELS_CLASS_MAP[o["_type"]]
+        return model_class._from_dict(o)
+
+    return None
 
 
 def format_bigg_id(bigg_id, format_type=None):
@@ -76,6 +123,7 @@ env = Environment(loader=PackageLoader("bigg_models", "templates"))
 env.filters["format_reference"] = lambda x: format_reference(x)
 env.filters["format_id"] = format_bigg_id
 env.filters["format_gene_reaction_rule"] = format_gene_reaction_rule
+env.filters["int_or_float"] = lambda x: int(x) if x.is_integer() else x
 
 # root directory
 directory = path.abspath(path.join(path.dirname(__file__), ".."))
@@ -135,6 +183,26 @@ def safe_query(func, *args, **kwargs):
         session.close()
 
 
+def do_safe_query(func, *args, **kwargs):
+    """Run the given function, and raise a 404 if it fails.
+
+    Arguments
+    ---------
+
+    func: The function to run. *args and **kwargs are passed to this function.
+
+    """
+    session = Session()
+    try:
+        return func(session, *args, **kwargs)
+    except query_utils.NotFoundError as e:
+        raise HTTPError(status_code=404, reason=e.args[0])
+    except ValueError as e:
+        raise HTTPError(status_code=400, reason=e.args[0])
+    finally:
+        session.close()
+
+
 class BaseHandler(RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -144,8 +212,13 @@ class BaseHandler(RequestHandler):
     def write(self, chunk):
         # note that serving a json list is a security risk
         # This is meant to be serving public-read only data only.
-        if isinstance(chunk, (dict, list, tuple)):
-            value_str = json.dumps(chunk)
+        if isinstance(chunk, (dict, list, tuple, Base)):
+            try:
+                value_str = json.dumps(chunk, cls=BiGGrJSONEncoder)
+            except Exception as e:
+                pprint(chunk)
+                print(e)
+            # value_str = json.dumps(chunk)
             RequestHandler.write(self, value_str)
             self.set_header("Content-type", "application/json; charset=utf-8")
         else:
@@ -162,6 +235,9 @@ class BaseHandler(RequestHandler):
         """
         if self.request.uri.startswith("/api"):
             if result:
+                if "breadcrumbs" in result:
+                    del result["breadcrumbs"]
+
                 self.write(result)
                 self.finish()
             else:
@@ -231,6 +307,313 @@ class PageableHandler(BaseHandler):
                 query_kwargs["sort_direction"] = sort_direction
 
         return query_kwargs
+
+
+def _interpret_bool(input: str) -> bool:
+    return input.upper() == "TRUE"
+
+
+def _interpret_asc(input: str) -> bool:
+    return input.upper() == "ASC"
+
+
+def col_str_search(query, col_spec: "DataColumnSpec"):
+    if (search_value := col_spec.search_value.strip()) == "":
+        return False, query
+    return True, query.filter(col_spec.prop.contains(search_value, autoescape=True))
+
+
+def col_bool_search(query, col_spec: "DataColumnSpec"):
+    if (search_value := col_spec.search_value.strip()) == "":
+        return False, query
+    value_as_bool = search_value.upper() == "TRUE"
+    return True, query.filter(col_spec.prop == value_as_bool)
+
+
+REGEX_COL_NUMBER_1 = re.compile(r"^((?P<eq>[\>\<]\=?) *)?(?P<nr>\d+(\.\d+)?)$")
+REGEX_COL_NUMBER_2 = re.compile(r"^(?P<nr1>\d+(\.\d+)?) *\- *(?P<nr2>\d+(\.\d+)?)$")
+
+
+def col_number_search(query, col_spec):
+    if (search_value := col_spec.search_value.strip()) == "":
+        return False, query
+
+    or_filters = []
+    for or_part in search_value.split(","):
+        and_filters = []
+        for and_part in or_part.split("&"):
+            part = and_part.strip()
+            m = REGEX_COL_NUMBER_1.match(part)
+            if m is not None:
+                print("Match 1")
+                print(m.groups())
+                number = float(m.group("nr"))
+                try:
+                    comp = m.group("eq")
+                except IndexError:
+                    comp = None
+                if comp is None:
+                    and_filters.append(col_spec.prop == number)
+                else:
+                    if comp == ">":
+                        and_filters.append(col_spec.prop > number)
+                    elif comp == ">=":
+                        and_filters.append(col_spec.prop >= number)
+                    elif comp == "<":
+                        and_filters.append(col_spec.prop < number)
+                    elif comp == "<=":
+                        and_filters.append(col_spec.prop <= number)
+                    else:
+                        print(f"Fail 1: {comp}")
+                        continue
+                continue
+            m = REGEX_COL_NUMBER_2.match(part)
+            if m is not None:
+                print("Match 2")
+                number1 = float(m.group("nr1"))
+                number2 = float(m.group("nr2"))
+                and_filters.append(col_spec.prop >= number1)
+                and_filters.append(col_spec.prop <= number2)
+        if len(and_filters) == 1:
+            or_filters.append(and_filters[0])
+        elif len(and_filters) > 1:
+            or_filters.append(and_(*and_filters))
+
+    if len(or_filters) == 0:
+        return False, query
+    elif len(or_filters) == 1:
+        return True, query.filter(or_filters[0])
+    else:
+        return True, query.filter(or_(*or_filters))
+
+
+class DataColumnSpec:
+    def __init__(
+        self,
+        prop: Any,
+        name: str,
+        requires=None,
+        global_search: bool = True,
+        hyperlink: Optional[str] = None,
+        search_type: str = "str",
+    ):
+        self.prop = prop
+        self.identifier: str = str(prop).lower().replace(".", "__")
+        self.name: str = name
+        self.global_search = global_search
+        self.requires: List[Any] = []
+        if isinstance(requires, Iterable):
+            self.requires.extend(requires)
+        elif requires is not None:
+            self.requires.append(requires)
+
+        self.searchable: bool = True
+        self.orderable: bool = True
+        self.search_value: str = ""
+        self.search_regex: bool = False
+        self.search_type = search_type
+        self.order_priority: Optional[int] = None
+        self.order_asc: bool = True
+        self.hyperlink = hyperlink
+
+    def search(self, query):
+        if self.search_value != "":
+            print(f"{self.identifier}: '{self.search_value}' ({self.search_type})")
+        if self.search_type == "str":
+            return col_str_search(query, self)
+        if self.search_type == "number":
+            return col_number_search(query, self)
+        if self.search_type == "bool":
+            return col_bool_search(query, self)
+        return False, query
+
+
+_TT = TypeVar("_TT")
+_TD = TypeVar("_TD")
+
+
+class DataHandler(BaseHandler):
+    template = env.get_template("data_table.html")
+    title = None
+    columns: List[DataColumnSpec] = []
+    start: int = 0
+    length: Optional[int] = None
+    draw: Optional[int] = None
+    name = None
+    search_value: str = ""
+    search_regex: bool = False
+    api: bool = False
+    page_data: Optional[Dict[str, Any]] = None
+
+    def initialize(self, **kwargs):
+        self.name = kwargs.get("name")
+
+    def breadcrumbs(self) -> Any:
+        return None
+
+    def pre_filter(self, query):
+        return query
+
+    def get(self, *args, **kwargs):
+        if self.api:
+            return self.return_data(*args, **kwargs)
+        return self.return_page(*args, **kwargs)
+
+    def return_page(self, *args, **kwargs):
+        data = dict(
+            data_url=self.data_url,
+            columns=self.columns,
+        )
+
+        if self.page_data:
+            data = data | self.page_data
+
+        brcrmb = self.breadcrumbs()
+        if brcrmb is not None:
+            data["breadcrumbs"] = brcrmb
+
+        if self.title is not None:
+            data["title"] = self.title
+        self.write(self.template.render(data))
+        self.finish()
+
+    def post(self, *args, **kwargs):
+        return self.return_data(*args, **kwargs)
+
+    def return_data(self, *args, **kwargs):
+        data, total, filtered = self.data_query(query_utils.get_list)
+        self.write_data(data, total, filtered)
+
+    @property
+    def data_url(self):
+        if self.name is None:
+            raise HTTPError(status_code=500, reason="Internal error, unnamed route.")
+        # Resolve named groups, this is a bit of a workaround, since
+        # reverse_url does not support named groups.
+        args = [
+            (v, self.path_kwargs.get(k))
+            for k, v in self.application.wildcard_router.named_rules[
+                self.name
+            ].matcher.regex.groupindex.items()
+        ]
+        args = [
+            "" if x is None else x
+            for x in map(itemgetter(1), sorted(args, key=itemgetter(0)))
+        ]
+        return self.reverse_url(self.name, *args)
+
+    def _get_argument_of_type_or_default(
+        self, arg_name: str, arg_type: Callable[[Any], _TT], default: _TD = None
+    ) -> Union[_TT, _TD]:
+        arg_val = self.get_argument(arg_name, None)
+        if arg_val is None:
+            return default
+        try:
+            arg_val = arg_type(arg_val)
+        except:
+            return default
+        return arg_val
+
+    def _parse_data_tables_args(self):
+        self.draw = self._get_argument_of_type_or_default("draw", int, None)
+        self.start = self._get_argument_of_type_or_default("start", int, 0)
+        self.length = self._get_argument_of_type_or_default("length", int, None)
+
+        self.search_value = self._get_argument_of_type_or_default(
+            "search[value]", str, ""
+        )
+        self.search_regex = self._get_argument_of_type_or_default(
+            "search[regex]", _interpret_bool, False
+        )
+
+        for col_spec in self.columns:
+            col_spec.order_priority = None
+            col_spec.search_value = ""
+        i = 0
+        while (
+            col_identifier := self.get_argument(f"columns[{i}][data]", None)
+        ) is not None:
+            if col_identifier == "x":
+                i += 1
+                continue
+            try:
+                col_spec = next(
+                    x for x in self.columns if x.identifier == col_identifier
+                )
+            except StopIteration:
+                raise HTTPError(
+                    status_code=400,
+                    reason="Could not parse datatables arguments.",
+                )
+            col_spec.searchable = self._get_argument_of_type_or_default(
+                f"columns[{i}][searchable]", _interpret_bool, col_spec.searchable
+            )
+            col_spec.orderable = self._get_argument_of_type_or_default(
+                f"columns[{i}][orderable]", _interpret_bool, col_spec.orderable
+            )
+            col_spec.search_value = self._get_argument_of_type_or_default(
+                f"columns[{i}][search][value]", str, col_spec.search_value
+            )
+            col_spec.search_regex = self._get_argument_of_type_or_default(
+                f"columns[{i}][search][regex]", _interpret_bool, col_spec.search_regex
+            )
+
+            i += 1
+
+        i = 0
+        while (
+            col_identifier := self.get_argument(f"order[{i}][name]", None)
+        ) is not None:
+            if col_identifier == "x":
+                i += 1
+                continue
+            try:
+                col_spec = next(
+                    x for x in self.columns if x.identifier == col_identifier
+                )
+            except StopIteration:
+                raise HTTPError(
+                    status_code=400,
+                    reason="Could not parse datatables arguments.",
+                )
+            col_spec.order_priority = i
+            col_spec.order_asc = self._get_argument_of_type_or_default(
+                f"order[{i}][dir]", _interpret_asc, col_spec.order_asc
+            )
+
+            i += 1
+
+    def prepare(self):
+        for k, v in self.path_kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+        self.api = self.path_kwargs.get("api") is not None
+        if self.request.method == "POST" or self.api:
+            self._parse_data_tables_args()
+
+    def data_query(self, f, **kwargs):
+        opts = dict(
+            column_specs=self.columns,
+            start=self.start,
+            length=self.length,
+            search_value=self.search_value,
+            search_regex=self.search_regex,
+            pre_filter=self.pre_filter,
+        )
+        opts = opts | kwargs
+        results = do_safe_query(f, **opts)
+        return results
+
+    def write_data(self, data: Any, total_count: int, filtered_count: int):
+        result = {
+            "recordsTotal": total_count,
+            "recordsFiltered": filtered_count,
+            "data": data,
+        }
+        if self.draw is not None:
+            result["draw"] = self.draw + 1
+        self.write(result)
+        self.finish()
 
 
 class AutocompleteHandler(BaseHandler):

@@ -45,10 +45,11 @@
 				{{ cards.flush_list_group_category(label="Properties") }}
 				{% for k, v in annotation.properties.items() %}
 				{% set prop_val = v | join(", ") %}
-				{% if k is string %}
-				{{ cards.flush_list_group_item(label=k, value=prop_val) }}
+				{% set prop_key = k.split("||", maxsplit=1) %}
+				{% if prop_key|length == 1 %}
+				{{ cards.flush_list_group_item(label=prop_key[0], value=prop_val) }}
 				{% else %}
-				{{ cards.flush_list_group_item(label=k[0], value=prop_val, unit=k[1]) }}
+				{{ cards.flush_list_group_item(label=prop_key[0], value=prop_val, unit=prop_key[1]) }}
 				{% endif%}
 				{% endfor %}
 				{% endif %}
