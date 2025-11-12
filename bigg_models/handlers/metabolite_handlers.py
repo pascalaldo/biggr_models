@@ -5,6 +5,7 @@ from cobradb.models import (
     Component,
     Model,
     ModelCompartmentalizedComponent,
+    ReferenceCompound,
     UniversalComponent,
 )
 from bigg_models.handlers import utils
@@ -23,6 +24,10 @@ class UniversalMetaboliteListViewHandler(utils.DataHandler):
         ),
         utils.DataColumnSpec(UniversalComponent.name, "Name"),
     ]
+    page_data = {
+        "card_lead": "List of universal metabolites in the database. Each univeral metabolite can have multiple metabolite instances that represent different protonation states. Click a row in the table below to display these different metabolite instances.",
+        "row_icon": "molecule_S",
+    }
 
     def pre_filter(self, query):
         return query.filter(UniversalComponent.collection_id == None)

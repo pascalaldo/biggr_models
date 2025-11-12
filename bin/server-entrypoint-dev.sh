@@ -1,11 +1,16 @@
 #!/bin/bash
 
-mkdir -p /static/models/
-mkdir -p /static/multistrain/
-mkdir -p /static/namespace/
-
+# mkdir -p /static/models/
+# mkdir -p /static/multistrain/
+# mkdir -p /static/namespace/
+#
 # ln -s /static/models bigg_models/static/models
 ln -s /models bigg_models/static/models
+
+cd /cobradb
+python setup.py install
+
+cd /server
 
 bin/run
 

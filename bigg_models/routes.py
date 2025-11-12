@@ -3,6 +3,7 @@ from tornado.routing import URLSpec
 from tornado.web import RequestHandler
 from bigg_models.handlers import (
     identifiers_handlers,
+    escher_handlers,
     utils,
     object_handlers,
     reaction_handlers,
@@ -131,6 +132,12 @@ def get_routes():
             api_regex + r"/models/(?P<model_bigg_id>[^/]+)/genes/?$",
             gene_handlers.GeneListViewHandler,
             name="model_genes",
+        ),
+        url(
+            api_regex
+            + r"/models/(?P<model_bigg_id>[^/]+)/escher/(?P<map_bigg_id>[^/]+)/?$",
+            escher_handlers.EscherHandler,
+            name="escher_maps",
         ),
         #
         (

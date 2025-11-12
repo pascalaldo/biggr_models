@@ -294,7 +294,7 @@ def get_universal_reaction_and_models(
                     ),
                 ),
             ),
-            joinedload(UniversalReaction.model),
+            joinedload(UniversalReaction.collection),
             joinedload(UniversalReaction.reference).options(
                 subqueryload(
                     ReferenceReaction.universal_reactions.and_(

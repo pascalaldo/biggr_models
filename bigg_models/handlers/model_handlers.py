@@ -42,6 +42,9 @@ class ModelsListViewHandler(utils.DataHandler):
             search_type="number",
         ),
     ]
+    page_data = {
+        "row_icon": "model_S",
+    }
 
     def breadcrumbs(self):
         return [("Home", "/"), ("Models", "/models/")]

@@ -31,6 +31,9 @@ class UniversalReactionListViewHandler(utils.DataHandler):
         ),
         # utils.DataColumnSpec(UniversalReaction.is_pseudo, "Pseudo", search_type="bool"),
     ]
+    page_data = {
+        "row_icon": "reaction_S",
+    }
 
     def pre_filter(self, query):
         return query.filter(UniversalReaction.collection_id == None)

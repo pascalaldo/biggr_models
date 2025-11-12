@@ -4,17 +4,23 @@
 <link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.css" rel="stylesheet"
 	integrity="sha384-RqJtgepBGtU0p2QrKr7V6ktj9xhjmruqRUBkoNgZSdyNDI9FYHUwbaapY3jgsx7a" crossorigin="anonymous">
 <script src="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.js"
-	integrity="sha384-LFoikRctTHRCzOQ2ubrUfFQlhXMtaj7g32RRDMk2UVJFlHlk/s3w8xMOPB5t92MP" crossorigin="anonymous"></script>
+	integrity="sha384-LFoikRctTHRCzOQ2ubrUfFQlhXMtaj7g32RRDMk2UVJFlHlk/s3w8xMOPB5t92MP"
+	crossorigin="anonymous"></script>
 {% endblock %}
 {% block body %}
 <div class="row">
 	<div class="col-12">
 		<div class="card mb-3 pb-2">
-			<div class="card-header">
+			<div class="card-header{% if card_lead %} border-bottom-0{%endif%}">
 				<h5 class="card-title">{{title}}</h5>
 			</div>
+			{%- if card_lead %}
+			<div
+				class="card-body p-3 text-bg-light border-1 border-bottom border-secondary-subtle fs-6 fw-light mb-2">
+				{{card_lead}}</div>
+			{%- endif %}
 			<div class="card-body p-0">
-				{{ tables.data_table("listview", columns, data_url) }}
+				{{ tables.data_table("listview", columns, data_url, row_icon) }}
 			</div>
 		</div>
 	</div>

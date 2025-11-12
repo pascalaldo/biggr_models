@@ -33,10 +33,13 @@
 	</table>
 </div>
 {% endmacro%}
-{% macro data_table(table_id, columns, data_url) %}
+{% macro data_table(table_id, columns, data_url, row_icon=none) %}
 <table id="data_table_{{table_id}}" class="table table-hover mb-0 table-no-bottom-border">
 	<thead>
 		<tr>
+			{% if row_icon %}
+			<th>&nbsp;</th>
+			{% endif %}
 			{% for column in columns %}
 			<th>{{column.name}}</th>
 			{% endfor %}
@@ -44,6 +47,9 @@
 	</thead>
 	<tfoot>
 		<tr>
+			{% if row_icon %}
+			<th>&nbsp;</th>
+			{% endif %}
 			{% for column in columns %}
 			<th>{{column.name}}</th>
 			{% endfor %}
@@ -106,14 +112,24 @@
 	};
 	let select_cols = {{columns| selectattr('search_type', 'equalto', 'bool') | map(attribute = 'identifier') | list() | tojson() }};
 	new DataTable('#data_table_{{table_id}}', {
-		ajax: {
-			url: '{{data_url}}',
+		{% if row_icon %}order: [[1, 'asc']], {% endif %}
+	ajax: {
+		url: '{{data_url}}',
 			type: 'POST'
-		},
-		columns: [
-			{% for column in columns %}
-			{
-			data: '{{column.identifier}}',
+	},
+	columns: [
+		{% if row_icon %}{
+		data: 'x', name: 'x', width: '1.2em', orderable: false, searchable: false, defaultContent: '',
+			render: function (data, type) {
+				if (type === 'display') {
+					return '<img src="/static/assets/iconset.svg#{{row_icon}}" style="height: 1em;" />'
+				}
+				return data;
+			}
+	}, {% endif %}
+	{% for column in columns %}
+	{
+		data: '{{column.identifier}}',
 			name: '{{column.identifier}}',
 				{% if column.hyperlink is not none %}
 	render: function(data, type, row) {
@@ -136,7 +152,7 @@
 						let column = this;
 						if (select_cols.includes(column.dataSrc())) {
 							add_bool_select_search(column);
-						} else {
+						} else if (column.dataSrc() !== "x") {
 							add_text_search(column);
 						};
 					});

@@ -1,7 +1,7 @@
 from datetime import datetime
 from operator import itemgetter
 import re
-from typing import Any, Callable, Iterable, List, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, Union
 from cobradb.models import Base, Session, MemoteResult, MemoteTest
 from sqlalchemy import Row, and_, or_
 from bigg_models import __api_version__ as api_v
@@ -443,6 +443,7 @@ class DataHandler(BaseHandler):
     search_value: str = ""
     search_regex: bool = False
     api: bool = False
+    page_data: Optional[Dict[str, Any]] = None
 
     def initialize(self, **kwargs):
         self.name = kwargs.get("name")
@@ -463,6 +464,9 @@ class DataHandler(BaseHandler):
             data_url=self.data_url,
             columns=self.columns,
         )
+
+        if self.page_data:
+            data = data | self.page_data
 
         brcrmb = self.breadcrumbs()
         if brcrmb is not None:
@@ -529,6 +533,9 @@ class DataHandler(BaseHandler):
         while (
             col_identifier := self.get_argument(f"columns[{i}][data]", None)
         ) is not None:
+            if col_identifier == "x":
+                i += 1
+                continue
             try:
                 col_spec = next(
                     x for x in self.columns if x.identifier == col_identifier
@@ -557,6 +564,9 @@ class DataHandler(BaseHandler):
         while (
             col_identifier := self.get_argument(f"order[{i}][name]", None)
         ) is not None:
+            if col_identifier == "x":
+                i += 1
+                continue
             try:
                 col_spec = next(
                     x for x in self.columns if x.identifier == col_identifier
