@@ -34,6 +34,15 @@ def get_genes(gene_ids, session):
     return [dict(r._mapping) for r in rows]
 
 
+def get_all_genes(session):
+    """Get all genes."""
+    rows = session.execute(
+        select(Gene.id, Gene.bigg_id, Gene.name, Gene.locus_tag)
+    ).all()
+
+    return [dict(r._mapping) for r in rows]
+
+
 def get_genome_region_for_gene_id(ids, session):
     """Get the genome region for a gene id."""
     rows = session.execute(

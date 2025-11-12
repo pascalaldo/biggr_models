@@ -34,7 +34,7 @@ class QueryByGeneHandler(BaseInteropQueryHandler):
             raise tornado.web.HTTPError(400, reason="'ids' must be a list.")
 
         gene_ids = [
-            row[0]
+            row
             for gene in gene_names
             for row in utils.safe_query(gene_queries.get_gene_ids_for_gene_name, gene)
         ]
@@ -70,19 +70,21 @@ class QueryByStrainHandler(BaseInteropQueryHandler):
         print("interop-query: query-by-strain")
 
         data = self._parse_json()
-        taxon_ids = data.get("ids")
-        if not isinstance(taxon_ids, list):
+        accession_ids = data.get("ids")
+        if not isinstance(accession_ids, list):
             raise tornado.web.HTTPError(400, reason="'ids' must be a list.")
 
-        taxon_ids = {str(tid) for tid in taxon_ids}
-        if not taxon_ids:
+        if not accession_ids:
             self.finish({"results": []})
             return
 
-        results = utils.safe_query(
-            genome_queries.get_genomes_with_chromosomes,
-            taxon_ids,
-        )
+        results = []
+        for accession_id in accession_ids:
+            genome_results = utils.safe_query(
+                genome_queries.get_genomes_with_chromosomes,
+                accession_id,
+            )
+            results.extend(genome_results)
 
         self.finish({"results": results})
 
@@ -106,13 +108,13 @@ class QueryByPairHandler(BaseInteropQueryHandler):
             gene_name  = pair["gene"]
             strain_id  = str(pair["strain"])
 
-            gene_ids = {
-                row[0]
+            gene_ids = [
+                row
                 for row in utils.safe_query(
                     gene_queries.get_gene_ids_for_gene_name,
                     gene_name,
                 )
-            }
+            ]
 
             if not gene_ids:
                 pair_results.append({"gene": gene_name, "strain": strain_id, "genomes": []})
@@ -120,8 +122,8 @@ class QueryByPairHandler(BaseInteropQueryHandler):
 
             genomes = utils.safe_query(
                 genome_queries.get_genomes_with_chromosomes,
-                {strain_id},
-                gene_ids 
+                accession_id=strain_id,
+                gene_id_filter=gene_ids 
             )
 
             pair_results.append(
@@ -133,3 +135,18 @@ class QueryByPairHandler(BaseInteropQueryHandler):
             )
 
         self.finish({"pairs": pair_results})
+
+class StrainListHandler(BaseInteropQueryHandler):
+    async def get(self):
+        print("interop-query: strain-list")
+        strains = utils.safe_query(genome_queries.get_all_genomes)
+        strains = [strain for strain in strains if strain is not None]
+        self.finish({"strains": strains})
+
+
+class GeneListHandler(BaseInteropQueryHandler):
+    async def get(self):
+        print("interop-query: gene-list")
+        genes = utils.safe_query(gene_queries.get_all_genes)
+        gene_names = [gene['name'] for gene in genes if gene['name'] is not None]
+        self.finish({"genes": gene_names})
