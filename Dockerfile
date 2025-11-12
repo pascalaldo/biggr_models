@@ -24,7 +24,7 @@ WORKDIR /app/biggr_maps/
 RUN python setup.py install
 WORKDIR /app
 
-RUN git clone -b api https://github.com/pascalaldo/cobradb.git cobradb
+RUN git clone https://github.com/pascalaldo/cobradb.git cobradb
 WORKDIR /app/cobradb
 # RUN git pull && git reset --hard 313ce67
 RUN python setup.py install
