@@ -1,9 +1,17 @@
-from sqlalchemy.orm import aliased, selectinload, subqueryload, joinedload, Session
+from sqlalchemy.orm import (
+    aliased,
+    contains_eager,
+    selectinload,
+    subqueryload,
+    joinedload,
+    Session,
+)
 from bigg_models.handlers.utils import format_bigg_id
 from bigg_models.queries import escher_map_queries, utils, id_queries
 from cobradb.models import (
     Annotation,
     AnnotationLink,
+    ModelReactionEscherMapping,
     ReferenceReactionAnnotationMapping,
     Compartment,
     CompartmentalizedComponent,
@@ -487,55 +495,39 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
     results when the reaction appears in the model multiple times.
 
     """
-    # model_reaction_db = (
-    #     session.query(
-    #         Reaction.id,
-    #         UniversalReaction.id,
-    #         UniversalReaction.name,
-    #         ModelReaction.id,
-    #         ModelReaction.gene_reaction_rule,
-    #         ModelReaction.lower_bound,
-    #         ModelReaction.upper_bound,
-    #         ModelReaction.objective_coefficient,
-    #         ModelReaction.copy_number,
-    #         ModelReaction.subsystem,
-    #     )
-    #     .join(UniversalReaction, Reaction.universal_id == UniversalReaction.id)
-    #     .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
-    #     .filter(ModelReaction.model_id == model_bigg_id)
-    #     .filter(ModelReaction.copy_number == copy_number)
-    #     .filter(UniversalReaction.id == reaction_bigg_id)
-    # )
-    #
+
     reaction_bigg_id, copy_number = split_id_and_copy_tag(biggr_id)
     full_bigg_id = (
         reaction_bigg_id if copy_number == 1 else f"{reaction_bigg_id}:{copy_number}"
     )
 
-    result_db = session.execute(
-        select(
-            Reaction,
-            UniversalReaction,
-            ModelReaction,
+    model_reaction_db = session.scalars(
+        select(ModelReaction)
+        .options(
+            contains_eager(ModelReaction.reaction).contains_eager(
+                Reaction.universal_reaction
+            ),
+            contains_eager(ModelReaction.model),
+            subqueryload(ModelReaction.escher_mappings).joinedload(
+                ModelReactionEscherMapping.escher_module
+            ),
         )
-        .join(UniversalReaction, Reaction.universal_reaction_id == UniversalReaction.id)
-        .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
+        .join(ModelReaction.reaction)
+        .join(Reaction.universal_reaction)
         .join(ModelReaction.model)
         .filter(Model.bigg_id == model_bigg_id)
         .filter(ModelReaction.copy_number == copy_number)
         .filter(UniversalReaction.bigg_id == reaction_bigg_id)
         .limit(1)
-    ).first()
-    if result_db is None:
+    )
+    if model_reaction_db is None:
         raise utils.NotFoundError(
             "Reaction %s not found in model %s" % (reaction_bigg_id, model_bigg_id)
         )
 
-    reaction_db, universal_reaction_db, model_reaction_db = result_db
-
     # metabolites
     metabolite_db = _get_metabolite_and_reference_list_for_reaction(
-        reaction_db.id, session
+        model_reaction_db.reaction_id, session
     )
 
     # models
@@ -574,7 +566,7 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
             selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
         )
         .join(Annotation.reaction_mappings)
-        .filter(ReactionAnnotationMapping.reaction_id == reaction_db.id)
+        .filter(ReactionAnnotationMapping.reaction_id == model_reaction_db.reaction_id)
     ).all()
     if reaction_ann:
         reaction_annotations = [
@@ -590,7 +582,8 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
                 select(ModelReaction.copy_number)
                 .join(Reaction, Reaction.id == ModelReaction.reaction_id)
                 .filter(
-                    Reaction.universal_reaction_id == reaction_db.universal_reaction_id
+                    Reaction.universal_reaction_id
+                    == model_reaction_db.reaction.universal_reaction_id
                 )
                 .filter(ModelReaction.model_id == model_reaction_db.model_id)
                 .filter(ModelReaction.copy_number != model_reaction_db.copy_number)
@@ -598,24 +591,10 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
         )
     )
 
-    # database_links
-    # db_link_results = id_queries._get_db_links_for_model_reaction(
-    #     reaction_bigg_id, session
-    # )
-    #
     # # old identifiers
     # old_id_results = id_queries._get_old_ids_for_model_reaction(
     #     model_bigg_id, reaction_bigg_id, session
     # )
-    #
-    # # escher maps
-    # r_escher_maps = escher_map_queries.get_escher_maps_for_reaction(
-    #     reaction_bigg_id, model_bigg_id, session
-    # )
-    #
-    db_link_results = {}
-    old_id_results = []
-    r_escher_maps = []
 
     gene_db = _get_gene_list_for_model_reaction(model_reaction_db.id, session)
     reaction_string = utils.build_reaction_string(
@@ -625,21 +604,16 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
         False,
         format_met="comp_comp",
     )
-    # exported_reaction_id = (
-    #     make_reaction_copy_id(reaction_bigg_id, result_db[8])
-    #     if db_count > 1
-    #     else reaction_bigg_id
-    # )
     memote_result_db = get_memote_results_for_reaction(session, model_reaction_db.id)
 
     return {
         "bigg_id": reaction_bigg_id,
         "full_bigg_id": full_bigg_id,
         "model_bigg_id": model_bigg_id,
-        "reaction": reaction_db,
+        "reaction": model_reaction_db.reaction,
         "all_annotations": all_annotations,
         "model_reaction": model_reaction_db,
-        "universal_reaction": universal_reaction_db,
+        "universal_reaction": model_reaction_db.reaction.universal_reaction,
         "other_copy_numbers": other_copy_numbers,
         "reaction_string": reaction_string,
         "memote_result": memote_result_db,
@@ -678,7 +652,7 @@ def get_reaction_object(
     reaction_db = session.scalars(
         select(Reaction)
         .options(
-            joinedload(Reaction.model),
+            joinedload(Reaction.collection),
             subqueryload(Reaction.matrix).joinedload(
                 ReactionMatrix.compartmentalized_component
             ),

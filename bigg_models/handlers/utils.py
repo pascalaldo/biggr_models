@@ -1,7 +1,16 @@
 from datetime import datetime
 from operator import itemgetter
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
 from cobradb.models import Base, Session, MemoteResult, MemoteTest
 from sqlalchemy import Row, and_, or_
 from bigg_models import __api_version__ as api_v
