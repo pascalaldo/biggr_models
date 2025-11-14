@@ -122,6 +122,7 @@
   </div>
   {% endif %}
   {% if model_reaction.escher_mappings %}
+  {% include "escher_embedded_script.html" %}
   <div class="col-12">
     <div class="card mb-3">
       <div class="card-header">
@@ -134,6 +135,7 @@
         {% for escher_mapping in model_reaction.escher_mappings %}
         {% set escher_module = escher_mapping.escher_module %}
         {% set mapping_id = escher_mapping.id %}
+        {% set zoom_to_reaction = "'" ~ model_reaction.bigg_id ~ "'" %}
         <div class="accordion-item">
           <h5 class="accordion-header" id="flush-heading-{{mapping_id}}">
             <button class="accordion-button collapsed p-2" type="button" data-bs-toggle="collapse"
@@ -146,31 +148,19 @@
           <div id="flush-collapse-{{mapping_id}}" class="accordion-collapse collapse"
             aria-labelledby="flush-heading-{{mapping_id}}" data-bs-parent="#maps_accordion">
             <div class="accordion-body p-0">
-              <div class="ratio ratio-16x9"><iframe id="escher-map-iframe-{{mapping_id}}" src="about:blank"></iframe>
-              </div>
+              {% include "escher_embedded.html" %}
             </div>
           </div>
         </div>
-        <script>
-          document.getElementById('flush-collapse-{{mapping_id}}').addEventListener('show.bs.collapse', event => {
-            const iframe = document.getElementById('escher-map-iframe-{{mapping_id}}');
-            const url = "/models/{{model_reaction.model.bigg_id}}/escher/{{escher_module.bigg_id}}?reaction={{model_reaction.bigg_id}}";
-            if (iframe.src == 'about:blank') {
-              iframe.setAttribute("src", url);
-            }
-            // Little bit of a workaround. Should probably move escher out of an iframe.
-            iframe.addEventListener("load", function (event) {
-              if (!event.target.contentWindow.location.href.endsWith(url)) {
-                window.location.href = event.target.contentWindow.location.href;
-              }
-            });
-          });
-        </script>
-        {% endfor %}
       </div>
+      <script>
+        document.getElementById('flush-collapse-{{mapping_id}}').addEventListener('show.bs.collapse', event => {show_escher_map('{{escher_module.bigg_id}}', '{{model_bigg_id}}', '/api/v3/models/{{model_bigg_id}}/escher/{{escher_module.bigg_id}}', {{zoom_to_reaction}}); });
+      </script>
+      {% endfor %}
     </div>
   </div>
-  {% endif %}
+</div>
+{% endif %}
 
 </div>
 {% endblock %}
