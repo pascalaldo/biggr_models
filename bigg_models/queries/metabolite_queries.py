@@ -33,7 +33,7 @@ from cobradb.models import (
     InChI,
 )
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 LINKOUT_PROPERTY_KEYS = {
     "name": "Names",
@@ -476,7 +476,12 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
             == CompartmentalizedComponent.id,
         )
         .join(Model, Model.id == ModelCompartmentalizedComponent.model_id)
-        .filter(CompartmentalizedComponent.bigg_id == comp_met_id)
+        .filter(
+            or_(
+                ModelCompartmentalizedComponent.bigg_id == comp_met_id,
+                CompartmentalizedComponent.bigg_id == comp_met_id,
+            )
+        )
         .filter(Model.bigg_id == model_bigg_id)
         .limit(1)
     ).first()

@@ -44,8 +44,7 @@
         "w-25"}, "Name", {"name": "Reference", "class": "border-start"}, "x [side]", "Compartment"], metabolites) %}
         {% set link -%}/models/{{model_bigg_id}}/metabolites/{{metabolite['bigg_id']}}{%- endset %}
         {% set ref_n = metabolite['reference_participant']['reference_n'] %}
-        <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img
-              src="/static/assets/iconset.svg#{%- if metabolite[" coefficient"] < 0 -%}reaction_substrate_S{%- else
+        <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#{%- if metabolite['coefficient'] < 0 -%}reaction_substrate_S{%- else
               -%}reaction_product_S{%- endif -%}" style="height: 1em;" /></a></td>
         <td><a href="{{link}}"
             class="d-block text-reset text-decoration-none">{{metabolite['coefficient_int_or_float']}}</a></td>
@@ -139,11 +138,14 @@
           <h5 class="accordion-header" id="flush-heading-{{mapping_id}}">
             <button class="accordion-button collapsed p-2" type="button" data-bs-toggle="collapse"
               data-bs-target="#flush-collapse-{{mapping_id}}" aria-expanded="false"
-              aria-controls="flush-collapseOne">{{escher_module.name}}</button>
+              aria-controls="flush-collapseOne"><img src="/static/assets/iconset.svg#model_S" style="height: 1em;"
+                class="ps-2 pe-4">
+              <div class="d-flex flex-column"><b>{{escher_module.name}}</b><i>{{escher_module.description}}</i></div>
+            </button>
           </h5>
           <div id="flush-collapse-{{mapping_id}}" class="accordion-collapse collapse"
             aria-labelledby="flush-heading-{{mapping_id}}" data-bs-parent="#maps_accordion">
-            <div class="accordion-body">
+            <div class="accordion-body p-0">
               <div class="ratio ratio-16x9"><iframe id="escher-map-iframe-{{mapping_id}}" src="about:blank"></iframe>
               </div>
             </div>
@@ -152,9 +154,16 @@
         <script>
           document.getElementById('flush-collapse-{{mapping_id}}').addEventListener('show.bs.collapse', event => {
             const iframe = document.getElementById('escher-map-iframe-{{mapping_id}}');
+            const url = "/models/{{model_reaction.model.bigg_id}}/escher/{{escher_module.bigg_id}}?reaction={{model_reaction.bigg_id}}";
             if (iframe.src == 'about:blank') {
-              iframe.setAttribute("src", "/models/{{model_reaction.model.bigg_id}}/escher/{{escher_module.bigg_id}}");
+              iframe.setAttribute("src", url);
             }
+            // Little bit of a workaround. Should probably move escher out of an iframe.
+            iframe.addEventListener("load", function (event) {
+              if (!event.target.contentWindow.location.href.endsWith(url)) {
+                window.location.href = event.target.contentWindow.location.href;
+              }
+            });
           });
         </script>
         {% endfor %}

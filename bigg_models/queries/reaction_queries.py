@@ -519,7 +519,7 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
         .filter(ModelReaction.copy_number == copy_number)
         .filter(UniversalReaction.bigg_id == reaction_bigg_id)
         .limit(1)
-    )
+    ).first()
     if model_reaction_db is None:
         raise utils.NotFoundError(
             "Reaction %s not found in model %s" % (reaction_bigg_id, model_bigg_id)
