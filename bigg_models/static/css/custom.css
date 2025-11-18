@@ -12137,4 +12137,19 @@ textarea.form-control-lg {
   width: 100%;
 }
 
+@media (min-width: 768px) {
+  .memote-report {
+    columns: 2;
+    column-gap: 1px;
+    column-rule: 1px solid var(--bs-card-border-color);
+  }
+}
+div.memote-category-accordion:not(:has(div.memote-accordion-item:not([style*="display: none"]))) {
+  display: none !important;
+}
+
+.highlight {
+  background: var(--bs-info-bg-subtle);
+}
+
 /*# sourceMappingURL=custom.css.map */

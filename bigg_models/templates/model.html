@@ -78,6 +78,46 @@
     </div>
   </div>
 
+  {% if escher_modules %}
+  {% include "escher_embedded_script.html" %}
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header border-bottom-0">
+        <h5 class="mb-0">Escher Maps</h5>
+      </div>
+      <div class="card-body p-3 text-bg-light border-1 border-bottom border-secondary-subtle fs-6 fw-light">
+        This model is represented by the following Escher maps:
+      </div>
+      <div class="accordion accordion-flush" id="maps_accordion">
+        {% for escher_module in escher_modules %}
+        {% set mapping_id = escher_module.id %}
+        <div class="accordion-item">
+          <h5 class="accordion-header" id="flush-heading-{{mapping_id}}">
+            <button class="accordion-button collapsed p-2" type="button" data-bs-toggle="collapse"
+              data-bs-target="#flush-collapse-{{mapping_id}}" aria-expanded="false"
+              aria-controls="flush-collapseOne"><img src="/static/assets/iconset.svg#model_S" style="height: 1em;"
+                class="ps-2 pe-4">
+              <div class="d-flex flex-column"><span
+                  class="fw-medium">{{escher_module.name}}</span><i>{{escher_module.description}}</i></div>
+            </button>
+          </h5>
+          <div id="flush-collapse-{{mapping_id}}" class="accordion-collapse collapse"
+            aria-labelledby="flush-heading-{{mapping_id}}" data-bs-parent="#maps_accordion">
+            <div class="accordion-body p-0">
+              {% include "escher_embedded.html" %}
+            </div>
+          </div>
+        </div>
+        <script>
+          document.getElementById('flush-collapse-{{mapping_id}}').addEventListener('show.bs.collapse', event => {if (document.getElementById('map-container-{{escher_module.bigg_id}}').innerHTML === "") {show_escher_map('{{escher_module.bigg_id}}', '{{model_bigg_id}}', '/api/v3/models/{{model_bigg_id}}/escher/{{escher_module.bigg_id}}', {{zoom_to_reaction}}); }});
+        </script>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+
   {% include "memote_report.html" %}
 
 </div>

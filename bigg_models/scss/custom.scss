@@ -125,3 +125,19 @@ $linkout-accordion-icon-width: 1.1rem;
 .table-footer-search {
   width: 100%;
 }
+
+@include media-breakpoint-up(md) {
+  .memote-report {
+    columns: 2;
+    column-gap: 1px;
+    column-rule: 1px solid var(--bs-card-border-color);
+  }
+}
+
+div.memote-category-accordion:not(:has(div.memote-accordion-item:not([style*="display: none"]))) {
+  display: none !important;
+}
+
+.highlight {
+  background: var(--#{$prefix}info-bg-subtle);
+}

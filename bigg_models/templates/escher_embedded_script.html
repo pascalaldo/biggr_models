@@ -5,9 +5,8 @@
 	}
 
 	svg.escher-svg #canvas {
-		stroke: #ccc;
-		stroke-width: 7px;
 		fill: white;
+		filter: drop-shadow(0px 0px 8px rgba(0, 0, 0, 0.2));
 	}
 
 	svg.escher-svg .resize-rect {
@@ -164,6 +163,9 @@
 
 	.escher-container {
 		position: absolute !important;
+		background-color: #ffffff !important;
+		background-image: linear-gradient(#dddddd 0.5px, transparent 0.5px), linear-gradient(to right, #dddddd 0.5px, #ffffff 0.5px) !important;
+		background-size: 10px 10px !important;
 	}
 
 	.escher-container .button.btn,
@@ -195,7 +197,7 @@
 			// defaults
 			map_data: map_data,
 			model_data: null,
-			embedded_css: null,
+			embedded_css: '.dummy {}',
 			options: {
 				menu: 'zoom',
 				scroll_behavior: 'none',

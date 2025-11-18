@@ -1,0 +1,56 @@
+{% extends "general_main.html" %}
+{% import "general_table_macros.html" as tables %}
+{% block head %}
+<link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.css" rel="stylesheet"
+	integrity="sha384-RqJtgepBGtU0p2QrKr7V6ktj9xhjmruqRUBkoNgZSdyNDI9FYHUwbaapY3jgsx7a" crossorigin="anonymous">
+<script src="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.js"
+	integrity="sha384-LFoikRctTHRCzOQ2ubrUfFQlhXMtaj7g32RRDMk2UVJFlHlk/s3w8xMOPB5t92MP" crossorigin="anonymous"></script>
+<script src="/static/js/biggr_datatables.js"></script>
+<script>
+let report_search_count = function(table_id, recordsTotal) {
+	if (recordsTotal === 0) {
+		$("#col-" + table_id).hide();
+		$("#button-" + table_id).addClass('disabled');
+	}
+	$("#button-badge-" + table_id).text(recordsTotal);
+};
+
+</script>
+{% endblock %}
+{% block body %}
+<div class="row">
+	<div class="col-12 mb-2">
+		<form class="d-flex" role="search" action="/search/" method="get">
+			<div class="input-group"><input name="search_query"
+					class="form-control border-1 border-primary" type="text"
+				placeholder="Search" aria-label="Search" value="{{search_query}}"> <button
+					class="btn btn-outline-primary" type="submit"><svg
+						xmlns="http://www.w3.org/2000/svg" width="16"
+						height="16" fill="currentColor" class="bi bi-search"
+						viewBox="0 0 16 16">
+						<path
+							d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+					</svg></button>
+			</div>
+		</form>
+	</div>
+	<div class="col-12 mb-4">
+	{% for result_type in result_types %}
+		<a href="#col-{{result_type.id}}_search" id="button-{{result_type.id}}_search" class="btn btn-outline-primary" type="button">{{ result_type.title }} <span class="badge text-bg-secondary" id="button-badge-{{result_type.id}}_search">...</span></a>
+	{% endfor %}
+	</div>
+	{% for result_type in result_types %}
+	<div id="col-{{result_type.id}}_search" class="col-12">
+		<div class="card mb-3 pb-2">
+			<div class="card-header">
+				<h5 class="card-title">{{result_type.title}}</h5>
+			</div>
+			<div class="card-body p-0">
+				{{ tables.data_table(result_type.id ~ "_search", result_type.columns, result_type.data_url,
+				result_type.row_icon, is_search=true, highlight=search_query) }}
+			</div>
+		</div>
+	</div>
+	{% endfor %}
+</div>
+{% endblock %}

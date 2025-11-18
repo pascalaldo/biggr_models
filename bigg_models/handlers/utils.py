@@ -402,6 +402,8 @@ class DataColumnSpec:
         prop: Any,
         name: str,
         requires=None,
+        agg_func=None,
+        process=None,
         global_search: bool = True,
         hyperlink: Optional[str] = None,
         search_type: str = "str",
@@ -411,6 +413,15 @@ class DataColumnSpec:
         self.name: str = name
         self.global_search = global_search
         self.requires: List[Any] = []
+        if agg_func is None:
+            self.agg_func = lambda x: x
+        else:
+            self.agg_func = agg_func
+        if process is None:
+            self.process = lambda x: x
+        else:
+            self.process = agg_func
+
         if isinstance(requires, Iterable):
             self.requires.extend(requires)
         elif requires is not None:
@@ -437,6 +448,23 @@ class DataColumnSpec:
         return False, query
 
 
+def get_reverse_url(handler, name, path_kwargs):
+    args = [
+        (v, path_kwargs.get(k))
+        for k, v in handler.application.wildcard_router.named_rules[
+            name
+        ].matcher.regex.groupindex.items()
+    ]
+    args = [
+        "" if x is None else x
+        for x in map(itemgetter(1), sorted(args, key=itemgetter(0)))
+    ]
+    url = handler.reverse_url(name, *args)
+    url = url.replace("?/", "/")
+    url = url.removesuffix("?")
+    return url
+
+
 _TT = TypeVar("_TT")
 _TD = TypeVar("_TD")
 
@@ -461,6 +489,9 @@ class DataHandler(BaseHandler):
         return None
 
     def pre_filter(self, query):
+        return query
+
+    def post_filter(self, query):
         return query
 
     def get(self, *args, **kwargs):
@@ -497,19 +528,10 @@ class DataHandler(BaseHandler):
     def data_url(self):
         if self.name is None:
             raise HTTPError(status_code=500, reason="Internal error, unnamed route.")
+
         # Resolve named groups, this is a bit of a workaround, since
         # reverse_url does not support named groups.
-        args = [
-            (v, self.path_kwargs.get(k))
-            for k, v in self.application.wildcard_router.named_rules[
-                self.name
-            ].matcher.regex.groupindex.items()
-        ]
-        args = [
-            "" if x is None else x
-            for x in map(itemgetter(1), sorted(args, key=itemgetter(0)))
-        ]
-        return self.reverse_url(self.name, *args)
+        return get_reverse_url(self, self.name, self.path_kwargs | {"api": "/api/v3"})
 
     def _get_argument_of_type_or_default(
         self, arg_name: str, arg_type: Callable[[Any], _TT], default: _TD = None
@@ -608,6 +630,7 @@ class DataHandler(BaseHandler):
             search_value=self.search_value,
             search_regex=self.search_regex,
             pre_filter=self.pre_filter,
+            post_filter=self.post_filter,
         )
         opts = opts | kwargs
         results = do_safe_query(f, **opts)

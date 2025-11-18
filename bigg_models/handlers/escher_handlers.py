@@ -195,7 +195,7 @@ class EscherHandler(utils.BaseHandler):
             get_model_reactions_for_escher_map, model_bigg_id, map_bigg_id
         )
         escher_map = utils.do_safe_query(escher_module.build_map, model_reactions)
-        escher_map.fit_canvas(expand_only=True)
+        escher_map.fit_canvas(expand_only=False)
         escher_map_json = escher_map.to_escher()
         if self.api:
             self.write(escher_map_json)

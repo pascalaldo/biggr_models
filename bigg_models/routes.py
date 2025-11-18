@@ -2,6 +2,7 @@ from typing import Any, Dict, Optional, Type
 from tornado.routing import URLSpec
 from tornado.web import RequestHandler
 from bigg_models.handlers import (
+    advanced_search_handlers,
     identifiers_handlers,
     escher_handlers,
     utils,
@@ -151,6 +152,20 @@ def get_routes():
         ),
         #
         # Search
+        (
+            r"/search/(?P<search_query>.*)$",
+            advanced_search_handlers.SearchResultsHandler,
+        ),
+        url(
+            api_regex + r"/search/metabolites/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalMetaboliteSearchHandler,
+            name="search_metabolites",
+        ),
+        url(
+            api_regex + r"/search/reactions/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalReactionSearchHandler,
+            name="search_reactions",
+        ),
         (r"/api/%s/search$" % utils.api_v, search_handlers.SearchHandler),
         (
             r"/api/%s/search_reaction_with_stoichiometry$" % utils.api_v,
@@ -189,6 +204,11 @@ def get_routes():
         #
         # Static/Download
         (
+            r"/(favicon.ico)$",
+            utils.StaticFileHandlerWithEncoding,
+            {"path": path.join(utils.directory, "static", "assets", "favicon")},
+        ),
+        (
             r"/static/(.*)$",
             utils.StaticFileHandlerWithEncoding,
             {"path": path.join(utils.directory, "static")},
@@ -199,13 +219,7 @@ def get_routes():
             db_interop_handlers.QueryByStrainHandler,
         ),
         (r"/interop-query/query-by-pair/?$", db_interop_handlers.QueryByPairHandler),
-        (
-            r"/interop-query/strains/?$", 
-            db_interop_handlers.StrainListHandler
-        ),
-        (
-            r"/interop-query/genes/?$", 
-            db_interop_handlers.GeneListHandler
-        ),
+        (r"/interop-query/strains/?$", db_interop_handlers.StrainListHandler),
+        (r"/interop-query/genes/?$", db_interop_handlers.GeneListHandler),
     ]
     return routes
