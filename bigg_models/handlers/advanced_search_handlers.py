@@ -25,7 +25,7 @@ from bigg_models.handlers import utils
 from bigg_models.queries import utils as query_utils
 
 ALLOWED_SEARCH_ALPHABET = (
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-()[]/:"
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-()[]/:.,"
 )
 
 # agg_strings = lambda x: aggregate_strings(x, ", ")
@@ -403,6 +403,10 @@ class SearchResultsHandler(utils.BaseHandler):
             if search_query.startswith("cpd"):
                 namespace = "seed.compound"
                 identifier = search_query
+            elif search_query.startswith("rxn"):
+                namespace = "seed.reaction"
+                identifier = search_query
+
             elif search_query.startswith("MNX"):
                 namespace = "metanetx"
                 identifier = search_query

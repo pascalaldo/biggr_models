@@ -157,7 +157,7 @@
   --bs-primary-bg-subtle: rgb(2.6, 22, 50.6);
   --bs-secondary-bg-subtle: rgb(21.6, 23.4, 25);
   --bs-success-bg-subtle: rgb(5, 27, 16.8);
-  --bs-info-bg-subtle: rgb(2.6, 40.4, 48);
+  --bs-info-bg-subtle: rgb(44, 76, 83);
   --bs-warning-bg-subtle: rgb(51, 38.6, 1.4);
   --bs-danger-bg-subtle: rgb(44, 10.6, 13.8);
   --bs-light-bg-subtle: #343a40;
@@ -12158,6 +12158,24 @@ div.memote-category-accordion:not(:has(div.memote-accordion-item:not([style*="di
 
 .tab-pane.show {
   display: block;
+}
+
+.search-ul {
+  list-style-type: circle;
+  margin-top: 1rem !important;
+}
+
+.card-intro {
+  border-bottom: 1px solid var(--bs-secondary-border-subtle) !important;
+  background: var(--bs-card-cap-bg) !important;
+  padding: 1rem !important;
+  font-size: 1rem !important;
+  font-weight: 300 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+div.card-header:has(+ div.card-intro) {
+  border-bottom: none !important;
 }
 
 /*# sourceMappingURL=custom.css.map */

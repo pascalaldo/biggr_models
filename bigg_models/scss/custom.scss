@@ -29,6 +29,8 @@ $linkout: rgb(184, 220, 202);
 $linkout-bg-subtle: rgb(225, 240, 233);
 $linkout-text-emphasis: rgb(44, 91, 66);
 
+$info-bg-subtle-dark: rgb(44, 76, 83);
+
 $custom-colors: (
   "linkout": $linkout,
   "info": $info,
@@ -53,7 +55,7 @@ $theme-colors-border-subtle: map-merge($theme-colors-border-subtle, $custom-colo
 
 // Dark mode
 $custom-colors-text-dark: ("linkout": $linkout-text-emphasis);
-$custom-colors-bg-subtle-dark: ("linkout": $linkout-bg-subtle);
+$custom-colors-bg-subtle-dark: ("linkout": $linkout-bg-subtle, "info": $info-bg-subtle-dark);
 $custom-colors-border-subtle-dark: ("linkout": $linkout-bg-subtle);
 
 
@@ -148,3 +150,20 @@ div.memote-category-accordion:not(:has(div.memote-accordion-item:not([style*="di
 .tab-pane.show {
   display: block;
 }
+
+.search-ul {
+  list-style-type: circle;
+  margin-top: 1rem !important;
+}
+.card-intro {
+  border-bottom: 1px solid var(--bs-secondary-border-subtle) !important;
+  background: var(--bs-card-cap-bg) !important;
+  padding: 1rem !important;
+  font-size: 1rem !important; 
+  font-weight: 300 !important;
+  margin-bottom: 0.5rem !important;
+}
+div.card-header:has(+div.card-intro) {
+  border-bottom: none !important;
+}
+

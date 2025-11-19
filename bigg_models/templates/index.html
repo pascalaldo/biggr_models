@@ -1,3 +1,26 @@
+{% macro highlighted_entity(base_url, bigg_id, extra=none) %}
+<a class="list-group-item list-group-item-action" href="{{base_url}}{{bigg_id}}">{{bigg_id}}{% if extra %} <small><i>({{extra}})</i></small>{% endif %}</a>
+{% endmacro %}
+{% macro homepage_card(title, icon, url) %}
+  <div class="col-md-4 mb-3">
+    <div class="card">
+    <div class="ps-4 pe-4 pt-1 pb-1 fw-semibold fs-5 border-bottom border-1 border-secondary-subtle position-relative"><a href="{{url}}" class="d-block stretched-link text-reset text-decoration-none">{{title}}</a></div>
+      <div class="row g-0">
+        <div class="col-4 position-relative d-flex flex-column justify-content-center">
+        <a href="{{url}}" class="stretched-link">
+        <img class="img-fluid rounded-start w-100" src="/static/assets/iconset.svg#{{icon}}">
+        </a>
+        </div>
+        <div class="col-8">
+            <div class="list-group list-group-flush border-start border-1 border-secondary-subtle h-100">
+              {{ caller(url) }}
+          <a href="{{url}}" class="list-group-item list-group-item-action h-100 text-center link link-primary fw-semibold d-flex flex-column justify-content-center">All {{title}}</a>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endmacro %}
 {%- set homepage = True -%}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="auto">
@@ -8,6 +31,7 @@
   <meta name="description" content="">
   <meta name="author" content="Pascal Pieters">
   <title>{% block title %}BiGGr Models{% endblock %}</title>
+  <script src="/static/js/bootstrap.bundle.min.js"></script>
   <script src="/static/js/color-modes.js"></script>
   <meta name="theme-color" content="#712cf9">
   {% include "general_style.html" %}
@@ -33,74 +57,47 @@
           </div>
         </div>
       </div>
-      <div class="row">
-        <div class="col-md-4">
-          <div class="card bg-primary-subtle mb-3">
-            <div class="card-header">
-              <h5 class="card-title">Collections</h5>
-            </div>
-            <div class="card-body text-center">
-              <a href="/collections/" class="btn btn-info">Browse collections</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-primary-subtle mb-3">
-            <div class="card-header">
-              <h5 class="card-title">Models</h5>
-            </div>
-            <div class="card-body text-center">
-              <a href="/models/" class="btn btn-info">Browse models</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-primary-subtle mb-3">
-            <div class="card-header">
-              <h5 class="card-title">Metabolites</h5>
-            </div>
-            <div class="card-body text-center">
-              <a href="/universal/metabolites/" class="btn btn-info">Browse metabolites</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-primary-subtle mb-3">
-            <div class="card-header">
-              <h5 class="card-title">Reactions</h5>
-            </div>
-            <div class="card-body text-center">
-              <a href="/universal/reactions/" class="btn btn-info">Browse reactions</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-primary-subtle mb-3">
-            <div class="card-header">
-              <h5 class="card-title">Genomes</h5>
-            </div>
-            <div class="card-body text-center">
-              <a href="/genomes/" class="btn btn-info">Browse genomes</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-primary-subtle mb-3">
-            <div class="card-header">
-              <h5 class="card-title">Compartments</h5>
-            </div>
-            <div class="card-body text-center">
-              <a href="/compartments/" class="btn btn-info">Browse compartments</a>
-            </div>
-          </div>
-        </div>
 
+      <div class="row">
+        {% call(url) homepage_card("Collections", "collection_L", "/collections/") %}
+          {{ highlighted_entity(url, "iECx6", extra="E. coli") }}
+          {{ highlighted_entity(url, "iML1515", extra="E. coli MG1655") }}
+        {% endcall %}
+         
+        {% call(url) homepage_card("Models", "model_L", "/models/") %}
+          {{ highlighted_entity(url, "iML1515", extra="E. coli MG1655") }}
+          {{ highlighted_entity(url, "iMM904", extra="S. cereviseae S288S") }}
+          {{ highlighted_entity(url, "iPC815", extra="Y. pestis CO92") }}
+        {% endcall %}
+
+        {% call(url) homepage_card("Metabolites", "molecule_smallmolecule_L", "/universal/metabolites/") %}
+          {{ highlighted_entity(url, "glc__D", extra="D-glucopyranose") }}
+          {{ highlighted_entity(url, "atp", extra="ATP") }}
+          {{ highlighted_entity(url, "arg__L", extra="L-Arginine") }}
+        {% endcall %}
+
+        {% call(url) homepage_card("Reactions", "reaction_L", "/universal/reactions/") %}
+          {{ highlighted_entity(url, "ATPM", extra="ATP Mainenance") }}
+          {{ highlighted_entity(url, "ALLTN", extra="Allantoinase") }}
+          {{ highlighted_entity(url, "ARGDC", extra="Arg. Decarboxylase") }}
+        {% endcall %}
+
+        {% call(url) homepage_card("Genomes", "genome_L", "/genomes/") %}
+          {{ highlighted_entity(url, "ATPM", extra="ATP Mainenance") }}
+          {{ highlighted_entity(url, "ALLTN", extra="Allantoinase") }}
+          {{ highlighted_entity(url, "ARGDC", extra="Arg. Decarboxylase") }}
+        {% endcall %}
+
+        {% call(url) homepage_card("Compartments", "compartment_L", "/compartments/") %}
+          {{ highlighted_entity(url, "c", extra="Cytosol") }}
+          {{ highlighted_entity(url, "p", extra="Periplasm") }}
+          {{ highlighted_entity(url, "e", extra="Extracellular Space") }}
+        {% endcall %}
       </div>
     </div>
     {% endblock %}
     </div>
   </main>
-  <script src="/static/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

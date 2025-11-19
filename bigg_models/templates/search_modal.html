@@ -1,0 +1,135 @@
+
+{% macro search_namespace(namespace, is_auto=false) -%}
+<a class="link-success" href="#" onclick="insertNamespace('{{namespace}}');">{{namespace}}</a>{% if is_auto %} (<i>auto</i>){% endif %}
+{%- endmacro %}
+{% macro search_example(example, is_first=false) -%}
+{% if is_first %}<i>Ex: </i>{% endif %}<a class="link-secondary" href="#" onclick="replaceSearch('{{example}}');">{{example}}</a>
+{%- endmacro %}
+<div class="modal modal-fullscreen-md-down" id="search_modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+	<button type="button" class="btn btn-outline-warning me-2" data-bs-dismiss="modal"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+  <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+</svg></button>
+        <form class="d-flex w-100" role="search" action="/search/" method="get">
+	  <div class="input-group w-100"><input id="modal_search_input" value="{{search_query}}" name="search_query" class="form-control border-1 border-primary" type="text" placeholder="Search" aria-label="Search">
+            <button class="btn btn-outline-primary" type="submit">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="modal-body">
+	<p class="lead">Search for any model, metabolite or reaction by BiGG ID or name.</p>
+	<p>To search for entries linked to external identifiers, use the format <b class="fw-semibold">[namespace]:[identifier]</b>. Possible namespaces are: (<i>auto</i> indicates the the enitity type is automatically derived from the identifier.)
+	<div class="border border-1 rounded-3 border-secondary-subtle pt-2 pb-2">
+	  <ul class="search-ul">
+	    <li>
+	      {{ search_namespace("CHEBI", is_auto=true) }}
+	      <ul>
+		<li>
+		  {{ search_namespace("CHEBI") }}, 
+		</li>
+		<li>{{search_example('CHEBI:17790', is_first=true)}}
+		</li>
+	      </ul>
+	    </li>
+	    <li>
+	      {{ search_namespace("RHEA", is_auto=true) }}
+	      <ul>
+		<li>
+		  {{ search_namespace("RHEA") }}, 
+		</li>
+		<li>{{search_example('RHEA:16505', is_first=true)}}
+		</li>
+	      </ul>
+	    </li>
+
+	    <li>
+	      {{ search_namespace("seed", is_auto=true) }}
+	      <ul>
+		<li>Identifiers can also be entered directly.</li>
+		<li>
+		  {{ search_namespace("seed.compound") }}, 
+		  {{ search_namespace("seed.reaction") }}
+		</li>
+		<li>{{search_example('cpd00023', is_first=true)}}, 
+		    {{search_example('seed:cpd00023')}},
+		    {{search_example('seed.reaction:rxn00126')}}, 
+		</li>
+	      </ul>
+	    </li>
+	    <li>
+	      {{ search_namespace("kegg", is_auto=true) }}
+	      <ul>
+		<li>
+		  {{ search_namespace("kegg.compound") }}, 
+		  {{ search_namespace("kegg.reaction") }}
+		</li>
+		<li>{{search_example('kegg.compound:C00062', is_first=true)}}, 
+		    {{search_example('kegg:R01086')}}, 
+		</li>
+	      </ul>
+	    </li>
+	    <li>
+	      {{ search_namespace("metacyc", is_auto=true) }}
+	      <ul>
+		<li>
+		  {{ search_namespace("metacyc.compound") }}, 
+		  {{ search_namespace("metacyc.reaction") }}
+		</li>
+		<li>{{search_example('metacyc:VAL', is_first=true)}}, 
+		    {{search_example('metacyc:BRANCHED-CHAINAMINOTRANSFERVAL-RXN')}}, 
+		</li>
+	      </ul>
+	    </li>
+	    <li>
+	      {{ search_namespace("metanetx", is_auto=true) }}
+	      <ul>
+		<li>Identifiers can also be entered directly.</li>
+		<li>
+		  {{ search_namespace("metanetx.chemical") }}, 
+		  {{ search_namespace("metanetx.reaction") }}
+		</li>
+		<li>
+		  {{search_example('metanetx:MNXR100289', is_first=true)}}, 
+		  {{search_example('MNXR100289')}}, 
+		</li>
+	      </ul>
+	    </li>
+
+	  </ul>
+	</div>
+	</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const searchModal = document.getElementById('search_modal')
+const searchModalOptions = {backdrop: true, focus: true, keyboard: true};
+const bootstrapSearchModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("search_modal"), searchModalOptions);
+
+const searchInput = document.getElementById('modal_search_input')
+
+searchModal.addEventListener('shown.bs.modal', () => {
+  searchInput.focus();
+});
+
+const insertNamespace = function(namespace) {
+  searchInput.value = namespace + ":" + searchInput.value;
+  searchInput.focus();
+  var event = new Event('change');
+  searchInput.dispatchEvent(event);
+};
+const replaceSearch = function(search_text) {
+  searchInput.value = search_text;
+  searchInput.focus();
+  var event = new Event('change');
+  searchInput.dispatchEvent(event);
+};
+</script>
