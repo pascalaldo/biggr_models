@@ -9,8 +9,18 @@
 <script>
 let report_search_count = function(table_id, recordsTotal) {
 	if (recordsTotal === 0) {
-		$("#col-" + table_id).hide();
-		$("#button-" + table_id).addClass('disabled');
+		//$("#col-" + table_id).hide();
+		$("#button-" + table_id).prop('disabled', true);
+		if ($("#button-" + table_id).hasClass('active')) {
+			let first_enabled = $('#search_tabs > li > button:not([disabled])').first();
+			if (first_enabled.length === 0) {
+				$('#no-results').removeClass('d-none');
+				$('#search_row_container .tab-pane').hide();
+				$('#search_tabs > li > button').removeClass('active');
+			} else {
+				bootstrap.Tab.getOrCreateInstance(first_enabled).show()
+			}
+		}
 	}
 	$("#button-badge-" + table_id).text(recordsTotal);
 };
@@ -18,8 +28,8 @@ let report_search_count = function(table_id, recordsTotal) {
 </script>
 {% endblock %}
 {% block body %}
-<div class="row">
-	<div class="col-12 mb-2">
+<div class="row justify-content-center">
+	<div class="col-12 col-lg-8 pt-lg-4 pb-lg-4 mb-2">
 		<form class="d-flex" role="search" action="/search/" method="get">
 			<div class="input-group"><input name="search_query"
 					class="form-control border-1 border-primary" type="text"
@@ -34,23 +44,29 @@ let report_search_count = function(table_id, recordsTotal) {
 			</div>
 		</form>
 	</div>
+
+</div>
+<div class="row" id="search_row_container">
 	<div class="col-12 mb-4">
-	{% for result_type in result_types %}
-		<a href="#col-{{result_type.id}}_search" id="button-{{result_type.id}}_search" class="btn btn-outline-primary" type="button">{{ result_type.title }} <span class="badge text-bg-secondary" id="button-badge-{{result_type.id}}_search">...</span></a>
+		<ul class="nav nav-tabs" id="search_tabs" role="tablist">
+		{% for result_type in result_types %}
+			<li class="nav-item" role="presentation">
+				<button id="button-{{result_type.id}}_search" class="nav-link{% if loop.first %} active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-pane-{{result_type.id}}_search" type="button" role="tab" aria-controls="tab-pane-{{result_type.id}}_search" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">{{ result_type.title }} <span class="badge text-bg-secondary" id="button-badge-{{result_type.id}}_search">...</span></button>
+			</li>
 	{% endfor %}
+		</ul>
+	</div>
+	<div id="no-results" class="col-12 mb-2 d-none">
+		<h5>No results for search query.</h5>
 	</div>
 	{% for result_type in result_types %}
-	<div id="col-{{result_type.id}}_search" class="col-12">
-		<div class="card mb-3 pb-2">
-			<div class="card-header">
-				<h5 class="card-title">{{result_type.title}}</h5>
-			</div>
-			<div class="card-body p-0">
-				{{ tables.data_table(result_type.id ~ "_search", result_type.columns, result_type.data_url,
-				result_type.row_icon, is_search=true, highlight=search_query) }}
-			</div>
+	<div id="tab-pane-{{result_type.id}}_search" role="tabpanel" class="col-12 tab-pane fade {% if loop.first %}show active{% endif %}" aria-labelledby="button-{{result_type.id}}_search" tabindex="0">{% if result_type.message %}<div class="w-100"><p class="lead p-4">{{result_type.message}}</p></div>{% endif %}
+			{{ tables.data_table(result_type.id ~ "_search", result_type.columns, result_type.data_url,
+			result_type.row_icon, is_search=true, highlight=search_query) }}
 		</div>
-	</div>
 	{% endfor %}
 </div>
+<script>
+const search_tabs = new bootstrap.Tab('#search_tabs')
+</script>
 {% endblock %}

@@ -138,9 +138,16 @@ def get_search_list(
 ):
     subqueries = []
     main_prop = column_specs[0].prop
-    score_i = 0
-    for score_mode in ["startswith", "contains"]:
-        for x in column_specs:
+
+    for col_i, x in enumerate(column_specs):
+        score_modes = ["startswith", "contains"]
+        if x.search_query_exact_match:
+            score_modes = ["exact"]
+
+        for score_mode_i, score_mode in enumerate(score_modes):
+            if not x.apply_search_query:
+                continue
+            score_i = score_mode_i * len(column_specs) + col_i
             cte_query = select(
                 main_prop.label("score_id"),
                 sql_functions.sum(literal(10 ** (-score_i))).label("score"),
@@ -148,10 +155,17 @@ def get_search_list(
             for y in x.requires:
                 cte_query = cte_query.join(y)
 
+            col_search_query = search_query
+            if x.search_query_remove_namespace:
+                if ":" in col_search_query:
+                    _, col_search_query = col_search_query.split(":", maxsplit=1)
+
             if score_mode == "startswith":
-                cte_query = cte_query.filter(x.prop.istartswith(search_query))
+                cte_query = cte_query.filter(x.prop.istartswith(col_search_query))
+            elif score_mode == "contains":
+                cte_query = cte_query.filter(x.prop.icontains(col_search_query))
             else:
-                cte_query = cte_query.filter(x.prop.icontains(search_query))
+                cte_query = cte_query.filter(x.prop == col_search_query)
 
             cte_query = cte_query.group_by("score_id")
             cte_query = cte_query.subquery()

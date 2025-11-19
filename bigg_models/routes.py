@@ -162,9 +162,36 @@ def get_routes():
             name="search_metabolites",
         ),
         url(
+            api_regex + r"/search/metabolites_ref/(?P<search_query>.*)$",
+            advanced_search_handlers.MetaboliteReferenceSearchHandler,
+            name="search_metabolites_via_reference",
+        ),
+        url(
+            api_regex
+            + r"/search/metabolites_ann/(?P<data_source>.*)/(?P<search_query>.*)$",
+            advanced_search_handlers.MetaboliteAnnotationSearchHandler,
+            name="search_metabolites_via_annotation",
+        ),
+        url(
             api_regex + r"/search/reactions/(?P<search_query>.*)$",
             advanced_search_handlers.UniversalReactionSearchHandler,
             name="search_reactions",
+        ),
+        url(
+            api_regex + r"/search/reactions_ref/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalReactionReferenceSearchHandler,
+            name="search_reactions_via_reference",
+        ),
+        url(
+            api_regex
+            + r"/search/reactions_ann/(?P<data_source>.*)/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalReactionAnnotationSearchHandler,
+            name="search_reactions_via_annotation",
+        ),
+        url(
+            api_regex + r"/search/models/(?P<search_query>.*)$",
+            advanced_search_handlers.ModelSearchHandler,
+            name="search_models",
         ),
         (r"/api/%s/search$" % utils.api_v, search_handlers.SearchHandler),
         (

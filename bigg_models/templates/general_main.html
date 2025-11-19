@@ -12,6 +12,7 @@
 	<link rel="icon" type="image/png" sizes="16x16" href="/static/assets/favicon/favicon-16x16.png">
 	<link rel="manifest" href="/static/assets/favicon/site.webmanifest">
 	<title>{% block title %}BiGGr{% endblock %}</title>
+	<script src="/static/js/bootstrap.bundle.min.js"></script>
 	<script src="/static/js/color-modes.js"></script>
 	<meta name="theme-color" content="#712cf9">
 	{% include "general_style.html" %}
@@ -28,7 +29,6 @@
 			{% endblock %}
 		</div>
 	</main>
-	<script src="/static/js/bootstrap.bundle.min.js"></script>
 	<script>
 		const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
 		const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))

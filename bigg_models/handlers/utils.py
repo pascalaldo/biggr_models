@@ -407,6 +407,9 @@ class DataColumnSpec:
         global_search: bool = True,
         hyperlink: Optional[str] = None,
         search_type: str = "str",
+        apply_search_query: bool = True,
+        search_query_exact_match: bool = False,
+        search_query_remove_namespace: bool = False,
     ):
         self.prop = prop
         self.identifier: str = str(prop).lower().replace(".", "__")
@@ -435,6 +438,9 @@ class DataColumnSpec:
         self.order_priority: Optional[int] = None
         self.order_asc: bool = True
         self.hyperlink = hyperlink
+        self.apply_search_query = apply_search_query
+        self.search_query_exact_match = search_query_exact_match
+        self.search_query_remove_namespace = search_query_remove_namespace
 
     def search(self, query):
         if self.search_value != "":

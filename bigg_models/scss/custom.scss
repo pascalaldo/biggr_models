@@ -141,3 +141,10 @@ div.memote-category-accordion:not(:has(div.memote-accordion-item:not([style*="di
 .highlight {
   background: var(--#{$prefix}info-bg-subtle);
 }
+
+.tab-pane {
+  display: none;
+}
+.tab-pane.show {
+  display: block;
+}
