@@ -63,6 +63,11 @@ def get_routes():
             metabolite_handlers.UniversalMetaboliteListViewHandler,
             name="metabolites",
         ),
+        url(
+            api_regex + r"/universal/metabolite_in_models/(?P<bigg_id>[^/]+)/?$",
+            metabolite_handlers.MetaboliteInModelsListViewHandler,
+            name="metabolites_for_model",
+        ),
         #
         (
             r"/(?:api/%s/)?(?:models/)?universal/metabolites/([^/]+)/?$" % utils.api_v,
@@ -128,6 +133,12 @@ def get_routes():
             api_regex + r"/models/(?P<model_bigg_id>[^/]+)/metabolites/?$",
             metabolite_handlers.MetaboliteListViewHandler,
             name="model_metabolites",
+        ),
+        url(
+            api_regex
+            + r"/models/(?P<model_bigg_id>[^/]+)/metabolite_in_reactions/(?P<bigg_id>[^/]+)/?$",
+            metabolite_handlers.MetaboliteInReactionsListViewHandler,
+            name="model_reactions_for_model_metabolite",
         ),
         url(
             api_regex + r"/models/(?P<model_bigg_id>[^/]+)/genes/?$",

@@ -83,9 +83,9 @@
         {% endcall %}
 
         {% call(url) homepage_card("Genomes", "genome_L", "/genomes/") %}
-          {{ highlighted_entity(url, "ATPM", extra="ATP Mainenance") }}
-          {{ highlighted_entity(url, "ALLTN", extra="Allantoinase") }}
-          {{ highlighted_entity(url, "ARGDC", extra="Arg. Decarboxylase") }}
+          {{ highlighted_entity(url ~ "ncbi_assembly:", "GCF_000005845.2") }}
+          {{ highlighted_entity(url ~ "ncbi_assembly:", "GCF_000009065.1") }}
+          {{ highlighted_entity(url ~ "ncbi_assembly:", "GCF_000146045.2") }}
         {% endcall %}
 
         {% call(url) homepage_card("Compartments", "compartment_L", "/compartments/") %}

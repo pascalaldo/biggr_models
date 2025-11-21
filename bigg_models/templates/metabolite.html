@@ -1,43 +1,129 @@
 {% extends "general_main.html" %}
 {% import "general_card_macros.html" as cards %}
 {% import "general_table_macros.html" as tables %}
-{% block title %}BiGG Metabolite {{bigg_id}} in {{model_bigg_id}}{% endblock %}
+{% block title %}BiGG Metabolite {{bigg_id}} in {{model.bigg_id}}{% endblock %}
+{% block head %}
+<link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.css" rel="stylesheet"
+	integrity="sha384-RqJtgepBGtU0p2QrKr7V6ktj9xhjmruqRUBkoNgZSdyNDI9FYHUwbaapY3jgsx7a" crossorigin="anonymous">
+<script src="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.js"
+	integrity="sha384-LFoikRctTHRCzOQ2ubrUfFQlhXMtaj7g32RRDMk2UVJFlHlk/s3w8xMOPB5t92MP"
+	crossorigin="anonymous"></script>
+	<script src="/static/js/biggr_datatables.js"></script>
+{% endblock %}
 {% block body %}
+
+<div class="row rounded-2 border-start border-2 border-primary pt-3 mb-3 bg-primary bg-opacity-10">
+    {% call(is_title) cards.entity_card(none, "molecule_smallmolecule_L") %}
+      {% if is_title %}
+  {{ comp_comp.bigg_id | format_id("comp_comp") }} <span class="text-reset fw-normal ps-2 pe-2">in</span> <a class="text-decoration-none fw-normal" href="/models/{{model.bigg_id}}">{{model.bigg_id}}</a>
+      {% else %}
+      {% call cards.flush_list_group() %}
+    {% if component.name is not none %}{{ cards.flush_list_group_item(value=component.name, accent=False) }}{% endif %}
+        {{ cards.flush_list_group_item("Charge", component.charge) }}
+        {{ cards.flush_list_group_item("Formula", component.formula) }}
+  {{ cards.flush_list_group_item("Compartment", compartment.bigg_id ~ " - " ~ compartment.name, link="/compartments/" ~ compartment.bigg_id) }}
+      {% endcall %}
+      {% endif %}
+    {% endcall %}
+
+    {% if references | length == 1 %}
+    {% set reference = references[0] %}
+    {% call(is_title) cards.entity_card(reference.bigg_id | format_reference, "reference_L") %}
+      {% call cards.flush_list_group() %}
+    {% if reference.name is not none %}{{ cards.flush_list_group_item(value=reference.name) }}{% endif %}
+      {{ cards.flush_list_group_item(label="Type", value=reference.type) }}
+      {% if not reference.bigg_id.startswith("CHEBI:") %}
+        {{ cards.flush_list_group_item(label="Charge", value=reference.charge) }}
+        {{ cards.flush_list_group_item(label="Formula", value=reference.formula) }}
+      {% endif %}
+       {{ general.inchi_key_list_item(reference.inchi) }}
+      {% if reference.bigg_id.startswith('CHEBI:') %}
+        {% set chebi_link -%}http://identifiers.org/{{reference.bigg_id}}{%- endset %}
+        {{ cards.flush_list_group_item(value="View on ChEBI", link=chebi_link) }}
+      {% endif %}
+      {% endcall %}
+    {% endcall %}
+
+    {% elif references|length > 1 %}
+    {% call(is_title) cards.entity_card(none, "reference_L") %}
+    {% if is_title %}
+  <ul class="nav d-flex flex-row" id="reference_tab_list_{{component.id}}" role="tablist">
+    {% for reference in references %}
+      <li class="card-title-tab flex-fill position-relative" role="presentation">
+      <a class="text-reset text-decoration-none text-center stretched-link d-block w-100{% if reference.id == references[0]["id"] %} active{% endif %}" id="reference_tab_{{reference.id}}" data-bs-toggle="tab" data-bs-target="#reference_tab_pane_{{reference.id}}" type="button" role="tab" aria-controls="reference_tab_pane_{{reference.id}}" aria-selected="{% if reference.id == references[0]["id"] %}true{% else %}false{% endif %}}">{{reference.bigg_id | format_reference()}}</a>
+      </li>
+    {% endfor %}
+    </ul>
+    {% else %}
+  <div class="tab-content" id="reference_tabs_{{component.id}}">
+    {% for reference in references %}
+      <div class="tab-pane {% if reference.id == references[0]["id"] %} show active{% endif %}" aria-labelledby="reference_tab_{{reference.id}}" id="reference_tab_pane_{{reference.id}}" role="tabpanel" tabindex="0">
+      {% call cards.flush_list_group() %}
+    {% if reference.name is not none %}{{ cards.flush_list_group_item(value=reference.name) }}{% endif %}
+      {{ cards.flush_list_group_item(label="Type", value=reference.type) }}
+      {% if not reference.bigg_id.startswith("CHEBI:") %}
+        {{ cards.flush_list_group_item(label="Charge", value=reference.charge) }}
+        {{ cards.flush_list_group_item(label="Formula", value=reference.formula) }}
+      {% endif %}
+       {{ general.inchi_key_list_item(reference.inchi) }}
+      {% if reference.bigg_id.startswith('CHEBI:') %}
+        {% set chebi_link -%}http://identifiers.org/{{reference.bigg_id}}{%- endset %}
+        {{ cards.flush_list_group_item(value="View on ChEBI", link=chebi_link) }}
+      {% endif %}
+      {% endcall %}
+      </div>
+    {% endfor %}
+    </div>
+    {% endif %}
+    {% endcall %}
+    {% endif %}
+    {% if annotation_properties %}
+      <div class="col-md-6">
+        <div class="card mb-3 bg-transparent"> 
+      <div class="card-header"><h6 class="card-title">Properties</h6></div>
+        <ul class="list-group list-group-flush rounded-1 bg-transparent">
+          {% for prop_key, prop_info in annotation_properties.items() %}
+            <li class="list-group-item bg-transparent"><b>{{prop_key}}: </b>
+              {% for prop_val, prop_sources in prop_info.items() %}
+        <span>{{prop_val}}<sup>[{{ prop_sources | join(",") }}]</sup></span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      <div class="card-footer small"><b>Data Sources: </b>{% for data_source in annotation_sources %}[{{loop.index0}}] {{data_source[1]}} via {{data_source[0]}}{% if not loop.last %}, {% endif %}{% endfor%}</div>
+      </div>
+      </div>
+    {% endif %}
+    {% if annotation_linkouts %}
+      <div class="col-md-6">
+        <div class="card mb-3 bg-transparent"> 
+      <div class="card-header"><h6 class="card-title">Linkouts</h6></div>
+        <ul class="list-group list-group-flush rounded-1 bg-transparent">
+          {% for linkout_key, linkout_info in annotation_linkouts.items() %}
+            <li class="list-group-item bg-transparent"><b>{{linkout_key}}: </b>
+              {% for linkout_val, (linkout_url, linkout_sources) in linkout_info.items() %}
+          <span>{{general.external_link(linkout_val, linkout_url)}}<sup>[{{ linkout_sources | join(",") }}]</sup></span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      <div class="card-footer small"><b>Data Sources: </b>{% for data_source in annotation_sources %}[{{loop.index0}}] {{data_source[1]}} via {{data_source[0]}}{% if not loop.last %}, {% endif %}{% endfor%}</div>
+      </div>
+      </div>
+    {% endif %}
+
+  </div>
 <div class="row">
-  <div class="col-12">
-    {% call cards.item_and_reference("molecule_smallmolecule_L", "Small molecule", "reference_metabolite_ui.html",
-    references, "linkouts_metabolite_ui.html", all_annotations) %}
-    <div class="card-body">
-      <h5 class="card-title">{{bigg_id | format_id("comp_comp")}}</h5>
-      {% if name %}<p class="card-text">{{name}}</p>{% endif %}
-      {% if collection_specific %}<div class="alert alert-primary mt-1 mb-0 p-1 ps-2 pe-2">This is a non-standardized
-        entry, specific to this model collection.</div>{% endif %}
-    </div>
-    {% call cards.flush_list_group(accent=True) %}
-    {{ cards.flush_list_group_item("Model", model_bigg_id, "/models/"~model_bigg_id, accent=True) }}
-    {{ cards.flush_list_group_item("Compartment", compartment_bigg_id~" - "~compartment_name, accent=True) }}
-    {{ cards.flush_list_group_item("Charge", charge, accent=True) }}
-    {{ cards.flush_list_group_item("Formula", formula, accent=True) }}
-    {{ cards.flush_list_group_item("Universal Metabolite", universal_id, link="/universal/metabolites/"~universal_id,
-    accent=True) }}
-    {% endcall %}
-    {% endcall %}
-  </div>
-  <div class="col-12">
-    <div class="card mb-3">
-      <div class="card-header">
-        <h5 class="mb-0">Reactions in model</h5>
-      </div>
-      <div class="card-body p-0">
-        {% call(reaction) tables.simple_table(["&nbsp;", "BiGG ID", "Name"], reactions) %}
-        {% set link -%}/models/{{model_bigg_id}}/reactions/{{reaction['bigg_id']}}{%- endset %}
-        <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#reaction_S"
-              style="height: 1em;" /></a></td>
-        <td><a href="{{link}}" class="d-block">{{reaction['bigg_id'] | format_id("reaction") }}</a></td>
-        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{reaction['name']}}</a></td>
-        {% endcall %}
-      </div>
-    </div>
-  </div>
+	<div class="col-12">
+		<div class="card mb-3 pb-2">
+			<div class="card-header">
+        <h5 class="card-title">Reactions involving {{bigg_id}} in {{model.bigg_id}}</h5>
+			</div>
+			<div class="card-body p-0">
+				{{ tables.data_table("listview", metabolite_in_reactions_columns, metabolite_in_reactions_url, "reaction_S") }}
+			</div>
+		</div>
+	</div>
 </div>
+
 {% endblock %}

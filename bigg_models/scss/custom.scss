@@ -166,4 +166,12 @@ div.memote-category-accordion:not(:has(div.memote-accordion-item:not([style*="di
 div.card-header:has(+div.card-intro) {
   border-bottom: none !important;
 }
-
+li.card-title-tab:not(:last-child) {
+  border-right: 1px solid var(--bs-secondary-border-subtle) !important;
+}
+li.card-title-tab > a {
+  opacity: 0.5;
+}
+li.card-title-tab > a.active {
+  opacity: 1;
+}
