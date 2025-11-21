@@ -6,7 +6,7 @@ from os import path
 
 class ModelsListViewHandler(utils.DataHandler):
     title = "Models"
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             Model.bigg_id, "BiGG ID", hyperlink="/models/${row['model__bigg_id']}"
         ),
@@ -53,8 +53,9 @@ class ModelsListViewHandler(utils.DataHandler):
 class ModelCollectionHandler(utils.DataHandler):
     title = "Models in Collection"
     collection_bigg_id = None
+    page_data = {"row_icon": "model_S"}
 
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             Model.bigg_id, "BiGG ID", hyperlink="/models/${row['model__bigg_id']}"
         ),

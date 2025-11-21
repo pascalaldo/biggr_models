@@ -458,7 +458,7 @@ def get_metabolite(met_bigg_id, session):
 
     metabolite_in_models_url = f"/universal/metabolite_in_models/{result_db[0]}"
     metabolite_in_models_columns = (
-        metabolite_handlers.MetaboliteInModelsListViewHandler.columns
+        metabolite_handlers.MetaboliteInModelsListViewHandler.column_specs
     )
 
     return {
@@ -605,7 +605,7 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
 
     metabolite_in_reactions_url = f"/models/{model_comp_comp_db.model.bigg_id}/metabolite_in_reactions/{model_comp_comp_db.bigg_id}"
     metabolite_in_reactions_columns = (
-        metabolite_handlers.MetaboliteInReactionsListViewHandler.columns
+        metabolite_handlers.MetaboliteInReactionsListViewHandler.column_specs
     )
 
     return {

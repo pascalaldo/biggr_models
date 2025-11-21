@@ -22,7 +22,7 @@ import re
 
 class UniversalMetaboliteListViewHandler(utils.DataHandler):
     title = "Universal Metabolites"
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             UniversalComponent.bigg_id,
             "BiGG ID",
@@ -67,7 +67,7 @@ class UniversalMetaboliteHandler(utils.BaseHandler):
 class MetaboliteListViewHandler(utils.DataHandler):
     title = "Metabolites"
     model_bigg_id: Optional[str] = None
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             ModelCompartmentalizedComponent.bigg_id,
             "BiGG ID",
@@ -143,7 +143,7 @@ class MetaboliteInModelsListViewHandler(utils.DataHandler):
     page_data = {
         "row_icon": "model_S",
     }
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             ModelCompartmentalizedComponent.bigg_id,
             "BiGG ID",
@@ -191,7 +191,7 @@ class MetaboliteInReactionsListViewHandler(utils.DataHandler):
     page_data = {
         "row_icon": "reaction_S",
     }
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             ModelReaction.bigg_id,
             "BiGG ID",

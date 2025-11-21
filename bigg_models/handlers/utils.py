@@ -326,13 +326,13 @@ def _interpret_asc(input: str) -> bool:
     return input.upper() == "ASC"
 
 
-def col_str_search(query, col_spec: "DataColumnSpec"):
+def col_str_search(query, col_spec: "DataColumn"):
     if (search_value := col_spec.search_value.strip()) == "":
         return False, query
     return True, query.filter(col_spec.prop.contains(search_value, autoescape=True))
 
 
-def col_bool_search(query, col_spec: "DataColumnSpec"):
+def col_bool_search(query, col_spec: "DataColumn"):
     if (search_value := col_spec.search_value.strip()) == "":
         return False, query
     value_as_bool = search_value.upper() == "TRUE"
@@ -430,17 +430,25 @@ class DataColumnSpec:
         elif requires is not None:
             self.requires.append(requires)
 
-        self.searchable: bool = True
-        self.orderable: bool = True
-        self.search_value: str = ""
-        self.search_regex: bool = False
         self.search_type = search_type
-        self.order_priority: Optional[int] = None
-        self.order_asc: bool = True
         self.hyperlink = hyperlink
         self.apply_search_query = apply_search_query
         self.search_query_exact_match = search_query_exact_match
         self.search_query_remove_namespace = search_query_remove_namespace
+
+
+class DataColumn:
+    def __init__(self, spec: DataColumnSpec):
+        self.spec = spec
+        self.search_value: str = ""
+        self.order_priority: Optional[int] = None
+        self.order_asc: bool = True
+        self.search_regex: bool = False
+        self.searchable: bool = True
+        self.orderable: bool = True
+
+    def __getattr__(self, name):
+        return getattr(self.spec, name)
 
     def search(self, query):
         if self.search_value != "":
@@ -478,7 +486,8 @@ _TD = TypeVar("_TD")
 class DataHandler(BaseHandler):
     template = env.get_template("data_table.html")
     title = None
-    columns: List[DataColumnSpec] = []
+    column_specs: List[DataColumnSpec] = []
+    columns: List[DataColumn] = []
     start: int = 0
     length: Optional[int] = None
     draw: Optional[int] = None
@@ -489,6 +498,7 @@ class DataHandler(BaseHandler):
     page_data: Optional[Dict[str, Any]] = None
 
     def initialize(self, **kwargs):
+        self.columns = [DataColumn(col_spec) for col_spec in self.column_specs]
         self.name = kwargs.get("name")
 
     def breadcrumbs(self) -> Any:

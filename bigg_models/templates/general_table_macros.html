@@ -38,7 +38,7 @@
 	<thead>
 		<tr>
 			{% if row_icon %}
-			<th>&nbsp;</th>
+		<th>&nbsp;</th>
 			{% endif %}
 			{% for column in columns %}
 			<th>{{column.name}}</th>
@@ -60,6 +60,7 @@
 	let select_cols_{{table_id}} = {{columns | selectattr('search_type', 'equalto', 'bool') | map(attribute = 'identifier') | list() | tojson()}};
 	let table_{{table_id}} = new DataTable('#data_table_{{table_id}}', {
 		{%if is_search %}order: [], {% elif row_icon %}order: [[1, 'asc']], {% endif %}
+		responsive: true,
 		ajax: {
 			url: '{{data_url}}',
 			type: 'POST'

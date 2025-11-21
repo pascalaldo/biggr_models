@@ -52,8 +52,11 @@ DATA_SOURCE_IDS = {
     "metanetx.reaction": utils.do_safe_query(get_data_source_id, "metanetx.reaction"),
 }
 
-SEARCH_COLSPECS = {
-    "UNIVERSAL_COMPONENT": [
+
+class UniversalMetaboliteSearchHandler(utils.DataHandler):
+    title = "Universal Metabolites"
+    search_query: str = ""
+    column_specs = [
         utils.DataColumnSpec(
             UniversalComponent.bigg_id,
             "BiGG ID",
@@ -84,52 +87,25 @@ SEARCH_COLSPECS = {
                 Annotation.properties.and_(AnnotationProperty.key == "name"),
             ],
         ),
-    ],
-    "UNIVERSAL_REACTION": [
-        utils.DataColumnSpec(
-            UniversalReaction.bigg_id,
-            "BiGG ID",
-            hyperlink="/universal/reactions/${row['universalreaction__bigg_id']}",
-        ),
-        utils.DataColumnSpec(
-            UniversalReaction.name,
-            "Name",
-        ),
-        utils.DataColumnSpec(
-            AnnotationProperty.value_str,
-            "Synonyms",
-            agg_func=agg_strings,
-            # process=process_string_array,
-            requires=[
-                UniversalReaction.reactions,
-                Reaction.annotation_mappings,
-                ReactionAnnotationMapping.annotation,
-                Annotation.properties.and_(AnnotationProperty.key == "name"),
-            ],
-        ),
-    ],
-    "MODEL": [
-        utils.DataColumnSpec(
-            Model.bigg_id,
-            "BiGG ID",
-            hyperlink="/models/${row['model__bigg_id']}",
-        ),
-        utils.DataColumnSpec(
-            Model.organism,
-            "Organism",
-        ),
-        utils.DataColumnSpec(
-            ModelCollection.bigg_id,
-            "Collection",
-            requires=[Model.collection],
-        ),
-        utils.DataColumnSpec(
-            ModelCollection.description,
-            "Collection Description",
-            requires=[Model.collection],
-        ),
-    ],
-    "COMPONENT_VIA_REFERENCE": [
+    ]
+
+    def pre_filter(self, query):
+        return query.filter(UniversalComponent.collection_id == None)
+
+    def post_filter(self, query):
+        return query.group_by(UniversalComponent.bigg_id)
+
+    def return_data(self, search_query, *args, **kwargs):
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
+
+
+class MetaboliteReferenceSearchHandler(utils.DataHandler):
+    title = "Metabolites via Reference"
+    search_query: str = ""
+    column_specs = [
         utils.DataColumnSpec(
             Component.bigg_id,
             "BiGG ID",
@@ -159,8 +135,26 @@ SEARCH_COLSPECS = {
             ],
             search_query_exact_match=True,
         ),
-    ],
-    "COMPONENT_VIA_ANNOTATION": [
+    ]
+
+    def pre_filter(self, query):
+        return query.filter(Component.collection_id == None)
+
+    def post_filter(self, query):
+        return query.group_by(Component.bigg_id)
+
+    def return_data(self, search_query, *args, **kwargs):
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
+
+
+class MetaboliteAnnotationSearchHandler(utils.DataHandler):
+    title = "Metabolites via Annotation"
+    search_query: str = ""
+    data_source: str = ""
+    column_specs = [
         utils.DataColumnSpec(
             Component.bigg_id,
             "BiGG ID",
@@ -191,8 +185,67 @@ SEARCH_COLSPECS = {
             ],
             search_query_exact_match=True,
         ),
-    ],
-    "UNIVERSAL_REACTION_VIA_REFERENCE": [
+    ]
+
+    def pre_filter(self, query):
+        return query.filter(Component.collection_id == None).filter(
+            AnnotationLink.data_source_id == DATA_SOURCE_IDS[self.data_source]
+        )
+
+    def post_filter(self, query):
+        return query.group_by(Component.bigg_id)
+
+    def return_data(self, search_query, *args, **kwargs):
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
+
+
+class UniversalReactionSearchHandler(utils.DataHandler):
+    title = "Universal Reactions"
+    search_query: str = ""
+    column_specs = [
+        utils.DataColumnSpec(
+            UniversalReaction.bigg_id,
+            "BiGG ID",
+            hyperlink="/universal/reactions/${row['universalreaction__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            UniversalReaction.name,
+            "Name",
+        ),
+        utils.DataColumnSpec(
+            AnnotationProperty.value_str,
+            "Synonyms",
+            agg_func=agg_strings,
+            # process=process_string_array,
+            requires=[
+                UniversalReaction.reactions,
+                Reaction.annotation_mappings,
+                ReactionAnnotationMapping.annotation,
+                Annotation.properties.and_(AnnotationProperty.key == "name"),
+            ],
+        ),
+    ]
+
+    def pre_filter(self, query):
+        return query.filter(UniversalReaction.collection_id == None)
+
+    def post_filter(self, query):
+        return query.group_by(UniversalReaction.bigg_id, UniversalReaction.name)
+
+    def return_data(self, search_query, *args, **kwargs):
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
+
+
+class UniversalReactionReferenceSearchHandler(utils.DataHandler):
+    title = "Reactions via Reference"
+    search_query: str = ""
+    column_specs = [
         utils.DataColumnSpec(
             UniversalReaction.bigg_id,
             "BiGG ID",
@@ -225,8 +278,26 @@ SEARCH_COLSPECS = {
             search_query_exact_match=True,
             search_query_remove_namespace=True,
         ),
-    ],
-    "UNIVERSAL_REACTION_VIA_ANNOTATION": [
+    ]
+
+    def pre_filter(self, query):
+        return query.filter(UniversalReaction.collection_id == None)
+
+    def post_filter(self, query):
+        return query.group_by(UniversalReaction.bigg_id)
+
+    def return_data(self, search_query, *args, **kwargs):
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
+
+
+class UniversalReactionAnnotationSearchHandler(utils.DataHandler):
+    title = "Reactions via Annotation"
+    search_query: str = ""
+    data_source: str = ""
+    column_specs = [
         utils.DataColumnSpec(
             UniversalReaction.bigg_id,
             "BiGG ID",
@@ -251,108 +322,7 @@ SEARCH_COLSPECS = {
             ],
             search_query_exact_match=True,
         ),
-    ],
-}
-
-
-class UniversalMetaboliteSearchHandler(utils.DataHandler):
-    title = "Universal Metabolites"
-    search_query: str = ""
-    columns = SEARCH_COLSPECS["UNIVERSAL_COMPONENT"]
-
-    def pre_filter(self, query):
-        return query.filter(UniversalComponent.collection_id == None)
-
-    def post_filter(self, query):
-        return query.group_by(UniversalComponent.bigg_id)
-
-    def return_data(self, search_query, *args, **kwargs):
-        data, total, filtered = self.data_query(
-            query_utils.get_search_list, search_query=search_query
-        )
-        self.write_data(data, total, filtered)
-
-
-class MetaboliteReferenceSearchHandler(utils.DataHandler):
-    title = "Metabolites via Reference"
-    search_query: str = ""
-    columns = SEARCH_COLSPECS["COMPONENT_VIA_REFERENCE"]
-
-    def pre_filter(self, query):
-        return query.filter(Component.collection_id == None)
-
-    def post_filter(self, query):
-        return query.group_by(Component.bigg_id)
-
-    def return_data(self, search_query, *args, **kwargs):
-        data, total, filtered = self.data_query(
-            query_utils.get_search_list, search_query=search_query
-        )
-        self.write_data(data, total, filtered)
-
-
-class MetaboliteAnnotationSearchHandler(utils.DataHandler):
-    title = "Metabolites via Annotation"
-    search_query: str = ""
-    data_source: str = ""
-    columns = SEARCH_COLSPECS["COMPONENT_VIA_ANNOTATION"]
-
-    def pre_filter(self, query):
-        return query.filter(Component.collection_id == None).filter(
-            AnnotationLink.data_source_id == DATA_SOURCE_IDS[self.data_source]
-        )
-
-    def post_filter(self, query):
-        return query.group_by(Component.bigg_id)
-
-    def return_data(self, search_query, *args, **kwargs):
-        data, total, filtered = self.data_query(
-            query_utils.get_search_list, search_query=search_query
-        )
-        self.write_data(data, total, filtered)
-
-
-class UniversalReactionSearchHandler(utils.DataHandler):
-    title = "Universal Reactions"
-    search_query: str = ""
-    columns = SEARCH_COLSPECS["UNIVERSAL_REACTION"]
-
-    def pre_filter(self, query):
-        return query.filter(UniversalReaction.collection_id == None)
-
-    def post_filter(self, query):
-        return query.group_by(UniversalReaction.bigg_id, UniversalReaction.name)
-
-    def return_data(self, search_query, *args, **kwargs):
-        data, total, filtered = self.data_query(
-            query_utils.get_search_list, search_query=search_query
-        )
-        self.write_data(data, total, filtered)
-
-
-class UniversalReactionReferenceSearchHandler(utils.DataHandler):
-    title = "Reactions via Reference"
-    search_query: str = ""
-    columns = SEARCH_COLSPECS["UNIVERSAL_REACTION_VIA_REFERENCE"]
-
-    def pre_filter(self, query):
-        return query.filter(UniversalReaction.collection_id == None)
-
-    def post_filter(self, query):
-        return query.group_by(UniversalReaction.bigg_id)
-
-    def return_data(self, search_query, *args, **kwargs):
-        data, total, filtered = self.data_query(
-            query_utils.get_search_list, search_query=search_query
-        )
-        self.write_data(data, total, filtered)
-
-
-class UniversalReactionAnnotationSearchHandler(utils.DataHandler):
-    title = "Reactions via Annotation"
-    search_query: str = ""
-    data_source: str = ""
-    columns = SEARCH_COLSPECS["UNIVERSAL_REACTION_VIA_ANNOTATION"]
+    ]
 
     def pre_filter(self, query):
         return query.filter(UniversalReaction.collection_id == None).filter(
@@ -372,7 +342,27 @@ class UniversalReactionAnnotationSearchHandler(utils.DataHandler):
 class ModelSearchHandler(utils.DataHandler):
     title = "Models"
     search_query: str = ""
-    columns = SEARCH_COLSPECS["MODEL"]
+    column_specs = [
+        utils.DataColumnSpec(
+            Model.bigg_id,
+            "BiGG ID",
+            hyperlink="/models/${row['model__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            Model.organism,
+            "Organism",
+        ),
+        utils.DataColumnSpec(
+            ModelCollection.bigg_id,
+            "Collection",
+            requires=[Model.collection],
+        ),
+        utils.DataColumnSpec(
+            ModelCollection.description,
+            "Collection Description",
+            requires=[Model.collection],
+        ),
+    ]
 
     def post_filter(self, query):
         query = query.group_by(
@@ -445,7 +435,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "Reference",
                 "data_url": f"/api/v3/search/metabolites_ref/{namespace}:{identifier}",
                 "row_icon": "molecule_S",
-                "columns": SEARCH_COLSPECS["COMPONENT_VIA_REFERENCE"],
+                "columns": MetaboliteReferenceSearchHandler.column_specs,
                 "message": "Interpreted search query as a reference metabolite entry.",
             }
         elif namespace == "RHEA":
@@ -454,7 +444,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "Reference",
                 "data_url": f"/api/v3/search/reactions_ref/{namespace}:{identifier}",
                 "row_icon": "reaction_S",
-                "columns": SEARCH_COLSPECS["UNIVERSAL_REACTION_VIA_REFERENCE"],
+                "columns": UniversalReactionReferenceSearchHandler.column_specs,
                 "message": "Interpreted search query as a reference reaction entry.",
             }
         elif namespace == "SEED.COMPOUND":
@@ -463,7 +453,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "SEED",
                 "data_url": f"/api/v3/search/metabolites_ann/seed.compound/{identifier}",
                 "row_icon": "molecule_S",
-                "columns": SEARCH_COLSPECS["COMPONENT_VIA_ANNOTATION"],
+                "columns": MetaboliteAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a ModelSEED metabolite entry.",
             }
         elif namespace == "SEED.REACTION":
@@ -472,7 +462,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "SEED",
                 "data_url": f"/api/v3/search/reactions_ann/seed.reaction/{identifier}",
                 "row_icon": "reaction_S",
-                "columns": SEARCH_COLSPECS["UNIVERSAL_REACTION_VIA_ANNOTATION"],
+                "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a ModelSEED reaction entry.",
             }
 
@@ -482,7 +472,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "KEGG",
                 "data_url": f"/api/v3/search/metabolites_ann/kegg.compound/{identifier}",
                 "row_icon": "molecule_S",
-                "columns": SEARCH_COLSPECS["COMPONENT_VIA_ANNOTATION"],
+                "columns": MetaboliteAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a KEGG metabolite entry.",
             }
         elif namespace == "KEGG.REACTION":
@@ -491,7 +481,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "KEGG",
                 "data_url": f"/api/v3/search/reactions_ann/kegg.reaction/{identifier}",
                 "row_icon": "reaction_S",
-                "columns": SEARCH_COLSPECS["UNIVERSAL_REACTION_VIA_ANNOTATION"],
+                "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a KEGG reaction entry.",
             }
 
@@ -501,7 +491,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "MetaNetX",
                 "data_url": f"/api/v3/search/metabolites_ann/metanetx.chemical/{identifier}",
                 "row_icon": "molecule_S",
-                "columns": SEARCH_COLSPECS["COMPONENT_VIA_ANNOTATION"],
+                "columns": MetaboliteAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaNetX metabolite entry.",
             }
         elif namespace == "METANETX.REACTION":
@@ -510,7 +500,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "MetaNetX",
                 "data_url": f"/api/v3/search/reactions_ann/metanetx.reaction/{identifier}",
                 "row_icon": "reaction_S",
-                "columns": SEARCH_COLSPECS["UNIVERSAL_REACTION_VIA_ANNOTATION"],
+                "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaNetX reaction entry.",
             }
 
@@ -520,7 +510,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "MetaCyc",
                 "data_url": f"/api/v3/search/metabolites_ann/metacyc.compound/{identifier}",
                 "row_icon": "molecule_S",
-                "columns": SEARCH_COLSPECS["COMPONENT_VIA_ANNOTATION"],
+                "columns": MetaboliteAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaCyc metabolite entry.",
             }
         elif namespace == "METACYC.REACTION":
@@ -529,7 +519,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 "title": "MetaCyc",
                 "data_url": f"/api/v3/search/reactions_ann/metacyc.reaction/{identifier}",
                 "row_icon": "reaction_S",
-                "columns": SEARCH_COLSPECS["UNIVERSAL_REACTION_VIA_ANNOTATION"],
+                "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaCyc reaction entry.",
             }
 
@@ -554,7 +544,7 @@ class SearchResultsHandler(utils.BaseHandler):
                         "search_models",
                         {"api": "/api/v3", "search_query": search_query},
                     ),
-                    "columns": SEARCH_COLSPECS["MODEL"],
+                    "columns": ModelSearchHandler.column_specs,
                     "row_icon": "model_S",
                 },
                 {
@@ -565,7 +555,7 @@ class SearchResultsHandler(utils.BaseHandler):
                         "search_metabolites",
                         {"api": "/api/v3", "search_query": search_query},
                     ),
-                    "columns": SEARCH_COLSPECS["UNIVERSAL_COMPONENT"],
+                    "columns": UniversalMetaboliteSearchHandler.column_specs,
                     "row_icon": "molecule_S",
                 },
                 {
@@ -576,7 +566,7 @@ class SearchResultsHandler(utils.BaseHandler):
                         "search_reactions",
                         {"api": "/api/v3", "search_query": search_query},
                     ),
-                    "columns": SEARCH_COLSPECS["UNIVERSAL_REACTION"],
+                    "columns": UniversalReactionSearchHandler.column_specs,
                     "row_icon": "reaction_S",
                 },
             ],

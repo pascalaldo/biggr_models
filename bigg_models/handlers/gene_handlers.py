@@ -7,7 +7,8 @@ from bigg_models.queries import gene_queries
 class GeneListViewHandler(utils.DataHandler):
     title = "Genes"
     model_bigg_id: Optional[str] = None
-    columns = [
+    page_data = {"row_icon": "gene_S"}
+    column_specs = [
         utils.DataColumnSpec(
             Gene.bigg_id,
             "BiGG ID",

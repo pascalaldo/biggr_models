@@ -22,7 +22,6 @@
 		{% if reference['bigg_id'].startswith('CHEBI:') %}
 		{% set chebi_link -%}http://identifiers.org/{{reference['bigg_id']}}{%- endset %}
 		{{ cards.flush_list_group_item(value="View on ChEBI", link=chebi_link) }}
-		</li>
 		{% endif %}
 
 	</ul>

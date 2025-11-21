@@ -20,7 +20,7 @@ class GenomeHandler(utils.BaseHandler):
 
 class GenomeListViewHandler(utils.DataHandler):
     title = "Genomes"
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             Genome.accession_value,
             "ID",
