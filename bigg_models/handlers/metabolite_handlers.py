@@ -5,9 +5,15 @@ from cobradb.models import (
     Component,
     Model,
     ModelCompartmentalizedComponent,
+    ModelReaction,
+    Reaction,
+    ReactionMatrix,
     ReferenceCompound,
+    ReferenceReaction,
     UniversalComponent,
+    UniversalReaction,
 )
+from sqlalchemy import func, select
 from bigg_models.handlers import utils
 from bigg_models.queries import metabolite_queries, utils as query_utils
 
@@ -16,7 +22,7 @@ import re
 
 class UniversalMetaboliteListViewHandler(utils.DataHandler):
     title = "Universal Metabolites"
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             UniversalComponent.bigg_id,
             "BiGG ID",
@@ -61,7 +67,7 @@ class UniversalMetaboliteHandler(utils.BaseHandler):
 class MetaboliteListViewHandler(utils.DataHandler):
     title = "Metabolites"
     model_bigg_id: Optional[str] = None
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             ModelCompartmentalizedComponent.bigg_id,
             "BiGG ID",
@@ -129,3 +135,133 @@ class MetaboliteHandler(utils.BaseHandler):
             ),
         ]
         self.return_result(results)
+
+
+class MetaboliteInModelsListViewHandler(utils.DataHandler):
+    title = "Metabolite in Models"
+    bigg_id: Optional[str] = None
+    page_data = {
+        "row_icon": "model_S",
+    }
+    column_specs = [
+        utils.DataColumnSpec(
+            ModelCompartmentalizedComponent.bigg_id,
+            "BiGG ID",
+            hyperlink="/models/${row['model__bigg_id']}/metabolites/${row['modelcompartmentalizedcomponent__bigg_id']}",
+            priority=1,
+        ),
+        utils.DataColumnSpec(
+            Compartment.bigg_id,
+            "Compartment",
+            requires=[
+                ModelCompartmentalizedComponent.compartmentalized_component,
+                CompartmentalizedComponent.compartment,
+            ],
+            priority=2,
+        ),
+        utils.DataColumnSpec(
+            Component.charge,
+            "Charge",
+            search_type="number",
+            priority=3,
+        ),
+        utils.DataColumnSpec(
+            Model.bigg_id,
+            "Model",
+            hyperlink="/models/${row['model__bigg_id']}",
+            requires=[ModelCompartmentalizedComponent.model],
+            priority=0,
+        ),
+        utils.DataColumnSpec(
+            Model.organism,
+            "Organism",
+            requires=[ModelCompartmentalizedComponent.model],
+            priority=4,
+        ),
+    ]
+
+    def pre_filter(self, query):
+        return (
+            query.join(ModelCompartmentalizedComponent.compartmentalized_component)
+            .join(CompartmentalizedComponent.component)
+            .join(Component.universal_component)
+            .filter(UniversalComponent.bigg_id == self.bigg_id)
+        )
+
+
+class MetaboliteInReactionsListViewHandler(utils.DataHandler):
+    title = "Metabolite in Reactions"
+    bigg_id: Optional[str] = None
+    model_bigg_id: Optional[str] = None
+    page_data = {
+        "row_icon": "reaction_S",
+    }
+    column_specs = [
+        utils.DataColumnSpec(
+            ModelReaction.bigg_id,
+            "BiGG ID",
+            hyperlink="/models/${row['model__bigg_id']}/reactions/${row['modelreaction__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            UniversalReaction.name,
+            "Name",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+            ],
+        ),
+        utils.DataColumnSpec(
+            ReferenceReaction.bigg_id,
+            "Reference",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+                UniversalReaction.reference,
+            ],
+        ),
+        utils.DataColumnSpec(
+            UniversalReaction.is_transport,
+            "Transport",
+            requires=[
+                ModelReaction.reaction,
+                Reaction.universal_reaction,
+            ],
+            search_type="bool",
+        ),
+        utils.DataColumnSpec(
+            (Reaction.collection_id != None),
+            "Collection-specific",
+            requires=[
+                ModelReaction.reaction,
+            ],
+            search_type="bool",
+        ),
+        utils.DataColumnSpec(
+            Model.bigg_id,
+            "Model",
+            requires=[
+                ModelReaction.model,
+            ],
+            visible=False,
+        ),
+    ]
+
+    def pre_filter(self, query):
+        selection_subq = (
+            select(ModelReaction.id.label("mr_id"))
+            .join(ModelReaction.model)
+            .filter(Model.bigg_id == self.model_bigg_id)
+            .join(ModelReaction.reaction)
+            .join(Reaction.matrix)
+            .join(ReactionMatrix.compartmentalized_component)
+            .join(
+                CompartmentalizedComponent.model_compartmentalized_components.and_(
+                    ModelCompartmentalizedComponent.model_id == Model.id,
+                    ModelCompartmentalizedComponent.bigg_id == self.bigg_id,
+                )
+            )
+            .group_by(ModelReaction.id)
+            .having(func.count(ModelCompartmentalizedComponent.id) > 0)
+            .subquery()
+        )
+        return query.join(selection_subq, selection_subq.c.mr_id == ModelReaction.id)

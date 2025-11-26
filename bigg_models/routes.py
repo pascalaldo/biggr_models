@@ -2,7 +2,9 @@ from typing import Any, Dict, Optional, Type
 from tornado.routing import URLSpec
 from tornado.web import RequestHandler
 from bigg_models.handlers import (
+    advanced_search_handlers,
     identifiers_handlers,
+    download_handlers,
     escher_handlers,
     utils,
     object_handlers,
@@ -62,6 +64,11 @@ def get_routes():
             metabolite_handlers.UniversalMetaboliteListViewHandler,
             name="metabolites",
         ),
+        url(
+            api_regex + r"/universal/metabolite_in_models/(?P<bigg_id>[^/]+)/?$",
+            metabolite_handlers.MetaboliteInModelsListViewHandler,
+            name="metabolites_for_model",
+        ),
         #
         (
             r"/(?:api/%s/)?(?:models/)?universal/metabolites/([^/]+)/?$" % utils.api_v,
@@ -77,6 +84,11 @@ def get_routes():
         (
             r"/(?:api/%s/)?compartments/([^/]+)/?$" % utils.api_v,
             compartment_handlers.CompartmentHandler,
+        ),
+        url(
+            api_regex + r"/compartments/(?P<bigg_id>[^/]+)/models?$",
+            compartment_handlers.ModelsWithCompartmentListViewHandler,
+            name="models_with_compartment",
         ),
         #
         url(
@@ -129,6 +141,12 @@ def get_routes():
             name="model_metabolites",
         ),
         url(
+            api_regex
+            + r"/models/(?P<model_bigg_id>[^/]+)/metabolite_in_reactions/(?P<bigg_id>[^/]+)/?$",
+            metabolite_handlers.MetaboliteInReactionsListViewHandler,
+            name="model_reactions_for_model_metabolite",
+        ),
+        url(
             api_regex + r"/models/(?P<model_bigg_id>[^/]+)/genes/?$",
             gene_handlers.GeneListViewHandler,
             name="model_genes",
@@ -150,7 +168,65 @@ def get_routes():
             gene_handlers.GeneHandler,
         ),
         #
+        # Download
+        (r"/api/v3/download/reactions/?$", download_handlers.ReactionsDownloadHandler),
+        (
+            r"/api/v3/download/metabolites/?$",
+            download_handlers.MetabolitesDownloadHandler,
+        ),
+        #
         # Search
+        (
+            r"/search/(?P<search_query>.*)$",
+            advanced_search_handlers.SearchResultsHandler,
+        ),
+        url(
+            api_regex + r"/search/metabolites/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalMetaboliteSearchHandler,
+            name="search_metabolites",
+        ),
+        url(
+            api_regex + r"/search/metabolites_ref/(?P<search_query>.*)$",
+            advanced_search_handlers.MetaboliteReferenceSearchHandler,
+            name="search_metabolites_via_reference",
+        ),
+        url(
+            api_regex
+            + r"/search/metabolites_ann/(?P<data_source>.*)/(?P<search_query>.*)$",
+            advanced_search_handlers.MetaboliteAnnotationSearchHandler,
+            name="search_metabolites_via_annotation",
+        ),
+        url(
+            api_regex + r"/search/metabolites_inchikey/(?P<search_query>.*)$",
+            advanced_search_handlers.MetaboliteInChIKeySearchHandler,
+            name="search_metabolites_via_inchikey",
+        ),
+        url(
+            api_regex + r"/search/reactions/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalReactionSearchHandler,
+            name="search_reactions",
+        ),
+        url(
+            api_regex + r"/search/reactions_ref/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalReactionReferenceSearchHandler,
+            name="search_reactions_via_reference",
+        ),
+        url(
+            api_regex
+            + r"/search/reactions_ann/(?P<data_source>.*)/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalReactionAnnotationSearchHandler,
+            name="search_reactions_via_annotation",
+        ),
+        url(
+            api_regex + r"/search/reactions_ec/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalReactionECSearchHandler,
+            name="search_reactions_via_ec",
+        ),
+        url(
+            api_regex + r"/search/models/(?P<search_query>.*)$",
+            advanced_search_handlers.ModelSearchHandler,
+            name="search_models",
+        ),
         (r"/api/%s/search$" % utils.api_v, search_handlers.SearchHandler),
         (
             r"/api/%s/search_reaction_with_stoichiometry$" % utils.api_v,
@@ -189,6 +265,11 @@ def get_routes():
         #
         # Static/Download
         (
+            r"/(favicon.ico)$",
+            utils.StaticFileHandlerWithEncoding,
+            {"path": path.join(utils.directory, "static", "assets", "favicon")},
+        ),
+        (
             r"/static/(.*)$",
             utils.StaticFileHandlerWithEncoding,
             {"path": path.join(utils.directory, "static")},
@@ -199,13 +280,7 @@ def get_routes():
             db_interop_handlers.QueryByStrainHandler,
         ),
         (r"/interop-query/query-by-pair/?$", db_interop_handlers.QueryByPairHandler),
-        (
-            r"/interop-query/strains/?$", 
-            db_interop_handlers.StrainListHandler
-        ),
-        (
-            r"/interop-query/genes/?$", 
-            db_interop_handlers.GeneListHandler
-        ),
+        (r"/interop-query/strains/?$", db_interop_handlers.StrainListHandler),
+        (r"/interop-query/genes/?$", db_interop_handlers.GeneListHandler),
     ]
     return routes

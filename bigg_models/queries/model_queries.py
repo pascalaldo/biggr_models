@@ -6,10 +6,13 @@ from dataclasses import dataclass
 from cobradb.util import ref_tuple_to_str
 from cobradb import settings
 from cobradb.models import (
+    EscherModule,
     Genome,
     Model,
     ModelCount,
     ModelCollection,
+    ModelReaction,
+    ModelReactionEscherMapping,
     Publication,
     PublicationModel,
     Taxon,
@@ -109,10 +112,6 @@ def get_model_and_counts(
     model_db = session.scalars(
         select(
             Model,
-            # ModelCount,
-            # Genome,
-            # Publication.reference_type,
-            # Publication.reference_id,
         )
         .options(
             joinedload(Model.collection),
@@ -122,16 +121,22 @@ def get_model_and_counts(
                 PublicationModel.publication
             ),
         )
-        # .join(Model.model_count)
-        # .join(Model.genome)
-        # .join(Model.publication_models)
-        # .join(PublicationModel.publication)
         .filter(Model.bigg_id == model_bigg_id)
         .limit(1)
     ).first()
     if model_db is None:
         raise utils.NotFoundError("No Model found with BiGG ID " + model_bigg_id)
 
+    escher_modules = list(
+        session.scalars(
+            select(EscherModule)
+            .join(EscherModule.model_reaction_mappings)
+            .join(ModelReactionEscherMapping.model_reaction)
+            .filter(ModelReaction.model_id == model_db.id)
+            .group_by(EscherModule.id)
+            .having(func.count(ModelReactionEscherMapping.id) > 1)
+        ).all()
+    )
     # genome ref
     if model_db.genome is None:
         genome_ref_string = genome_name = None
@@ -140,7 +145,6 @@ def get_model_and_counts(
         genome_ref_string = ref_tuple_to_str(
             model_db.genome.accession_type, genome_name
         )
-    m_escher_maps = escher_map_queries.get_escher_maps_for_model(model_db.id, session)
     result = {
         "model_bigg_id": model_db.bigg_id,
         "collection_bigg_id": model_db.collection.bigg_id,
@@ -155,9 +159,9 @@ def get_model_and_counts(
             x.publication.reference_type for x in model_db.publication_models
         ][0],
         "reference_id": [
-            x.publication.reference_type for x in model_db.publication_models
+            x.publication.reference_id for x in model_db.publication_models
         ][0],
-        "escher_maps": m_escher_maps,
+        "escher_modules": escher_modules,
         "model_modified_date": model_db.date_modified.strftime("%b %d, %Y"),
         # "last_updated": session.query(DatabaseVersion)
         # .first()

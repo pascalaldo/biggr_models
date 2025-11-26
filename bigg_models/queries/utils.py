@@ -1,6 +1,9 @@
-from typing import List, NewType, Optional, Type, Union
+from functools import reduce
+import itertools
+import operator
+from typing import Dict, List, NewType, Optional, Type, Union
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, attributes
 from bigg_models.version import __version__ as version, __api_version__ as api_version
 import bigg_models.handlers.utils as handler_utils
 
@@ -19,8 +22,9 @@ from cobradb.models import (
     PublicationModel,
 )
 
-from sqlalchemy import desc, asc, and_, func, not_, or_, select
+from sqlalchemy import desc, asc, and_, func, literal, not_, or_, select
 from os.path import abspath, dirname, join
+from sqlalchemy.sql import functions as sql_functions
 
 root_directory = abspath(join(dirname(__file__), ".."))
 
@@ -45,18 +49,24 @@ def get_list(
     search_value: str = "",
     search_regex: bool = False,
     pre_filter=None,
+    post_filter=None,
 ):
     joins = {}
     for y in column_specs:
         for x in y.requires:
             if (x_str := str(x)) not in joins:
                 joins[x_str] = x
-    query = select(*(x.prop for x in column_specs))
+    query = select(*(x.agg_func(x.prop) for x in column_specs))
     for x in joins.values():
         query = query.join(x, isouter=True)
     if pre_filter is not None:
         query = pre_filter(query)
-    total_count = session.scalar(select(func.count()).select_from(query.subquery()))
+    count_query = query
+    if post_filter is not None:
+        count_query = post_filter(count_query)
+    total_count = session.scalar(
+        select(func.count()).select_from(count_query.subquery())
+    )
 
     applied_filters = False
     # Global search
@@ -66,7 +76,7 @@ def get_list(
         query = query.filter(
             or_(
                 *(
-                    x.prop.contains(search_value)
+                    x.prop.icontains(search_value)
                     for x in column_specs
                     if x.global_search
                 )
@@ -95,6 +105,9 @@ def get_list(
         else:
             query = query.order_by(col_spec.prop.desc())
 
+    if post_filter is not None:
+        query = post_filter(query)
+
     if start > 0:
         query = query.offset(start)
     if length is not None:
@@ -102,7 +115,168 @@ def get_list(
 
     raw_result = session.execute(query).all()
     result = [
-        {col_spec.identifier: col_data for col_spec, col_data in zip(column_specs, row)}
+        {
+            col_spec.identifier: col_spec.process(col_data)
+            for col_spec, col_data in zip(column_specs, row)
+        }
+        for row in raw_result
+    ]
+
+    return result, total_count, filtered_count
+
+
+def get_search_list(
+    session: Session,
+    search_query: Union[str, Dict[str, str]],
+    column_specs: List["handler_utils.DataColumnSpec"],
+    start: int = 0,
+    length: Optional[int] = None,
+    search_value: str = "",
+    search_regex: bool = False,
+    pre_filter=None,
+    post_filter=None,
+):
+    subqueries = []
+    main_prop = column_specs[0].prop
+
+    for col_i, x in enumerate(column_specs):
+        if x.score_modes is None:
+            score_modes = ["startswith", "contains"]
+        else:
+            score_modes = x.score_modes
+        # if x.search_query_exact_match:
+        # score_modes = ["exact"]
+
+        for score_mode_i, score_mode in enumerate(score_modes):
+            if not x.apply_search_query:
+                continue
+
+            if isinstance(search_query, str):
+                col_search_query = search_query
+            else:
+                col_search_query = search_query.get(x.identifier)
+                if col_search_query is None:
+                    continue
+
+            score_i = score_mode_i * len(column_specs) + col_i
+            cte_query = select(
+                main_prop.label("score_id"),
+                sql_functions.sum(literal(10 ** (-score_i))).label("score"),
+            )
+            for y in x.requires:
+                if isinstance(y, tuple):
+                    cte_query = cte_query.join(*y)
+                else:
+                    cte_query = cte_query.join(y)
+
+            if x.search_query_remove_namespace:
+                if ":" in col_search_query:
+                    _, col_search_query = col_search_query.split(":", maxsplit=1)
+
+            if score_mode == "startswith":
+                cte_query = cte_query.filter(x.prop.istartswith(col_search_query))
+            elif score_mode == "contains":
+                cte_query = cte_query.filter(x.prop.icontains(col_search_query))
+            else:
+                cte_query = cte_query.filter(x.prop == col_search_query)
+
+            cte_query = cte_query.group_by("score_id")
+            cte_query = cte_query.subquery()
+            subqueries.append(cte_query)
+            score_i += 1
+
+    score_query = select(
+        reduce(sql_functions.coalesce, (x.c.score_id for x in subqueries)).label(
+            "score_id"
+        ),
+        reduce(
+            operator.add, (sql_functions.coalesce(x.c.score, 0) for x in subqueries)
+        ).label("score"),
+    )
+    for x in subqueries[1:]:
+        score_query = score_query.outerjoin_from(
+            subqueries[0], x, subqueries[0].c.score_id == x.c.score_id, full=True
+        )
+    score_query = score_query.subquery()
+
+    joins = {}
+    for y in column_specs:
+        for x in y.requires:
+            if (x_str := str(x)) not in joins:
+                joins[x_str] = x
+    score_label = func.max(score_query.c.score).label("score")
+    query = select(*([x.agg_func(x.prop) for x in column_specs] + [score_label]))
+    for x in joins.values():
+        if isinstance(x, tuple):
+            query = query.join(*x, isouter=True)
+        else:
+            query = query.join(x, isouter=True)
+    query = query.join(score_query, score_query.c.score_id == main_prop)
+    if pre_filter is not None:
+        query = pre_filter(query)
+    count_query = query
+    if post_filter is not None:
+        count_query = post_filter(count_query)
+    total_count = session.scalar(
+        select(func.count()).select_from(count_query.subquery())
+    )
+
+    applied_filters = False
+    # Global search
+    search_value = search_value.strip()
+    if search_value != "":
+        applied_filters = True
+        query = query.filter(
+            or_(
+                *(
+                    x.prop.icontains(search_value)
+                    for x in column_specs
+                    if x.global_search
+                )
+            )
+        )
+    # Column searches
+    for col_spec in column_specs:
+        changed, query = col_spec.search(query)
+        applied_filters = applied_filters or changed
+
+    if applied_filters:
+        filt_query = query
+        if post_filter is not None:
+            filt_query = post_filter(filt_query)
+        filtered_count = session.scalar(
+            select(func.count()).select_from(filt_query.subquery())
+        )
+    else:
+        filtered_count = total_count
+
+    # Ordering
+    for i in range(len(column_specs)):
+        try:
+            col_spec = next(x for x in column_specs if x.order_priority == i)
+        except StopIteration:
+            break
+        if col_spec.order_asc:
+            query = query.order_by(col_spec.prop)
+        else:
+            query = query.order_by(col_spec.prop.desc())
+
+    query = query.order_by(score_label.desc())
+
+    if post_filter is not None:
+        query = post_filter(query)
+
+    if start > 0:
+        query = query.offset(start)
+    if length is not None:
+        query = query.limit(length)
+
+    raw_result = session.execute(query).all()
+    result = [
+        {
+            col_spec.identifier: col_spec.process(col_data)
+            for col_spec, col_data in zip(column_specs, row)
+        }
         for row in raw_result
     ]
 

@@ -5,6 +5,7 @@ from sqlalchemy.orm import (
     subqueryload,
     Session,
 )
+from bigg_models.handlers import metabolite_handlers
 from bigg_models.queries import escher_map_queries, utils, id_queries
 from typing import Any, Dict, List, Optional
 
@@ -33,13 +34,12 @@ from cobradb.models import (
     InChI,
 )
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 LINKOUT_PROPERTY_KEYS = {
     "name": "Names",
     "smiles": "SMILES",
     "mass": "Molecular Mass||g/mol",
-    "is_obsolete": "Obsolete",
 }
 
 ANNOTATION_TYPES = {
@@ -348,6 +348,7 @@ def get_metabolite(met_bigg_id, session):
         ref_ann = None
         if ref_db is not None:
             ref = {
+                "id": ref_db.id,
                 "bigg_id": ref_db.bigg_id,
                 "name": ref_db.name,
                 "type": ref_db.compound_type,
@@ -392,10 +393,12 @@ def get_metabolite(met_bigg_id, session):
                 selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
             )
             .join(Annotation.component_mappings)
+            .filter(Annotation.is_obsolete == False)
             .filter(ComponentAnnotationMapping.component_id == component.id)
         ).all()
 
         d = {
+            "id": component.id,
             "bigg_id": component.bigg_id,
             "name": component.name,
             "charge": component.charge,
@@ -422,22 +425,53 @@ def get_metabolite(met_bigg_id, session):
             all_annotations.extend(ref.get("annotations", []))
         all_annotations.extend(comp.get("annotations", []))
         comp["all_annotations"] = all_annotations
-    # database links and old ids
-    db_link_results = id_queries._get_db_links_for_metabolite(met_bigg_id, session)
-    old_id_results = id_queries._get_old_ids_for_metabolite(met_bigg_id, session)
+
+    for comp in components:
+        a_sources = []
+        ap = {}
+        al = {}
+        for annotation, _ in comp["all_annotations"]:
+            for k, vs in annotation["properties"].items():
+                if k not in ap:
+                    ap[k] = {}
+                for v in vs:
+                    if v not in ap[k]:
+                        ap[k][v] = set()
+                    source = (annotation["type"], annotation["identifier"])
+                    if source not in a_sources:
+                        a_sources.append(source)
+                    ap[k][v].add(a_sources.index(source))
+            for k, vs in annotation["links"].items():
+                if k not in al:
+                    al[k] = {}
+                for v in vs:
+                    if v["value"] not in al[k]:
+                        al[k][v["value"]] = (v["url"], set())
+                    source = (annotation["type"], annotation["identifier"])
+                    if source not in a_sources:
+                        a_sources.append(source)
+                    al[k][v["value"]][1].add(a_sources.index(source))
+
+        comp["annotation_properties"] = ap
+        comp["annotation_linkouts"] = al
+        comp["annotation_sources"] = a_sources
+
+    metabolite_in_models_url = f"/universal/metabolite_in_models/{result_db[0]}"
+    metabolite_in_models_columns = (
+        metabolite_handlers.MetaboliteInModelsListViewHandler.column_specs
+    )
 
     return {
         "bigg_id": result_db[0],
         "name": result_db[1],
-        "database_links": db_link_results,
-        "old_ids": old_id_results,
-        # "compartments_in_models": [],
         "components": components,
         "default_component": default_component,
         "compartments_in_models": [
             {"bigg_id": c[0], "model_bigg_id": c[1], "organism": c[2]}
             for c in comp_comp_db
         ],
+        "metabolite_in_models_url": metabolite_in_models_url,
+        "metabolite_in_models_columns": metabolite_in_models_columns,
     }
 
 
@@ -456,56 +490,46 @@ def get_model_list_for_metabolite(metabolite_bigg_id, session):
 
 
 def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
-    result_db = session.execute(
-        select(
-            Component,
-            UniversalComponent,
-            CompartmentalizedComponent,
-            Compartment,
-            Model,
+    model_comp_comp_db = session.scalars(
+        select(ModelCompartmentalizedComponent)
+        .options(
+            contains_eager(ModelCompartmentalizedComponent.model),
+            contains_eager(ModelCompartmentalizedComponent.compartmentalized_component)
+            .joinedload(CompartmentalizedComponent.component)
+            .options(
+                joinedload(Component.universal_component),
+                subqueryload(Component.reference_mappings)
+                .joinedload(ComponentReferenceMapping.reference_compound)
+                .joinedload(ReferenceCompound.inchi),
+            ),
         )
-        .join(Component.universal_component)
-        .join(
-            CompartmentalizedComponent,
-            CompartmentalizedComponent.component_id == Component.id,
-        )
-        .join(Compartment, Compartment.id == CompartmentalizedComponent.compartment_id)
-        .join(
-            ModelCompartmentalizedComponent,
-            ModelCompartmentalizedComponent.compartmentalized_component_id
-            == CompartmentalizedComponent.id,
-        )
-        .join(Model, Model.id == ModelCompartmentalizedComponent.model_id)
-        .filter(CompartmentalizedComponent.bigg_id == comp_met_id)
+        .join(ModelCompartmentalizedComponent.model)
+        .join(ModelCompartmentalizedComponent.compartmentalized_component)
         .filter(Model.bigg_id == model_bigg_id)
+        .filter(
+            or_(
+                ModelCompartmentalizedComponent.bigg_id == comp_met_id,
+                CompartmentalizedComponent.bigg_id == comp_met_id,
+            )
+        )
         .limit(1)
     ).first()
-    if result_db is None:
+    if model_comp_comp_db is None:
         raise utils.NotFoundError(
             "Component %s not in model %s" % (comp_met_id, model_bigg_id)
         )
-    component = result_db.Component
-    met_bigg_id = component.bigg_id
-    reference_db = session.execute(
-        select(ReferenceCompound, InChI)
-        .join(
-            ComponentReferenceMapping,
-            ReferenceCompound.id == ComponentReferenceMapping.reference_compound_id,
-        )
-        .outerjoin(InChI, InChI.id == ReferenceCompound.inchi_id)
-        .filter(
-            ComponentReferenceMapping.component_id == result_db.Component.id,
-        )
-    ).all()
     references = []
-    for ref_db in reference_db:
+    for (
+        ref_map_db
+    ) in model_comp_comp_db.compartmentalized_component.component.reference_mappings:
         ref = {
-            "bigg_id": ref_db[0].bigg_id,
-            "name": ref_db[0].name,
-            "type": ref_db[0].compound_type,
-            "charge": ref_db[0].charge,
-            "formula": ref_db[0].formula,
-            "inchi": ref_db[1],
+            "id": ref_map_db.id,
+            "bigg_id": ref_map_db.reference_compound.bigg_id,
+            "name": ref_map_db.reference_compound.name,
+            "type": ref_map_db.reference_compound.compound_type,
+            "charge": ref_map_db.reference_compound.charge,
+            "formula": ref_map_db.reference_compound.formula,
+            "inchi": ref_map_db.reference_compound.inchi,
         }
         ref_ann = session.execute(
             select(Annotation, ReferenceCompoundAnnotationMapping)
@@ -515,7 +539,8 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
             )
             .join(Annotation.reference_compound_mappings)
             .filter(
-                ReferenceCompoundAnnotationMapping.reference_compound_id == ref_db[0].id
+                ReferenceCompoundAnnotationMapping.reference_compound_id
+                == ref_map_db.reference_compound.id
             )
             .join(ReferenceCompoundAnnotationMapping.reference_compound)
         ).all()
@@ -527,29 +552,9 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
 
         references.append(ref)
 
-    reactions_db = session.execute(
-        select(
-            UniversalReaction.bigg_id, UniversalReaction.name, ModelReaction.model_id
-        )
-        .join(Reaction, Reaction.universal_reaction_id == UniversalReaction.id)
-        .join(ReactionMatrix, ReactionMatrix.reaction_id == Reaction.id)
-        .filter(
-            ReactionMatrix.compartmentalized_component_id
-            == result_db.CompartmentalizedComponent.id
-        )
-        .join(
-            UniversalReactionMatrix,
-            ReactionMatrix.universal_reaction_matrix_id == UniversalReactionMatrix.id,
-        )
-        .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
-        .filter(ModelReaction.model_id == result_db.Model.id)
-        .distinct()
-    ).all()
-    model_db = get_model_list_for_metabolite(met_bigg_id, session)
-    # m_escher_maps = escher_map_queries.get_escher_maps_for_metabolite(
-    #     met_bigg_id, compartment_bigg_id, model_bigg_id, session
-    # )
-    m_escher_maps = []
+    model_db = get_model_list_for_metabolite(
+        model_comp_comp_db.compartmentalized_component.component.bigg_id, session
+    )
     model_result = [x for x in model_db if x["bigg_id"] != model_bigg_id]
 
     comp_ann = session.execute(
@@ -559,7 +564,10 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
             selectinload(Annotation.links).joinedload(AnnotationLink.data_source),
         )
         .join(Annotation.component_mappings)
-        .filter(ComponentAnnotationMapping.component_id == component.id)
+        .filter(
+            ComponentAnnotationMapping.component_id
+            == model_comp_comp_db.compartmentalized_component.component.id
+        )
     ).all()
 
     comp_ann = [
@@ -571,23 +579,55 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
             all_ann.extend(ref_ann)
     all_ann.extend(comp_ann)
 
+    annotation_sources = []
+    annotation_properties = {}
+    annotation_links = {}
+    for annotation, _ in all_ann:
+        for k, vs in annotation["properties"].items():
+            if k not in annotation_properties:
+                annotation_properties[k] = {}
+            for v in vs:
+                if v not in annotation_properties[k]:
+                    annotation_properties[k][v] = set()
+                source = (annotation["type"], annotation["identifier"])
+                if source not in annotation_sources:
+                    annotation_sources.append(source)
+                annotation_properties[k][v].add(annotation_sources.index(source))
+        for k, vs in annotation["links"].items():
+            if k not in annotation_links:
+                annotation_links[k] = {}
+            for v in vs:
+                if v["value"] not in annotation_links[k]:
+                    annotation_links[k][v["value"]] = (v["url"], set())
+                source = (annotation["type"], annotation["identifier"])
+                if source not in annotation_sources:
+                    annotation_sources.append(source)
+                annotation_links[k][v["value"]][1].add(annotation_sources.index(source))
+
+    metabolite_in_reactions_url = f"/models/{model_comp_comp_db.model.bigg_id}/metabolite_in_reactions/{model_comp_comp_db.bigg_id}"
+    metabolite_in_reactions_columns = (
+        metabolite_handlers.MetaboliteInReactionsListViewHandler.column_specs
+    )
+
     return {
-        "bigg_id": result_db.CompartmentalizedComponent.bigg_id,
-        "universal_id": result_db.UniversalComponent.bigg_id,
-        "name": result_db.Component.name,
-        "compartment_bigg_id": result_db.Compartment.bigg_id,
-        "compartment_name": result_db.Compartment.name,
-        "model_bigg_id": result_db.Model.bigg_id,
-        "formula": result_db.Component.formula,
-        "charge": result_db.Component.charge,
-        "reactions": [
-            {"bigg_id": r[0], "name": r[1], "model_bigg_id": r[2]} for r in reactions_db
-        ],
-        "escher_maps": m_escher_maps,
+        "bigg_id": model_comp_comp_db.bigg_id,
+        "model_comp_comp": model_comp_comp_db,
+        "comp_comp": model_comp_comp_db.compartmentalized_component,
+        "compartment": model_comp_comp_db.compartmentalized_component.compartment,
+        "component": model_comp_comp_db.compartmentalized_component.component,
+        "universal_component": model_comp_comp_db.compartmentalized_component.component.universal_component,
+        "model": model_comp_comp_db.model,
+        # "reactions": [
+        #     {"bigg_id": r[0], "name": r[1], "model_bigg_id": r[2]} for r in reactions_db
+        # ],
         "other_models_with_metabolite": model_result,
         "references": references,
-        "collection_specific": (result_db.Component.collection_id is not None),
         "all_annotations": all_ann,
+        "annotation_sources": annotation_sources,
+        "annotation_properties": annotation_properties,
+        "annotation_linkouts": annotation_links,
+        "metabolite_in_reactions_url": metabolite_in_reactions_url,
+        "metabolite_in_reactions_columns": metabolite_in_reactions_columns,
     }
 
 

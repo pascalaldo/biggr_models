@@ -1,12 +1,10 @@
 {% import "general_macros.html" as general %}
 {% macro memote_category(cat_id, title) %}
-<div class="card mb-3">
-	<div class="card-body">
-		<h5 class="card-title">{{title}}</h5>
+<div class="memote-category-accordion accordion accordion-flush mb-2 d-inline-block w-100" id="memote_{{cat_id}}">
+	<div class="accodion-item ps-3 pt-2">
+		<h5 class="fs-6 fw-medium text-secondary">{{title}}</h5>
 	</div>
-	<div class="accordion accordion-flush" id="memote_{{cat_id}}">
-		{{ caller(cat_id) }}
-	</div>
+	{{ caller(cat_id) }}
 </div>
 {% endmacro %}
 {% macro memote_item(test_id, cat_id, result_obj) %}
@@ -60,12 +58,12 @@
 {% set badge_value = ('%0.2f' %(field_val * 100)).rstrip('0').rstrip('.') ~ "%" %}
 {% endif %}
 
-<div class="accordion-item">
+<div class="memote-accordion-item accordion-item">
 	<h5 class="accordion-header" id="flush-heading-{{test_id}}">
 		<button class="accordion-button collapsed p-2" type="button" data-bs-toggle="collapse"
 			data-bs-target="#flush-collapse-{{test_id}}" aria-expanded="false"
 			aria-controls="flush-collapseOne">{{icon}}
-			{{test_data.name}}{% if badge_value is not none %}<span
+			<span class="memote-report-item">{{test_data.name}}</span>{% if badge_value is not none %}<span
 				class="badge rounded-pill text-{{badge_style}} border border-{{badge_style}} ms-3">{{badge_value}}</span>{%
 			endif %}</button>
 	</h5>
@@ -86,106 +84,130 @@
 		<div class="card-header">
 			<h5 class="card-title">MEMOTE Report</h5>
 		</div>
-		<div class="row g-3 m-2">
-			<div class="col-md-6">
-				{% call(cat_id) memote_category("consistency", "Consistency") %}
-				{{ memote_item("test_stoichiometric_consistency", cat_id, memote_result) }}
-				{{ memote_item("test_reaction_mass_balance", cat_id, memote_result) }}
-				{{ memote_item("test_reaction_charge_balance", cat_id, memote_result) }}
-				{{ memote_item("test_find_disconnected", cat_id, memote_result) }}
-				{{ memote_item("test_find_reactions_unbounded_flux_default_condition", cat_id,
-				memote_result) }}
-				{% endcall %}
-
-				{% call(cat_id) memote_category("annotation_sbo", "Annotation: SBO Terms") %}
-				{{ memote_item("test_metabolite_sbo_presence", cat_id, memote_result) }}
-				{{ memote_item("test_metabolite_specific_sbo_presence", cat_id, memote_result)
-				}}
-				{{ memote_item("test_reaction_sbo_presence", cat_id, memote_result) }}
-				{{ memote_item("test_metabolic_reaction_specific_sbo_presence", cat_id, memote_result)
-				}}
-				{{ memote_item("test_transport_reaction_specific_sbo_presence", cat_id, memote_result)
-				}}
-				{{ memote_item("test_exchange_specific_sbo_presence", cat_id, memote_result) }}
-				{{ memote_item("test_demand_specific_sbo_presence", cat_id, memote_result) }}
-				{{ memote_item("test_sink_specific_sbo_presence", cat_id, memote_result) }}
-				{{ memote_item("test_biomass_specific_sbo_presence", cat_id, memote_result) }}
-				{% endcall %}
+		<div
+			class="card-body card-intro d-flex">
+			<div class="flex-grow-1 pe-2">MEMOTE model test suite results, assessing model consistency,
+				annotation quality, and more.</div>
+			<div>
+				<input id="memote-report-input"
+					class="form-control border-1 border-secondary p-1 ps-2 pe-2" type="search"
+					placeholder="Filter" aria-label="Filter">
 			</div>
-			<div class="col-md-6">
-				{% call(cat_id) memote_category("basic_info", "Basic Information") %}
-				{{ memote_item("test_metabolites_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_reactions_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_genes_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_compartments_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_metabolic_coverage", cat_id, memote_result ) }}
-				{{ memote_item("test_unconserved_metabolites", cat_id, memote_result ) }}
-				{% endcall %}
+		</div>
+		<div class="memote-report" id="memote-report-body">
+			{% call(cat_id) memote_category("consistency", "Consistency") %}
+			{{ memote_item("test_stoichiometric_consistency", cat_id, memote_result) }}
+			{{ memote_item("test_reaction_mass_balance", cat_id, memote_result) }}
+			{{ memote_item("test_reaction_charge_balance", cat_id, memote_result) }}
+			{{ memote_item("test_find_disconnected", cat_id, memote_result) }}
+			{{ memote_item("test_find_reactions_unbounded_flux_default_condition", cat_id,
+			memote_result) }}
+			{% endcall %}
 
-				{% call(cat_id) memote_category("metabolite_info", "Metabolite Information") %}
-				{{ memote_item("test_find_duplicate_metabolites_in_compartments", cat_id, memote_result
-				) }}
-				{{ memote_item("test_metabolites_charge_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_metabolites_formula_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_find_medium_metabolites", cat_id, memote_result ) }}
-				{% endcall %}
+			{% call(cat_id) memote_category("annotation_sbo", "Annotation: SBO Terms") %}
+			{{ memote_item("test_metabolite_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_metabolite_specific_sbo_presence", cat_id, memote_result)
+			}}
+			{{ memote_item("test_reaction_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_metabolic_reaction_specific_sbo_presence", cat_id, memote_result)
+			}}
+			{{ memote_item("test_transport_reaction_specific_sbo_presence", cat_id, memote_result)
+			}}
+			{{ memote_item("test_exchange_specific_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_demand_specific_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_sink_specific_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_biomass_specific_sbo_presence", cat_id, memote_result) }}
+			{% endcall %}
 
-				{% call(cat_id) memote_category("reaction_info", "Reaction Information") %}
-				{{ memote_item("test_find_pure_metabolic_reactions", cat_id, memote_result ) }}
-				{{ memote_item("test_find_transport_reactions", cat_id, memote_result ) }}
-				{{ memote_item("test_find_constrained_transport_reactions", cat_id, memote_result ) }}
-				{{ memote_item("test_find_duplicate_reactions", cat_id, memote_result ) }}
-				{{ memote_item("test_find_reactions_with_identical_genes", cat_id, memote_result ) }}
-				{% endcall %}
+			{% call(cat_id) memote_category("basic_info", "Basic Information") %}
+			{{ memote_item("test_metabolites_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_reactions_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_genes_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_compartments_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_metabolic_coverage", cat_id, memote_result ) }}
+			{{ memote_item("test_unconserved_metabolites", cat_id, memote_result ) }}
+			{% endcall %}
 
-				{% call(cat_id) memote_category("gpr_info", "Gene-Protein-Reaction (GPR) Associations")
-				%}
-				{{ memote_item("test_gene_protein_reaction_rule_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_transport_reaction_gpr_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_protein_complex_presence", cat_id, memote_result ) }}
-				{% endcall %}
+			{% call(cat_id) memote_category("metabolite_info", "Metabolite Information") %}
+			{{ memote_item("test_find_duplicate_metabolites_in_compartments", cat_id, memote_result
+			) }}
+			{{ memote_item("test_metabolites_charge_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_metabolites_formula_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_find_medium_metabolites", cat_id, memote_result ) }}
+			{% endcall %}
 
-				{% call(cat_id) memote_category("biomass_info", "Biomass") %}
-				{{ memote_item("test_biomass_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_biomass_consistency", cat_id, memote_result ) }}
-				{{ memote_item("test_biomass_default_production", cat_id, memote_result ) }}
-				{{ memote_item("test_fast_growth_default", cat_id, memote_result ) }}
-				{{ memote_item("test_biomass_open_production", cat_id, memote_result ) }}
-				{{ memote_item("test_biomass_precursors_default_production", cat_id, memote_result ) }}
-				{{ memote_item("test_biomass_precursors_open_production", cat_id, memote_result ) }}
-				{{ memote_item("test_direct_metabolites_in_biomass", cat_id, memote_result ) }}
-				{{ memote_item("test_essential_precursors_not_in_biomass", cat_id, memote_result ) }}
-				{% endcall %}
+			{% call(cat_id) memote_category("reaction_info", "Reaction Information") %}
+			{{ memote_item("test_find_pure_metabolic_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_transport_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_constrained_transport_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_duplicate_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_reactions_with_identical_genes", cat_id, memote_result ) }}
+			{% endcall %}
 
-				{% call(cat_id) memote_category("energy_metabolism_info", "Energy Metabolism") %}
-				{{ memote_item("test_ngam_presence", cat_id, memote_result ) }}
-				{{ memote_item("test_gam_in_biomass", cat_id, memote_result ) }}
-				{{ memote_item("test_find_reversible_oxygen_reactions", cat_id, memote_result ) }}
-				{{ memote_item("test_detect_energy_generating_cycles", cat_id, memote_result ) }}
-				{% endcall %}
+			{% call(cat_id) memote_category("gpr_info", "Gene-Protein-Reaction (GPR) Associations")
+			%}
+			{{ memote_item("test_gene_protein_reaction_rule_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_transport_reaction_gpr_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_protein_complex_presence", cat_id, memote_result ) }}
+			{% endcall %}
 
-				{% call(cat_id) memote_category("network_topology_info", "Network Topology") %}
-				{{ memote_item("test_blocked_reactions", cat_id, memote_result ) }}
-				{{ memote_item("test_find_orphans", cat_id, memote_result ) }}
-				{{ memote_item("test_find_deadends", cat_id, memote_result ) }}
-				{{ memote_item("test_find_stoichiometrically_balanced_cycles", cat_id, memote_result )
-				}}
-				{{ memote_item("test_find_metabolites_not_produced_with_open_bounds", cat_id,
-				memote_result ) }}
-				{{ memote_item("test_find_metabolites_not_consumed_with_open_bounds", cat_id,
-				memote_result ) }}
-				{% endcall %}
+			{% call(cat_id) memote_category("biomass_info", "Biomass") %}
+			{{ memote_item("test_biomass_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_consistency", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_default_production", cat_id, memote_result ) }}
+			{{ memote_item("test_fast_growth_default", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_open_production", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_precursors_default_production", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_precursors_open_production", cat_id, memote_result ) }}
+			{{ memote_item("test_direct_metabolites_in_biomass", cat_id, memote_result ) }}
+			{{ memote_item("test_essential_precursors_not_in_biomass", cat_id, memote_result ) }}
+			{% endcall %}
 
-				{% call(cat_id) memote_category("matrix_conditioning", "Matrix Conditioning") %}
-				{{ memote_item("test_absolute_extreme_coefficient_ratio", cat_id, memote_result ) }}
-				{{ memote_item("test_number_independent_conservation_relations", cat_id, memote_result )
-				}}
-				{{ memote_item("test_matrix_rank", cat_id, memote_result ) }}
-				{{ memote_item("test_degrees_of_freedom", cat_id, memote_result ) }}
-				{% endcall %}
-			</div>
+			{% call(cat_id) memote_category("energy_metabolism_info", "Energy Metabolism") %}
+			{{ memote_item("test_ngam_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_gam_in_biomass", cat_id, memote_result ) }}
+			{{ memote_item("test_find_reversible_oxygen_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_detect_energy_generating_cycles", cat_id, memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("network_topology_info", "Network Topology") %}
+			{{ memote_item("test_blocked_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_orphans", cat_id, memote_result ) }}
+			{{ memote_item("test_find_deadends", cat_id, memote_result ) }}
+			{{ memote_item("test_find_stoichiometrically_balanced_cycles", cat_id, memote_result )
+			}}
+			{{ memote_item("test_find_metabolites_not_produced_with_open_bounds", cat_id,
+			memote_result ) }}
+			{{ memote_item("test_find_metabolites_not_consumed_with_open_bounds", cat_id,
+			memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("matrix_conditioning", "Matrix Conditioning") %}
+			{{ memote_item("test_absolute_extreme_coefficient_ratio", cat_id, memote_result ) }}
+			{{ memote_item("test_number_independent_conservation_relations", cat_id, memote_result )
+			}}
+			{{ memote_item("test_matrix_rank", cat_id, memote_result ) }}
+			{{ memote_item("test_degrees_of_freedom", cat_id, memote_result ) }}
+			{% endcall %}
 		</div>
 	</div>
 </div>
-</div>
+<script>
+	var input = document.getElementById('memote-report-input');
+	var report = document.getElementById('memote-report-body');
+	input.onkeyup = function () {
+		var filter = input.value.toUpperCase();
+		var lis = report.getElementsByClassName('accordion-item');
+		for (var i = 0; i < lis.length; i++) {
+			var report_item = lis[i].getElementsByClassName('memote-report-item');
+			if (report_item.length > 0) {
+				var name = report_item[0].innerHTML;
+				if (name.toUpperCase().indexOf(filter) >= 0)
+					lis[i].style.display = 'block';
+				else
+					lis[i].style.display = 'none';
+			}
+		}
+	}
+</script>
 {% endif %}

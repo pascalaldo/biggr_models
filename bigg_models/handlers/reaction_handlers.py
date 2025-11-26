@@ -13,7 +13,7 @@ from cobradb.parse import hash_metabolite_dictionary
 
 class UniversalReactionListViewHandler(utils.DataHandler):
     title = "Universal Reactions"
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             UniversalReaction.bigg_id,
             "BiGG ID",
@@ -76,7 +76,7 @@ class ReactionListViewHandler(utils.DataHandler):
     title = "Reactions"
     model_bigg_id = None
 
-    columns = [
+    column_specs = [
         utils.DataColumnSpec(
             ModelReaction.bigg_id,
             "BiGG ID",
