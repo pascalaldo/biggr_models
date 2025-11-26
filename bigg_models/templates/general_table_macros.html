@@ -38,10 +38,10 @@
 	<thead>
 		<tr>
 			{% if row_icon %}
-		<th>&nbsp;</th>
+		<th data-priority="-1">&nbsp;</th>
 			{% endif %}
 			{% for column in columns %}
-			<th>{{column.name}}</th>
+			<th{% if column.priority is not none %} data-priority="{{column.priority}}"{% endif %}>{{column.name}}</th>
 			{% endfor %}
 		</tr>
 	</thead>
@@ -79,6 +79,9 @@
 			{
 				data: '{{column.identifier}}',
 				name: '{{column.identifier}}',
+				{% if not column.visible %}
+				visible: false,
+				{% endif %}
 				{% if column.hyperlink is not none %}
 				render: function(data, type, row) {
 					if (type === 'display') {

@@ -4,6 +4,7 @@ from tornado.web import RequestHandler
 from bigg_models.handlers import (
     advanced_search_handlers,
     identifiers_handlers,
+    download_handlers,
     escher_handlers,
     utils,
     object_handlers,
@@ -84,6 +85,11 @@ def get_routes():
             r"/(?:api/%s/)?compartments/([^/]+)/?$" % utils.api_v,
             compartment_handlers.CompartmentHandler,
         ),
+        url(
+            api_regex + r"/compartments/(?P<bigg_id>[^/]+)/models?$",
+            compartment_handlers.ModelsWithCompartmentListViewHandler,
+            name="models_with_compartment",
+        ),
         #
         url(
             api_regex + r"/genomes/?$",
@@ -162,6 +168,13 @@ def get_routes():
             gene_handlers.GeneHandler,
         ),
         #
+        # Download
+        (r"/api/v3/download/reactions/?$", download_handlers.ReactionsDownloadHandler),
+        (
+            r"/api/v3/download/metabolites/?$",
+            download_handlers.MetabolitesDownloadHandler,
+        ),
+        #
         # Search
         (
             r"/search/(?P<search_query>.*)$",
@@ -184,6 +197,11 @@ def get_routes():
             name="search_metabolites_via_annotation",
         ),
         url(
+            api_regex + r"/search/metabolites_inchikey/(?P<search_query>.*)$",
+            advanced_search_handlers.MetaboliteInChIKeySearchHandler,
+            name="search_metabolites_via_inchikey",
+        ),
+        url(
             api_regex + r"/search/reactions/(?P<search_query>.*)$",
             advanced_search_handlers.UniversalReactionSearchHandler,
             name="search_reactions",
@@ -198,6 +216,11 @@ def get_routes():
             + r"/search/reactions_ann/(?P<data_source>.*)/(?P<search_query>.*)$",
             advanced_search_handlers.UniversalReactionAnnotationSearchHandler,
             name="search_reactions_via_annotation",
+        ),
+        url(
+            api_regex + r"/search/reactions_ec/(?P<search_query>.*)$",
+            advanced_search_handlers.UniversalReactionECSearchHandler,
+            name="search_reactions_via_ec",
         ),
         url(
             api_regex + r"/search/models/(?P<search_query>.*)$",

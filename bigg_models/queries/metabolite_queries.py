@@ -523,6 +523,7 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
         ref_map_db
     ) in model_comp_comp_db.compartmentalized_component.component.reference_mappings:
         ref = {
+            "id": ref_map_db.id,
             "bigg_id": ref_map_db.reference_compound.bigg_id,
             "name": ref_map_db.reference_compound.name,
             "type": ref_map_db.reference_compound.compound_type,

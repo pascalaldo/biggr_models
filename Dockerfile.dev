@@ -24,7 +24,7 @@ RUN git clone https://github.com/pascalaldo/bigg_models_data.git bigg_models_dat
 
 RUN git clone https://github.com/pascalaldo/biggr_maps.git biggr_maps
 WORKDIR /app/biggr_maps/
-RUN git pull && git reset --hard 54c6d88
+RUN git pull && git reset --hard c263910
 RUN python setup.py install
 WORKDIR /app
 

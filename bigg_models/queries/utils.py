@@ -1,9 +1,9 @@
 from functools import reduce
 import itertools
 import operator
-from typing import List, NewType, Optional, Type, Union
+from typing import Dict, List, NewType, Optional, Type, Union
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, attributes
 from bigg_models.version import __version__ as version, __api_version__ as api_version
 import bigg_models.handlers.utils as handler_utils
 
@@ -127,7 +127,7 @@ def get_list(
 
 def get_search_list(
     session: Session,
-    search_query: str,
+    search_query: Union[str, Dict[str, str]],
     column_specs: List["handler_utils.DataColumnSpec"],
     start: int = 0,
     length: Optional[int] = None,
@@ -140,22 +140,35 @@ def get_search_list(
     main_prop = column_specs[0].prop
 
     for col_i, x in enumerate(column_specs):
-        score_modes = ["startswith", "contains"]
-        if x.search_query_exact_match:
-            score_modes = ["exact"]
+        if x.score_modes is None:
+            score_modes = ["startswith", "contains"]
+        else:
+            score_modes = x.score_modes
+        # if x.search_query_exact_match:
+        # score_modes = ["exact"]
 
         for score_mode_i, score_mode in enumerate(score_modes):
             if not x.apply_search_query:
                 continue
+
+            if isinstance(search_query, str):
+                col_search_query = search_query
+            else:
+                col_search_query = search_query.get(x.identifier)
+                if col_search_query is None:
+                    continue
+
             score_i = score_mode_i * len(column_specs) + col_i
             cte_query = select(
                 main_prop.label("score_id"),
                 sql_functions.sum(literal(10 ** (-score_i))).label("score"),
             )
             for y in x.requires:
-                cte_query = cte_query.join(y)
+                if isinstance(y, tuple):
+                    cte_query = cte_query.join(*y)
+                else:
+                    cte_query = cte_query.join(y)
 
-            col_search_query = search_query
             if x.search_query_remove_namespace:
                 if ":" in col_search_query:
                     _, col_search_query = col_search_query.split(":", maxsplit=1)
@@ -194,7 +207,10 @@ def get_search_list(
     score_label = func.max(score_query.c.score).label("score")
     query = select(*([x.agg_func(x.prop) for x in column_specs] + [score_label]))
     for x in joins.values():
-        query = query.join(x, isouter=True)
+        if isinstance(x, tuple):
+            query = query.join(*x, isouter=True)
+        else:
+            query = query.join(x, isouter=True)
     query = query.join(score_query, score_query.c.score_id == main_prop)
     if pre_filter is not None:
         query = pre_filter(query)

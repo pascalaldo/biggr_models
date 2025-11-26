@@ -3,22 +3,20 @@ from cobradb.models import (
     AnnotationLink,
     AnnotationProperty,
     Component,
-    ComponentAnnotationMapping,
     ComponentIDMapping,
     ComponentReferenceMapping,
     DataSource,
+    InChI,
     Model,
     ModelCollection,
     Reaction,
-    ReactionAnnotationMapping,
     ReferenceCompound,
     ReferenceReaction,
     ReferenceReactionAnnotationMapping,
-    UniversalCompartmentalizedComponent,
     UniversalComponent,
     UniversalReaction,
 )
-from sqlalchemy import distinct, or_, select
+from sqlalchemy import distinct, and_, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.functions import aggregate_strings, array_agg
 from bigg_models.handlers import utils
@@ -50,6 +48,7 @@ DATA_SOURCE_IDS = {
     "metacyc.reaction": utils.do_safe_query(get_data_source_id, "metacyc.reaction"),
     "metanetx.chemical": utils.do_safe_query(get_data_source_id, "metanetx.chemical"),
     "metanetx.reaction": utils.do_safe_query(get_data_source_id, "metanetx.reaction"),
+    "ec-code": utils.do_safe_query(get_data_source_id, "ec-code"),
 }
 
 
@@ -82,8 +81,7 @@ class UniversalMetaboliteSearchHandler(utils.DataHandler):
             # process=process_string_array,
             requires=[
                 UniversalComponent.components,
-                Component.annotation_mappings,
-                ComponentAnnotationMapping.annotation,
+                Component.all_annotations,
                 Annotation.properties.and_(AnnotationProperty.key == "name"),
             ],
         ),
@@ -133,7 +131,7 @@ class MetaboliteReferenceSearchHandler(utils.DataHandler):
                 Component.reference_mappings,
                 ComponentReferenceMapping.reference_compound,
             ],
-            search_query_exact_match=True,
+            score_modes=["exact"],
         ),
     ]
 
@@ -179,11 +177,10 @@ class MetaboliteAnnotationSearchHandler(utils.DataHandler):
             "Annotation",
             agg_func=agg_strings,
             requires=[
-                Component.annotation_mappings,
-                ComponentAnnotationMapping.annotation,
+                Component.all_annotations,
                 Annotation.links,
             ],
-            search_query_exact_match=True,
+            score_modes=["exact"],
         ),
     ]
 
@@ -198,6 +195,130 @@ class MetaboliteAnnotationSearchHandler(utils.DataHandler):
     def return_data(self, search_query, *args, **kwargs):
         data, total, filtered = self.data_query(
             query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
+
+
+class MetaboliteInChIKeySearchHandler(utils.DataHandler):
+    title = "Metabolites by InChIKey"
+    search_query: str = ""
+    data_source: str = ""
+    column_specs = [
+        utils.DataColumnSpec(
+            Component.bigg_id,
+            "BiGG ID",
+            apply_search_query=False,
+            priority=0,
+        ),
+        utils.DataColumnSpec(
+            Component.name,
+            "Name",
+            agg_func=agg_strings,
+            apply_search_query=False,
+            priority=4,
+        ),
+        utils.DataColumnSpec(
+            UniversalComponent.bigg_id,
+            "Universal BiGG ID",
+            agg_func=agg_strings,
+            requires=[Component.universal_component],
+            hyperlink="/universal/metabolites/${row['universalcomponent__bigg_id']}",
+            apply_search_query=False,
+            priority=1,
+        ),
+        utils.DataColumnSpec(
+            InChI.key_major,
+            "InChIKey [major-*-*]",
+            agg_func=agg_strings,
+            requires=[
+                Component.reference_mappings,
+                ComponentReferenceMapping.reference_compound,
+                ReferenceCompound.inchi,
+            ],
+            score_modes=["exact"],
+            priority=5,
+        ),
+        utils.DataColumnSpec(
+            InChI.key_minor,
+            "InChIKey [*-minor-*]",
+            agg_func=agg_strings,
+            requires=[
+                Component.reference_mappings,
+                ComponentReferenceMapping.reference_compound,
+                ReferenceCompound.inchi,
+            ],
+            apply_search_query=False,
+            priority=3,
+        ),
+        utils.DataColumnSpec(
+            InChI.key_proton,
+            "InChIKey [*-*-proton]",
+            agg_func=agg_strings,
+            requires=[
+                Component.reference_mappings,
+                ComponentReferenceMapping.reference_compound,
+                ReferenceCompound.inchi,
+            ],
+            apply_search_query=False,
+            priority=2,
+        ),
+    ]
+
+    def pre_filter(self, query):
+        inchi_query = self.parse_inchi_key(self.search_query)
+        if inchi_query is None:
+            return query.filter(False)
+        query = (
+            query.join(Component.reference_mappings)
+            .join(ComponentReferenceMapping.reference_compound)
+            .join(ReferenceCompound.inchi)
+        )
+        filters = [InChI.key_major == inchi_query["inchi__key_major"]]
+        if (key_minor := inchi_query["inchi__key_minor"]) is not None:
+            filters.append(InChI.key_minor == key_minor)
+        if (key_proton := inchi_query["inchi__key_proton"]) is not None:
+            filters.append(InChI.key_proton == key_proton)
+        return query.filter(and_(*filters))
+
+    def post_filter(self, query):
+        return query.group_by(Component.bigg_id)
+
+    def parse_inchi_key(self, search_query):
+        inchikey = search_query.strip().rstrip("-")
+        if ":" in search_query:
+            namespace, inchikey = search_query.split(":", maxsplit=1)
+            if namespace.upper() != "INCHIKEY":
+                return None
+        parts = [x.strip().upper() for x in inchikey.split("-")]
+        if len(parts) > 3:
+            return None
+        if len(parts) == 3:
+            major_part, minor_part, proton_part = parts
+        elif len(parts) == 2:
+            major_part, minor_part = parts
+            proton_part = None
+        else:
+            major_part = parts[0]
+            minor_part, proton_part = None, None
+        if len(major_part) != 14:
+            return None
+        if minor_part is not None and len(minor_part) != 10:
+            return None
+        if proton_part is not None and len(proton_part) != 1:
+            return None
+        return {
+            "inchi__key_major": major_part,
+            "inchi__key_minor": minor_part,
+            "inchi__key_proton": proton_part,
+        }
+
+    def return_data(self, search_query, *args, **kwargs):
+        inchi_query = self.parse_inchi_key(search_query)
+        if inchi_query is None:
+            self.write_data([], 0, 0)
+            return
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=inchi_query
         )
         self.write_data(data, total, filtered)
 
@@ -222,8 +343,7 @@ class UniversalReactionSearchHandler(utils.DataHandler):
             # process=process_string_array,
             requires=[
                 UniversalReaction.reactions,
-                Reaction.annotation_mappings,
-                ReactionAnnotationMapping.annotation,
+                Reaction.all_annotations,
                 Annotation.properties.and_(AnnotationProperty.key == "name"),
             ],
         ),
@@ -263,7 +383,7 @@ class UniversalReactionReferenceSearchHandler(utils.DataHandler):
             "Reference",
             agg_func=agg_strings,
             requires=[UniversalReaction.reference],
-            search_query_exact_match=True,
+            score_modes=["exact"],
         ),
         utils.DataColumnSpec(
             ("RHEA:" + AnnotationLink.identifier),
@@ -275,7 +395,7 @@ class UniversalReactionReferenceSearchHandler(utils.DataHandler):
                 ReferenceReactionAnnotationMapping.annotation,
                 Annotation.links,
             ],
-            search_query_exact_match=True,
+            score_modes=["exact"],
             search_query_remove_namespace=True,
         ),
     ]
@@ -316,11 +436,10 @@ class UniversalReactionAnnotationSearchHandler(utils.DataHandler):
             agg_func=agg_strings,
             requires=[
                 UniversalReaction.reactions,
-                Reaction.annotation_mappings,
-                ReactionAnnotationMapping.annotation,
+                Reaction.all_annotations,
                 Annotation.links,
             ],
-            search_query_exact_match=True,
+            score_modes=["exact"],
         ),
     ]
 
@@ -331,6 +450,52 @@ class UniversalReactionAnnotationSearchHandler(utils.DataHandler):
 
     def post_filter(self, query):
         return query.group_by(UniversalReaction.bigg_id)
+
+    def return_data(self, search_query, *args, **kwargs):
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
+
+
+class UniversalReactionECSearchHandler(utils.DataHandler):
+    title = "Reactions via EC"
+    search_query: str = ""
+    data_source: str = ""
+    column_specs = [
+        utils.DataColumnSpec(
+            UniversalReaction.bigg_id,
+            "BiGG ID",
+            hyperlink="/universal/reactions/${row['universalreaction__bigg_id']}",
+            apply_search_query=False,
+        ),
+        utils.DataColumnSpec(
+            UniversalReaction.name,
+            "Name",
+            agg_func=agg_strings,
+            apply_search_query=False,
+        ),
+        utils.DataColumnSpec(
+            AnnotationLink.identifier,
+            "EC-code",
+            agg_func=agg_strings,
+            requires=[
+                UniversalReaction.reactions,
+                Reaction.all_annotations,
+                Annotation.links,
+            ],
+            score_modes=["exact", "startswith"],
+        ),
+    ]
+
+    def pre_filter(self, query):
+        return query.filter(UniversalReaction.collection_id == None).filter(
+            AnnotationLink.data_source_id == DATA_SOURCE_IDS["ec-code"]
+        )
+
+    def post_filter(self, query):
+        query = query.group_by(UniversalReaction.bigg_id)
+        return query
 
     def return_data(self, search_query, *args, **kwargs):
         data, total, filtered = self.data_query(
@@ -404,6 +569,7 @@ class SearchResultsHandler(utils.BaseHandler):
                 namespace = "BIGG"
                 identifier = search_query
         namespace = namespace.upper()
+        identifier = identifier.strip()
 
         if namespace == "SEED":
             if identifier.startswith("cpd"):
@@ -428,6 +594,12 @@ class SearchResultsHandler(utils.BaseHandler):
                 namespace = "METACYC.REACTION"
             else:
                 namespace = "METACYC.COMPOUND"
+
+        if namespace == "EC":
+            namespace = "EC-CODE"
+
+        if namespace == "EC-CODE":
+            identifier = identifier.rstrip("*")
 
         if namespace == "CHEBI":
             return {
@@ -521,6 +693,24 @@ class SearchResultsHandler(utils.BaseHandler):
                 "row_icon": "reaction_S",
                 "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaCyc reaction entry.",
+            }
+        elif namespace == "INCHIKEY":
+            return {
+                "id": "special_page",
+                "title": "InChIKey",
+                "data_url": f"/api/v3/search/metabolites_inchikey/{identifier}",
+                "row_icon": "molecule_S",
+                "columns": MetaboliteInChIKeySearchHandler.column_specs,
+                "message": "Interpreted search query as an InChIKey.",
+            }
+        elif namespace == "EC-CODE":
+            return {
+                "id": "special_page",
+                "title": "EC-code",
+                "data_url": f"/api/v3/search/reactions_ec/{identifier}",
+                "row_icon": "reaction_S",
+                "columns": UniversalReactionECSearchHandler.column_specs,
+                "message": "Interpreted search query as an EC-code.",
             }
 
         return None

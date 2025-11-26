@@ -148,6 +148,7 @@ class MetaboliteInModelsListViewHandler(utils.DataHandler):
             ModelCompartmentalizedComponent.bigg_id,
             "BiGG ID",
             hyperlink="/models/${row['model__bigg_id']}/metabolites/${row['modelcompartmentalizedcomponent__bigg_id']}",
+            priority=1,
         ),
         utils.DataColumnSpec(
             Compartment.bigg_id,
@@ -156,22 +157,26 @@ class MetaboliteInModelsListViewHandler(utils.DataHandler):
                 ModelCompartmentalizedComponent.compartmentalized_component,
                 CompartmentalizedComponent.compartment,
             ],
+            priority=2,
         ),
         utils.DataColumnSpec(
             Component.charge,
             "Charge",
             search_type="number",
+            priority=3,
         ),
         utils.DataColumnSpec(
             Model.bigg_id,
             "Model",
             hyperlink="/models/${row['model__bigg_id']}",
             requires=[ModelCompartmentalizedComponent.model],
+            priority=0,
         ),
         utils.DataColumnSpec(
             Model.organism,
             "Organism",
             requires=[ModelCompartmentalizedComponent.model],
+            priority=4,
         ),
     ]
 
@@ -230,6 +235,14 @@ class MetaboliteInReactionsListViewHandler(utils.DataHandler):
                 ModelReaction.reaction,
             ],
             search_type="bool",
+        ),
+        utils.DataColumnSpec(
+            Model.bigg_id,
+            "Model",
+            requires=[
+                ModelReaction.model,
+            ],
+            visible=False,
         ),
     ]
 

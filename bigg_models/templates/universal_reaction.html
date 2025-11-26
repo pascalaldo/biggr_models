@@ -3,16 +3,19 @@
 {% import "general_table_macros.html" as tables %}
 {% block title %}BiGG Reaction: {{universal_reaction.bigg_id}}{% endblock %}
 {% block body %}
-<div class="row">
-  <div class="col-12">
-    {% call cards.item_and_reference("reaction_L", "Reaction", "reference_reaction_ui.html", [universal_reaction.reference], "linkouts_reaction_ui.html", all_annotations) %}
-      <div class="card-body">
-      <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span> {{universal_reaction.bigg_id | format_id("reaction")}}</h5>
-        {% if universal_reaction.name is not none %}<p class="card-text">{{universal_reaction.name}}</p>{% endif %}
-        <table class="mt-2">
+
+<div class="row rounded-2 border-start border-2 border-primary pt-3 mb-3 bg-primary bg-opacity-10">
+    {% call(is_title) cards.entity_card(none, "reaction_L", col_class="col-12", extra_classes="overflow-x-auto") %}
+      {% if is_title %}
+  <span class="fw-normal text-body-secondary">Universal:</span>{{ universal_reaction.bigg_id | format_id("reaction") }}
+      {% else %}
+      {% call cards.flush_list_group() %}
+        {% if universal_reaction.name is not none %}{{ cards.flush_list_group_item(value=universal_reaction.name) }}{% endif %}
+        <li class="list-group-item list-group-item-flush overflow-x-auto">
+        <table>
           <thead>
               {% for s in aligned_reactions.urm %}
-              <th class="ps-1 pt-1">{{s}}</th>
+              <th class="ps-1 pt-1 text-nowrap">{{s}}</th>
               {% endfor %}
           </thead>
           <tbody class="table-group-divider" style="border-top-color: #CCCDCE; border-top-style: dotted;">
@@ -20,22 +23,72 @@
             {% if k != "urm" %}
             <tr>
               {% for s in v %}
-              <td class="ps-1 pt-1">{{s}}</td>
+              <td class="ps-1 pt-1 text-nowrap">{{s}}</td>
               {% endfor %}
             </tr>
             {% endif %}
           {% endfor %}
           </tbody>
         </table>
-      </div>
-      {% call cards.flush_list_group(accent=True) %}
-    {% if universal_reaction.is_exchange %}{{ cards.flush_list_group_item(value="Exchange reaction", accent=True) }}{% endif %}
-    {% if universal_reaction.is_transport %}{{ cards.flush_list_group_item(value="Transport reaction", accent=True) }}{% endif %}
-    {% if universal_reaction.is_pseudo %}{{ cards.flush_list_group_item(value="Pseudoreaction", accent=True) }}{% endif %}
+      </li>
+    {% if universal_reaction.is_exchange %}{{ cards.flush_list_group_item(value="Exchange reaction") }}{% endif %}
+    {% if universal_reaction.is_transport %}{{ cards.flush_list_group_item(value="Transport reaction") }}{% endif %}
+    {% if universal_reaction.is_pseudo %}{{ cards.flush_list_group_item(value="Pseudoreaction") }}{% endif %}
+      {% endcall %}
+      {% endif %}
+    {% endcall %}
+
+    {% if reference  %}
+    {% call(is_title) cards.entity_card(reference.bigg_id | format_reference, "reference_L", col_class="col-12") %}
+      {% call cards.flush_list_group() %}
+    {% if reference.name is not none %}{{ cards.flush_list_group_item(value=reference.name) }}{% endif %}
+      {{ cards.flush_list_group_item(value=reference.equation) }}
+      {% if reference.bigg_id.startswith('RHEA:') %}
+        {% set rhea_link -%}http://identifiers.org/{{reference.bigg_id}}{%- endset %}
+        {{ cards.flush_list_group_item(value="View on RHEA", link=rhea_link) }}
+      {% endif %}
       {% endcall %}
     {% endcall %}
+    {% endif %}
+
+    {% if annotation_properties %}
+      <div class="col-md-6">
+        <div class="card mb-3 bg-transparent"> 
+      <div class="card-header"><h6 class="card-title">Properties</h6></div>
+        <ul class="list-group list-group-flush rounded-1 bg-transparent">
+          {% for prop_key, prop_info in annotation_properties.items() %}
+            <li class="list-group-item bg-transparent"><b>{{prop_key}}: </b>
+              {% for prop_val, prop_sources in prop_info.items() %}
+        <span>{{prop_val}}<sup>[{{ prop_sources | join(",") }}]</sup></span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      <div class="card-footer small"><b>Data Sources: </b>{% for data_source in annotation_sources %}[{{loop.index0}}] {{data_source[1]}} via {{data_source[0]}}{% if not loop.last %}, {% endif %}{% endfor%}</div>
+      </div>
+      </div>
+    {% endif %}
+    {% if annotation_linkouts %}
+      <div class="col-md-6">
+        <div class="card mb-3 bg-transparent"> 
+      <div class="card-header"><h6 class="card-title">Linkouts</h6></div>
+        <ul class="list-group list-group-flush rounded-1 bg-transparent">
+          {% for linkout_key, linkout_info in annotation_linkouts.items() %}
+            <li class="list-group-item bg-transparent"><b>{{linkout_key}}: </b>
+              {% for linkout_val, (linkout_url, linkout_sources) in linkout_info.items() %}
+          <span>{{general.external_link(linkout_val, linkout_url)}}<sup>[{{ linkout_sources | join(",") }}]</sup></span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      <div class="card-footer small"><b>Data Sources: </b>{% for data_source in annotation_sources %}[{{loop.index0}}] {{data_source[1]}} via {{data_source[0]}}{% if not loop.last %}, {% endif %}{% endfor%}</div>
+      </div>
+      </div>
+    {% endif %}
+
   </div>
 
+<div class="row">
   <div class="col-12">
     <div class="card mb-3">
       <div class="card-header">

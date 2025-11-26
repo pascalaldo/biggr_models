@@ -408,8 +408,10 @@ class DataColumnSpec:
         hyperlink: Optional[str] = None,
         search_type: str = "str",
         apply_search_query: bool = True,
-        search_query_exact_match: bool = False,
+        score_modes: Optional[List[str]] = None,
         search_query_remove_namespace: bool = False,
+        priority: Optional[int] = None,
+        visible: bool = True,
     ):
         self.prop = prop
         self.identifier: str = str(prop).lower().replace(".", "__")
@@ -433,8 +435,10 @@ class DataColumnSpec:
         self.search_type = search_type
         self.hyperlink = hyperlink
         self.apply_search_query = apply_search_query
-        self.search_query_exact_match = search_query_exact_match
+        self.score_modes = score_modes
         self.search_query_remove_namespace = search_query_remove_namespace
+        self.priority = priority  # DataTables.js responsive column priority
+        self.visible = visible
 
 
 class DataColumn:

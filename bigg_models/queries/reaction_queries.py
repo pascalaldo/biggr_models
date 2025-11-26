@@ -392,6 +392,7 @@ def get_universal_reaction_and_models(
                         aligned_metabolite_ids[k][lr].append(None)
                     pos = -1
                 aligned_metabolite_ids[reaction_db.id][lr][pos] = rm
+
     del aligned_metabolite_ids["universal"]
     aligned_reaction_strings = {}
     for k, v in aligned_metabolite_ids.items():
@@ -430,11 +431,40 @@ def get_universal_reaction_and_models(
                 l.append(" &#8652; ")
         aligned_reaction_strings[k] = l
 
+    annotation_sources = []
+    annotation_properties = {}
+    annotation_links = {}
+    for annotation, _ in all_annotations:
+        for k, vs in annotation["properties"].items():
+            if k not in annotation_properties:
+                annotation_properties[k] = {}
+            for v in vs:
+                if v not in annotation_properties[k]:
+                    annotation_properties[k][v] = set()
+                source = (annotation["type"], annotation["identifier"])
+                if source not in annotation_sources:
+                    annotation_sources.append(source)
+                annotation_properties[k][v].add(annotation_sources.index(source))
+        for k, vs in annotation["links"].items():
+            if k not in annotation_links:
+                annotation_links[k] = {}
+            for v in vs:
+                if v["value"] not in annotation_links[k]:
+                    annotation_links[k][v["value"]] = (v["url"], set())
+                source = (annotation["type"], annotation["identifier"])
+                if source not in annotation_sources:
+                    annotation_sources.append(source)
+                annotation_links[k][v["value"]][1].add(annotation_sources.index(source))
+
     return {
         "universal_reaction": universal_reaction_db,
+        "reference": universal_reaction_db.reference,
         "all_annotations": all_annotations,
         "aligned_reactions": aligned_reaction_strings,
         "model_reactions": model_reactions,
+        "annotation_sources": annotation_sources,
+        "annotation_properties": annotation_properties,
+        "annotation_linkouts": annotation_links,
     }
 
 
@@ -575,21 +605,42 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
         ]
         all_annotations.extend(reaction_annotations)
 
-    other_copy_numbers = list(
-        sorted(
-            x[0]
-            for x in session.scalars(
-                select(ModelReaction.copy_number)
-                .join(Reaction, Reaction.id == ModelReaction.reaction_id)
-                .filter(
-                    Reaction.universal_reaction_id
-                    == model_reaction_db.reaction.universal_reaction_id
-                )
-                .filter(ModelReaction.model_id == model_reaction_db.model_id)
-                .filter(ModelReaction.copy_number != model_reaction_db.copy_number)
-            ).all()
+    annotation_sources = []
+    annotation_properties = {}
+    annotation_links = {}
+    for annotation, _ in all_annotations:
+        for k, vs in annotation["properties"].items():
+            if k not in annotation_properties:
+                annotation_properties[k] = {}
+            for v in vs:
+                if v not in annotation_properties[k]:
+                    annotation_properties[k][v] = set()
+                source = (annotation["type"], annotation["identifier"])
+                if source not in annotation_sources:
+                    annotation_sources.append(source)
+                annotation_properties[k][v].add(annotation_sources.index(source))
+        for k, vs in annotation["links"].items():
+            if k not in annotation_links:
+                annotation_links[k] = {}
+            for v in vs:
+                if v["value"] not in annotation_links[k]:
+                    annotation_links[k][v["value"]] = (v["url"], set())
+                source = (annotation["type"], annotation["identifier"])
+                if source not in annotation_sources:
+                    annotation_sources.append(source)
+                annotation_links[k][v["value"]][1].add(annotation_sources.index(source))
+
+    all_other_copy_numbers = session.scalars(
+        select(ModelReaction.copy_number)
+        .join(Reaction, Reaction.id == ModelReaction.reaction_id)
+        .filter(
+            Reaction.universal_reaction_id
+            == model_reaction_db.reaction.universal_reaction_id
         )
-    )
+        .filter(ModelReaction.model_id == model_reaction_db.model_id)
+        .filter(ModelReaction.copy_number != model_reaction_db.copy_number)
+    ).all()
+    other_copy_numbers = list(sorted(x for x in all_other_copy_numbers))
 
     # # old identifiers
     # old_id_results = id_queries._get_old_ids_for_model_reaction(
@@ -610,6 +661,7 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
         "bigg_id": reaction_bigg_id,
         "full_bigg_id": full_bigg_id,
         "model_bigg_id": model_bigg_id,
+        "model": model_reaction_db.model,
         "reaction": model_reaction_db.reaction,
         "all_annotations": all_annotations,
         "model_reaction": model_reaction_db,
@@ -621,6 +673,9 @@ def get_model_reaction(model_bigg_id, biggr_id, session):
         "reference": reference_db,
         "other_models_with_reaction": model_result,
         "metabolites": metabolite_db,
+        "annotation_sources": annotation_sources,
+        "annotation_properties": annotation_properties,
+        "annotation_linkouts": annotation_links,
     }
 
 

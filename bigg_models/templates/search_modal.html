@@ -28,75 +28,84 @@
 	<div class="border border-1 rounded-3 border-secondary-subtle pt-2 pb-2">
 	  <ul class="search-ul">
 	    <li>
-	      {{ search_namespace("CHEBI", is_auto=true) }}
+	      {{ search_namespace("CHEBI") }}
 	      <ul>
-		<li>
-		  {{ search_namespace("CHEBI") }}, 
-		</li>
 		<li>{{search_example('CHEBI:17790', is_first=true)}}
 		</li>
 	      </ul>
 	    </li>
 	    <li>
-	      {{ search_namespace("RHEA", is_auto=true) }}
+	      {{ search_namespace("RHEA") }}
+	      <ul>
+		<li>{{search_example('RHEA:16505', is_first=true)}}
+		</li>
+	      </ul>
+	    </li>
+	    <li>
+	      {{ search_namespace("InChIKey") }}
 	      <ul>
 		<li>
-		  {{ search_namespace("RHEA") }}, 
+		   The rightmost two parts of the InChIKey can optionally be omitted to search for compounds with different protonation states and different stereochemistries.
 		</li>
-		<li>{{search_example('RHEA:16505', is_first=true)}}
+		<li>{{search_example('InChiKey:ZKHQWZAMYRWXGA-KQYNXXCUSA-J', is_first=true)}},
+		  {{search_example('InChiKey:ZKHQWZAMYRWXGA-KQYNXXCUSA')}}, 
+		  {{search_example('InChiKey:ZKHQWZAMYRWXGA-')}}
+		</li>
+	      </ul>
+	    </li>
+	    <li>
+	      {{ search_namespace("EC") }} / {{ search_namespace("ec-code") }}
+	      <ul>
+		<li>
+		   Partial EC-codes can be provided, optionally with an asterix at the end.
+		</li>
+		<li>{{search_example('ec-code:4.1.3.27', is_first=true)}},
+		  {{search_example('EC:4.1.3.*')}}, 
 		</li>
 	      </ul>
 	    </li>
 
 	    <li>
-	      {{ search_namespace("seed", is_auto=true) }}
+	      {{ search_namespace("seed", is_auto=true) }},
+	      {{ search_namespace("seed.compound") }}, 
+	      {{ search_namespace("seed.reaction") }}
 	      <ul>
 		<li>Identifiers can also be entered directly.</li>
-		<li>
-		  {{ search_namespace("seed.compound") }}, 
-		  {{ search_namespace("seed.reaction") }}
-		</li>
 		<li>{{search_example('cpd00023', is_first=true)}}, 
 		    {{search_example('seed:cpd00023')}},
-		    {{search_example('seed.reaction:rxn00126')}}, 
+		    {{search_example('seed.reaction:rxn00126')}}
 		</li>
 	      </ul>
 	    </li>
 	    <li>
-	      {{ search_namespace("kegg", is_auto=true) }}
+	      {{ search_namespace("kegg", is_auto=true) }},
+	      {{ search_namespace("kegg.compound") }}, 
+	      {{ search_namespace("kegg.reaction") }}
 	      <ul>
-		<li>
-		  {{ search_namespace("kegg.compound") }}, 
-		  {{ search_namespace("kegg.reaction") }}
-		</li>
 		<li>{{search_example('kegg.compound:C00062', is_first=true)}}, 
-		    {{search_example('kegg:R01086')}}, 
+		    {{search_example('kegg:R01086')}}
 		</li>
 	      </ul>
 	    </li>
 	    <li>
-	      {{ search_namespace("metacyc", is_auto=true) }}
+	      {{ search_namespace("metacyc", is_auto=true) }},
+	      {{ search_namespace("metacyc.compound") }}, 
+	      {{ search_namespace("metacyc.reaction") }}
 	      <ul>
-		<li>
-		  {{ search_namespace("metacyc.compound") }}, 
-		  {{ search_namespace("metacyc.reaction") }}
-		</li>
 		<li>{{search_example('metacyc:VAL', is_first=true)}}, 
-		    {{search_example('metacyc:BRANCHED-CHAINAMINOTRANSFERVAL-RXN')}}, 
+		    {{search_example('metacyc:BRANCHED-CHAINAMINOTRANSFERVAL-RXN')}}
 		</li>
 	      </ul>
 	    </li>
 	    <li>
-	      {{ search_namespace("metanetx", is_auto=true) }}
+	      {{ search_namespace("metanetx", is_auto=true) }},
+	      {{ search_namespace("metanetx.chemical") }}, 
+	      {{ search_namespace("metanetx.reaction") }}
 	      <ul>
 		<li>Identifiers can also be entered directly.</li>
 		<li>
-		  {{ search_namespace("metanetx.chemical") }}, 
-		  {{ search_namespace("metanetx.reaction") }}
-		</li>
-		<li>
 		  {{search_example('metanetx:MNXR100289', is_first=true)}}, 
-		  {{search_example('MNXR100289')}}, 
+		  {{search_example('MNXR100289')}}
 		</li>
 	      </ul>
 	    </li>

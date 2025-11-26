@@ -47,7 +47,7 @@
     {% elif references|length > 1 %}
     {% call(is_title) cards.entity_card(none, "reference_L") %}
     {% if is_title %}
-  <ul class="nav d-flex flex-row" id="reference_tab_list_{{component.id}}" role="tablist">
+  <ul class="nav d-flex flex-row" id="reference_tab_list_{{comp_comp.id}}" role="tablist">
     {% for reference in references %}
       <li class="card-title-tab flex-fill position-relative" role="presentation">
       <a class="text-reset text-decoration-none text-center stretched-link d-block w-100{% if reference.id == references[0]["id"] %} active{% endif %}" id="reference_tab_{{reference.id}}" data-bs-toggle="tab" data-bs-target="#reference_tab_pane_{{reference.id}}" type="button" role="tab" aria-controls="reference_tab_pane_{{reference.id}}" aria-selected="{% if reference.id == references[0]["id"] %}true{% else %}false{% endif %}}">{{reference.bigg_id | format_reference()}}</a>
