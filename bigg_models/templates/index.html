@@ -2,16 +2,16 @@
 <a class="list-group-item list-group-item-action" href="{{base_url}}{{bigg_id}}">{{bigg_id}}{% if extra %} <small><i>({{extra}})</i></small>{% endif %}</a>
 {% endmacro %}
 {% macro homepage_card(title, icon, url) %}
-  <div class="col-md-4 mb-3">
+  <div class="col-md-6 col-lg-4 mb-3">
     <div class="card">
     <div class="ps-4 pe-4 pt-1 pb-1 fw-semibold fs-5 border-bottom border-1 border-secondary-subtle position-relative"><a href="{{url}}" class="d-block stretched-link text-reset text-decoration-none">{{title}}</a></div>
       <div class="row g-0">
-        <div class="col-4 position-relative d-flex flex-column justify-content-center">
+        <div class="col-3 col-md-4 position-relative d-flex flex-column justify-content-center">
         <a href="{{url}}" class="stretched-link">
         <img class="img-fluid rounded-start w-100" src="/static/assets/iconset.svg#{{icon}}">
         </a>
         </div>
-        <div class="col-8">
+        <div class="col-9 col-md-8">
             <div class="list-group list-group-flush border-start border-1 border-secondary-subtle h-100">
               {{ caller(url) }}
           <a href="{{url}}" class="list-group-item list-group-item-action h-100 text-center link link-primary fw-semibold d-flex flex-column justify-content-center">All {{title}}</a>
@@ -42,10 +42,10 @@
   {% include "general_color_mode_switcher.html" %}
   <main>
     {% include "general_navbar.html" %}
-    <div class="container mb-5 mt-2">
+    <div class="container-lg mb-5 mt-2">
       {% block body %}
       <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-8 col-lg-6">
           <div class="card bg-warning-subtle mb-3">
             <div class="card-header">
               <h5 class="card-title">Under Active Development</h5>
@@ -62,6 +62,7 @@
         {% call(url) homepage_card("Collections", "collection_L", "/collections/") %}
           {{ highlighted_entity(url, "iECx6", extra="E. coli") }}
           {{ highlighted_entity(url, "iML1515", extra="E. coli MG1655") }}
+          {{ highlighted_entity(url, "iPKB_Clostridiaceae") }}
         {% endcall %}
          
         {% call(url) homepage_card("Models", "model_L", "/models/") %}
@@ -94,8 +95,31 @@
           {{ highlighted_entity(url, "e", extra="Extracellular Space") }}
         {% endcall %}
       </div>
-    </div>
     {% endblock %}
+    </div>
+    <div class="container-lg mb-5 mt-2">
+      <div class="row g-3">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 d-flex flex-row align-items-center p-2 position-relative">
+          <a href="https://novonordiskfonden.dk/en/" target="_blank" class="stretched-link">
+            <img src="/static/assets/nnf-logo.jpg" class="img-fluid">
+          </a>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 d-flex flex-column align-items-center p-2 position-relative">
+          <a href="https://www.biosustain.dtu.dk/" target="_blank" class="stretched-link">
+            <img src="/static/assets/cfb-logo.png" class="img-fluid" style="max-height: 4rem;">
+          </a>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 d-flex flex-row align-items-center p-2 position-relative">
+          <a href="https://www.ucsd.edu/" target="_blank" class="stretched-link">
+            <img src="/static/assets/ucsd-logo.png" class="img-fluid">
+          </a>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 d-flex flex-row align-items-center p-2 position-relative">
+          <a href=" https://systemsbiology.ucsd.edu/" target="_blank" class="stretched-link">
+            <img src="/static/assets/sbrg-logo.png" class="img-fluid">
+          </a>
+        </div>
+      </div>
     </div>
   </main>
 </body>

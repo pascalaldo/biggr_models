@@ -138,6 +138,8 @@ def get_model_and_counts(
         ).all()
     )
     # genome ref
+    genome_strain = None
+    organism = getattr(model_db, "organism", None)
     if model_db.genome is None:
         genome_ref_string = genome_name = None
     else:
@@ -145,22 +147,30 @@ def get_model_and_counts(
         genome_ref_string = ref_tuple_to_str(
             model_db.genome.accession_type, genome_name
         )
+        genome_strain = model_db.genome.strain
+        if organism is None:
+            organism = model_db.genome.organism
+        if (
+            organism is not None
+            and genome_strain is not None
+            and genome_strain in organism
+        ):
+            genome_strain = None
+
+    publication = next((x.publication for x in model_db.publication_models), None)
     result = {
         "model_bigg_id": model_db.bigg_id,
         "collection_bigg_id": model_db.collection.bigg_id,
         "published_filename": model_db.published_filename,
-        "organism": getattr(model_db, "organism", None),
+        "organism": organism,
+        "strain": genome_strain,
         "genome_name": genome_name,
         "genome_ref_string": genome_ref_string,
         "metabolite_count": model_db.model_count.metabolite_count,
         "reaction_count": model_db.model_count.reaction_count,
         "gene_count": model_db.model_count.gene_count,
-        "reference_type": [
-            x.publication.reference_type for x in model_db.publication_models
-        ][0],
-        "reference_id": [
-            x.publication.reference_id for x in model_db.publication_models
-        ][0],
+        "reference_type": None if publication is None else publication.reference_type,
+        "reference_id": None if publication is None else publication.reference_id,
         "escher_modules": escher_modules,
         "model_modified_date": model_db.date_modified.strftime("%b %d, %Y"),
         # "last_updated": session.query(DatabaseVersion)
@@ -330,7 +340,9 @@ class ModelTreeNode(TreeNode):
 
 def get_model_collections_and_taxons(session: Session):
     collections_db = session.scalars(
-        select(ModelCollection).options(subqueryload(ModelCollection.models))
+        select(ModelCollection).options(
+            subqueryload(ModelCollection.models).joinedload(Model.genome)
+        )
     ).all()
 
     tax_ids = set()

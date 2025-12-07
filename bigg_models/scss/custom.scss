@@ -179,3 +179,20 @@ li.card-title-tab > a {
 li.card-title-tab > a.active {
   opacity: 1;
 }
+.dbentity {
+  color: rgb(var(--bs-warning-rgb)) !important;
+}
+.bigg_biggr_change {
+  background-color: var(--bs-warning-bg-subtle) !important;
+  color: var(--bs-warning-text-emphasis) !important;
+  border-radius: var(--bs-border-radius-lg) !important;
+  padding-left: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-right: 1rem;
+  margin-bottom: 2rem;
+}
+#about-nav a.nav-link {
+  padding-top: 0rem !important;
+  padding-bottom: 0.25rem !important;
+}

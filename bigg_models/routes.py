@@ -41,6 +41,7 @@ def get_routes():
     api_regex = r"(?P<api>/api/%s)?" % utils.api_v
     routes = [
         (r"/", utils.TemplateHandler, {"template_name": "index.html"}),
+        (r"/about/?", utils.TemplateHandler, {"template_name": "about.html"}),
         (
             r"/api/%s/objects/?$" % utils.api_v,
             object_handlers.ObjectHandler,
@@ -253,12 +254,12 @@ def get_routes():
             utils.TemplateHandler,
             {"template_name": "about_license_page.html"},
         ),
-        (
-            r"/about$",
-            utils.TemplateHandler,
-            {"template_name": "about_license_page.html"},
-        ),
-        (r"/updates$", utils.TemplateHandler, {"template_name": "updates.html"}),
+        # (
+        #     r"/about$",
+        #     utils.TemplateHandler,
+        #     {"template_name": "about_license_page.html"},
+        # ),
+        # (r"/updates$", utils.TemplateHandler, {"template_name": "updates.html"}),
         #
         # Version
         (r"/api/%s/database_version$" % utils.api_v, utils.APIVersionHandler),

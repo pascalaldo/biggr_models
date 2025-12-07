@@ -20,8 +20,17 @@
 </div>
 
 {% for component in components %}
+{% set entity_icon = "molecule_smallmolecule_L" %}
+{% if component.reference | length > 0 %}
+  {% if component.reference[0].type == "generic_polypeptide" %}
+    {% set entity_icon = "molecule_protein_L" %}
+  {% elif component.reference[0].type == "generic_polynucleotide" %}
+    {% set entity_icon = "molecule_dna_L" %}
+  {% endif %}
+{% endif %}
+
 <div class="row rounded-2 border-start border-2 border-primary{% if not component.default %}-subtle{% endif %} pt-3 mb-3 {% if component.default %}bg-primary bg-opacity-10{% endif %}">
-    {% call(is_title) cards.entity_card(component.bigg_id | format_id("comp"), "molecule_smallmolecule_L") %}
+    {% call(is_title) cards.entity_card(component.bigg_id | format_id("comp"), entity_icon) %}
       {% call cards.flush_list_group(accent=False) %}
     {% if component.name is not none %}{{ cards.flush_list_group_item(value=component.name, accent=False) }}{% endif %}
         {{ cards.flush_list_group_item("Charge", component.charge) }}
@@ -29,57 +38,9 @@
       {% endcall %}
     {% endcall %}
 
-    {% if component.reference|length == 1 %}
-    {% set reference = component.reference[0] %}
-    {% call(is_title) cards.entity_card(reference.bigg_id | format_reference, "reference_L") %}
-      {% call cards.flush_list_group() %}
-    {% if reference.name is not none %}{{ cards.flush_list_group_item(value=reference.name) }}{% endif %}
-      {{ cards.flush_list_group_item(label="Type", value=reference.type) }}
-      {% if not reference.bigg_id.startswith("CHEBI:") %}
-        {{ cards.flush_list_group_item(label="Charge", value=reference.charge) }}
-        {{ cards.flush_list_group_item(label="Formula", value=reference.formula) }}
-      {% endif %}
-       {{ general.inchi_key_list_item(reference.inchi) }}
-      {% if reference.bigg_id.startswith('CHEBI:') %}
-        {% set chebi_link -%}http://identifiers.org/{{reference.bigg_id}}{%- endset %}
-        {{ cards.flush_list_group_item(value="View on ChEBI", link=chebi_link) }}
-      {% endif %}
-      {% endcall %}
-    {% endcall %}
+    {% set references = component.reference %}
+    {% include "reference_metabolite_ui.html" %}
 
-    {% elif component.reference|length > 1 %}
-    {% call(is_title) cards.entity_card(none, "reference_L") %}
-    {% if is_title %}
-  <ul class="nav d-flex flex-row" id="reference_tab_list_{{component.id}}" role="tablist">
-    {% for reference in component.reference %}
-      <li class="card-title-tab flex-fill position-relative" role="presentation">
-      <a class="text-reset text-decoration-none text-center stretched-link d-block w-100{% if reference.id == component.reference[0]["id"] %} active{% endif %}" id="reference_tab_{{reference.id}}" data-bs-toggle="tab" data-bs-target="#reference_tab_pane_{{reference.id}}" type="button" role="tab" aria-controls="reference_tab_pane_{{reference.id}}" aria-selected="{% if reference.id == component.reference[0]["id"] %}true{% else %}false{% endif %}}">{{reference.bigg_id | format_reference()}}</a>
-      </li>
-    {% endfor %}
-    </ul>
-    {% else %}
-  <div class="tab-content" id="reference_tabs_{{component.id}}">
-    {% for reference in component.reference %}
-      <div class="tab-pane {% if reference.id == component.reference[0]["id"] %} show active{% endif %}" aria-labelledby="reference_tab_{{reference.id}}" id="reference_tab_pane_{{reference.id}}" role="tabpanel" tabindex="0">
-      {% call cards.flush_list_group() %}
-    {% if reference.name is not none %}{{ cards.flush_list_group_item(value=reference.name) }}{% endif %}
-      {{ cards.flush_list_group_item(label="Type", value=reference.type) }}
-      {% if not reference.bigg_id.startswith("CHEBI:") %}
-        {{ cards.flush_list_group_item(label="Charge", value=reference.charge) }}
-        {{ cards.flush_list_group_item(label="Formula", value=reference.formula) }}
-      {% endif %}
-       {{ general.inchi_key_list_item(reference.inchi) }}
-      {% if reference.bigg_id.startswith('CHEBI:') %}
-        {% set chebi_link -%}http://identifiers.org/{{reference.bigg_id}}{%- endset %}
-        {{ cards.flush_list_group_item(value="View on ChEBI", link=chebi_link) }}
-      {% endif %}
-      {% endcall %}
-      </div>
-    {% endfor %}
-    </div>
-    {% endif %}
-    {% endcall %}
-    {% endif %}
     {% if component.annotation_properties %}
       <div class="col-md-6">
         <div class="card mb-3 bg-transparent"> 

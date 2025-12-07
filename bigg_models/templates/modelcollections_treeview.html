@@ -31,7 +31,7 @@
 		{% else %}
 		{% if node.node_type == "model" %}
 		<summary><em><a href="/models/{{node.name}}/">{{node.name}}</a></em>{% if node.model.organism %} <span
-				class='disp-tax'>{{node.model.organism}}</span>{% endif %}</summary>
+			class='disp-tax'>{{node.model.organism}}{% if node.model.genome and node.model.genome.strain and not node.model.genome.strain is in(node.model.organism)  %} ({{node.model.genome.strain}}){% endif %}</span>{% endif %}</summary>
 		{% elif node.node_type == "collection" %}
 		<summary><em><a href="/collections/{{node.name}}/">{{node.name}}</a></em>{% if node.collection.oneliner %} <span
 				class='disp-tax'>{{node.collection.oneliner}}</span>{% endif %}</summary>

@@ -31,8 +31,10 @@ from cobradb.models import (
     Model,
     Reaction,
     ReactionMatrix,
+    ReferenceReactivePartMatrix,
     InChI,
 )
+from cobradb.api import utils as api_utils
 
 from sqlalchemy import func, or_, select
 
@@ -46,6 +48,11 @@ ANNOTATION_TYPES = {
     "seed": "ModelSEED",
     "chebi": "ChEBI",
     "rhea": "RHEA",
+}
+REFERENCE_COMPOUND_TYPES = {
+    "small_molecule": "Small Molecule",
+    "generic_polypeptide": "Protein-linked Reactive Group",
+    "generic_polynucleotide": "Polynucleotide-linked Reactive Group",
 }
 
 
@@ -326,36 +333,52 @@ def get_metabolite(met_bigg_id, session):
             "charge": default_component_db.charge,
         }
 
-    components_db = session.execute(
-        select(Component, ComponentReferenceMapping, ReferenceCompound, InChI)
-        .outerjoin(
-            ComponentReferenceMapping,
-            ComponentReferenceMapping.component_id == Component.id,
+    components_db = session.scalars(
+        select(Component)
+        .options(
+            contains_eager(Component.universal_component),
+            subqueryload(Component.reference_mappings)
+            .joinedload(ComponentReferenceMapping.reference_compound)
+            .options(
+                joinedload(ReferenceCompound.inchi),
+                subqueryload(ReferenceCompound.reactive_part_matrix).joinedload(
+                    ReferenceReactivePartMatrix.reactive_part
+                ),
+            ),
         )
-        .outerjoin(
-            ReferenceCompound,
-            ReferenceCompound.id == ComponentReferenceMapping.reference_compound_id,
-        )
-        .outerjoin(InChI, InChI.id == ReferenceCompound.inchi_id)
         .join(Component.universal_component)
         .filter(UniversalComponent.bigg_id == met_bigg_id)
         .order_by(Component.charge)
     ).all()
 
     components = []
-    for component, refmap, ref_db, inchi_db in components_db:
-        ref = None
-        ref_ann = None
-        if ref_db is not None:
+    for component in components_db:
+        references = []
+        for ref_map_db in component.reference_mappings:
             ref = {
-                "id": ref_db.id,
-                "bigg_id": ref_db.bigg_id,
-                "name": ref_db.name,
-                "type": ref_db.compound_type,
-                "charge": ref_db.charge,
-                "formula": ref_db.formula,
-                "ref_n": refmap.reference_n,
-                "inchi": inchi_db,
+                "id": ref_map_db.reference_compound.id,
+                "bigg_id": ref_map_db.reference_compound.bigg_id,
+                "name": ref_map_db.reference_compound.name,
+                "reference_n": ref_map_db.reference_n,
+                "reference_formula_delta": (
+                    None
+                    if ref_map_db.reference_formula_delta is None
+                    else api_utils.Formula(
+                        ref_map_db.reference_formula_delta
+                    ).grouped_str()
+                ),
+                "type": ref_map_db.reference_compound.compound_type,
+                "type_str": REFERENCE_COMPOUND_TYPES.get(
+                    ref_map_db.reference_compound.compound_type,
+                    ref_map_db.reference_compound.compound_type,
+                ),
+                "charge": ref_map_db.reference_compound.charge,
+                "formula": ref_map_db.reference_compound.formula,
+                "inchi": ref_map_db.reference_compound.inchi,
+                "reactive_parts": [
+                    m.reactive_part
+                    for m in ref_map_db.reference_compound.reactive_part_matrix
+                ],
             }
             ref_ann = session.execute(
                 select(Annotation, ReferenceCompoundAnnotationMapping)
@@ -368,7 +391,7 @@ def get_metabolite(met_bigg_id, session):
                 .join(Annotation.reference_compound_mappings)
                 .filter(
                     ReferenceCompoundAnnotationMapping.reference_compound_id
-                    == ref_db.id
+                    == ref_map_db.reference_compound.id
                 )
                 .join(ReferenceCompoundAnnotationMapping.reference_compound)
             ).all()
@@ -377,15 +400,8 @@ def get_metabolite(met_bigg_id, session):
                     (process_annotation_for_template(ann), ann_map)
                     for ann, ann_map in ref_ann
                 ]
-        skip = False
-        for comp in components:
-            if comp["bigg_id"] == component.bigg_id:
-                if ref is not None:
-                    comp["reference"].append(ref)
-                skip = True
-                break
-        if skip:
-            continue
+            references.append(ref)
+
         comp_ann = session.execute(
             select(Annotation, ComponentAnnotationMapping)
             .options(
@@ -403,7 +419,7 @@ def get_metabolite(met_bigg_id, session):
             "name": component.name,
             "charge": component.charge,
             "formula": component.formula,
-            "reference": [] if ref is None else [ref],
+            "reference": references,
         }
         if comp_ann:
             d["annotations"] = [
@@ -500,7 +516,12 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
                 joinedload(Component.universal_component),
                 subqueryload(Component.reference_mappings)
                 .joinedload(ComponentReferenceMapping.reference_compound)
-                .joinedload(ReferenceCompound.inchi),
+                .options(
+                    joinedload(ReferenceCompound.inchi),
+                    subqueryload(ReferenceCompound.reactive_part_matrix).joinedload(
+                        ReferenceReactivePartMatrix.reactive_part
+                    ),
+                ),
             ),
         )
         .join(ModelCompartmentalizedComponent.model)
@@ -522,14 +543,30 @@ def get_model_comp_metabolite(comp_met_id, model_bigg_id, session):
     for (
         ref_map_db
     ) in model_comp_comp_db.compartmentalized_component.component.reference_mappings:
+        if ref_map_db.reference_formula_delta is not None:
+            print(api_utils.Formula(ref_map_db.reference_formula_delta).grouped_str())
         ref = {
             "id": ref_map_db.id,
+            "reference_n": ref_map_db.reference_n,
+            "reference_formula_delta": (
+                None
+                if ref_map_db.reference_formula_delta is None
+                else api_utils.Formula(ref_map_db.reference_formula_delta).grouped_str()
+            ),
             "bigg_id": ref_map_db.reference_compound.bigg_id,
             "name": ref_map_db.reference_compound.name,
             "type": ref_map_db.reference_compound.compound_type,
+            "type_str": REFERENCE_COMPOUND_TYPES.get(
+                ref_map_db.reference_compound.compound_type,
+                ref_map_db.reference_compound.compound_type,
+            ),
             "charge": ref_map_db.reference_compound.charge,
             "formula": ref_map_db.reference_compound.formula,
             "inchi": ref_map_db.reference_compound.inchi,
+            "reactive_parts": [
+                m.reactive_part
+                for m in ref_map_db.reference_compound.reactive_part_matrix
+            ],
         }
         ref_ann = session.execute(
             select(Annotation, ReferenceCompoundAnnotationMapping)
