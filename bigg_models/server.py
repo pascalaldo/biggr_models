@@ -4,10 +4,11 @@
 from itertools import chain
 from bigg_models import routes
 
-from cobradb.models import *
+import asyncio
 
-from tornado.ioloop import IOLoop
+import tornado
 from tornado import autoreload
+from tornado.netutil import bind_sockets
 from tornado.httpserver import HTTPServer
 from tornado.options import define, options, parse_command_line
 from tornado.web import Application
@@ -28,41 +29,50 @@ def get_application(debug=False):
     return Application(app_routes, debug=debug)
 
 
+def start_debug_server():
+    import os
+
+    server = HTTPServer(get_application(debug=options.debug))
+    server.bind(options.port, None if options.public else "localhost")
+
+    print("Serving BiGG Models on port %d in debug mode" % options.port)
+    if options.processes > 1:
+        print("Multiple processes not supported in debug mode")
+    autoreload.start()
+    for dir, _, files in chain(
+        os.walk("bigg_models/templates"),
+        os.walk("bigg_models/static/js"),
+        os.walk("bigg_models/static/css"),
+        os.walk("bigg_models/static/assets"),
+    ):
+        [autoreload.watch(dir + "/" + f) for f in files if not f.startswith(".")]
+    server.start(1)
+
+
+def start_production_server():
+    print(
+        "Serving BiGG Models on port %d with %d processes"
+        % (options.port, options.processes)
+    )
+    sockets = bind_sockets(options.port)
+    tornado.process.fork_processes(options.processes)
+
+    async def post_fork_main():
+        server = HTTPServer(get_application(debug=options.debug))
+        server.add_sockets(sockets)
+        await asyncio.Event().wait()
+
+    asyncio.run(post_fork_main())
+
+
 def run():
     """Run the server"""
     parse_command_line()
-    server = HTTPServer(get_application(debug=options.debug))
-    server.bind(options.port, None if options.public else "localhost")
+
     if options.debug:
-        import os
-
-        print("Serving BiGG Models on port %d in debug mode" % options.port)
-        if options.processes > 1:
-            print("Multiple processes not supported in debug mode")
-        autoreload.start()
-        for dir, _, files in chain(
-            os.walk("bigg_models/templates"),
-            os.walk("bigg_models/static/js"),
-            os.walk("bigg_models/static/css"),
-            os.walk("bigg_models/static/assets"),
-        ):
-            [autoreload.watch(dir + "/" + f) for f in files if not f.startswith(".")]
-        server.start(1)
+        start_debug_server()
     else:
-        print(
-            "Serving BiGG Models on port %d with %d processes"
-            % (options.port, options.processes)
-        )
-        server.start(options.processes)
-    try:
-        IOLoop.current().start()
-    except KeyboardInterrupt:
-        stop()
-
-
-def stop():
-    """Stop the server"""
-    IOLoop.current().stop()
+        start_production_server()
 
 
 # -------------------------------------------------------------------------------
