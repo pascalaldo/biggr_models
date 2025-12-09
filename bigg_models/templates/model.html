@@ -32,7 +32,7 @@
     {% call cards.item_card("model_L", "Model", True) %}
     <div class="card-body">
       <h5 class="card-title">{{model_bigg_id}}</h5>
-      <p class="card-text">{{organism}}</p>
+      <p class="card-text">{{organism}}{% if strain %} (strain: <i>{{strain}}</i>){% endif %}</p>
     </div>
     {% call cards.flush_list_group(accent=True) %}
     {% if genome_name is none %}

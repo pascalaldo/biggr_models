@@ -25,6 +25,8 @@ from cobradb.models import (
     ReferenceReactionParticipant,
     ReferenceReactivePart,
     ReferenceReactivePartMatrix,
+    Taxon,
+    TaxonomicRank,
     UniversalComponent,
     UniversalReaction,
 )
@@ -46,8 +48,8 @@ OBJECT_DEFAULT_LOAD = {
         subqueryload(Reaction.matrix).joinedload(
             ReactionMatrix.compartmentalized_component
         ),
-        joinedload(UniversalReaction.reference),
     ),
+    UniversalReaction: (joinedload(UniversalReaction.reference),),
     ReferenceReaction: (
         subqueryload(ReferenceReaction.reaction_participants).joinedload(
             ReferenceReactionParticipant.compound
@@ -88,6 +90,8 @@ OBJECT_DEFAULT_LOAD = {
     Annotation: (
         subqueryload(Annotation.links).joinedload(AnnotationLink.data_source),
     ),
+    Taxon: (joinedload(Taxon.rank),),
+    TaxonomicRank: (),
 }
 
 

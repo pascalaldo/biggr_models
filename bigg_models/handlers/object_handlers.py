@@ -20,7 +20,9 @@ from cobradb.models import (
     ReferenceCompound,
     ReferenceReaction,
     ReferenceReactivePart,
+    Taxon,
     UniversalComponent,
+    UniversalReaction,
 )
 import inspect
 from sqlalchemy import inspect as sqlalchemy_inspect
@@ -70,6 +72,7 @@ MODELS_CLASS_MAP = {
     "MODELCOMPARTMENTALIZEDCOMPONENT": metabolite_queries.get_model_compartmentalized_component_object,
     "UNIVERSALCOMPONENT": object_type_variant(UniversalComponent),
     "REACTION": object_type_variant(Reaction),
+    "UNIVERSALREACTION": object_type_variant(UniversalReaction),
     "REFERENCEREACTION": object_type_variant(ReferenceReaction),
     "REFERENCECOMPOUND": object_type_variant(ReferenceCompound),
     "REFERENCEREACTIVEPART": object_type_variant(ReferenceReactivePart),
@@ -81,6 +84,7 @@ MODELS_CLASS_MAP = {
     "MEMOTETEST": object_type_variant(MemoteTest),
     "MEMOTERESULT": object_type_variant(MemoteResult, int_id_only=True),
     "ANNOTATION": object_type_variant(Annotation),
+    "TAXON": object_type_variant(Taxon, int_id_only=True),
 }
 
 MODELS_ALLOWED_PROPERTIES = []

@@ -9,6 +9,7 @@ services:
     profiles:
       - prod
     build: .
+    restart: always
     ports:
       - "80:8910"
     depends_on:
@@ -27,6 +28,7 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile.dev
+    restart: always
     ports:
       - "80:8910"
     depends_on:

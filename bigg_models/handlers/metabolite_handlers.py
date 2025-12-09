@@ -144,10 +144,19 @@ class MetaboliteInModelsListViewHandler(utils.DataHandler):
         "row_icon": "model_S",
     }
     column_specs = [
+        # utils.DataColumnSpec(
+        #     ModelCompartmentalizedComponent.bigg_id,
+        #     "BiGG ID",
+        #     hyperlink="/models/${row['model__bigg_id']}/metabolites/${row['modelcompartmentalizedcomponent__bigg_id']}",
+        #     priority=1,
+        # ),
         utils.DataColumnSpec(
-            ModelCompartmentalizedComponent.bigg_id,
+            CompartmentalizedComponent.bigg_id,
             "BiGG ID",
-            hyperlink="/models/${row['model__bigg_id']}/metabolites/${row['modelcompartmentalizedcomponent__bigg_id']}",
+            requires=[
+                ModelCompartmentalizedComponent.compartmentalized_component,
+            ],
+            hyperlink="/models/${row['model__bigg_id']}/metabolites/${row['compartmentalizedcomponent__bigg_id']}",
             priority=1,
         ),
         utils.DataColumnSpec(

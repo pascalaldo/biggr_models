@@ -1,29 +1,59 @@
 {% import "general_macros.html" as general %}
 {% import "general_card_macros.html" as cards %}
-{% if reference is none %}
-<div class="card m-2">
-	<div class="card-body d-flex align-items-center">
-		<p class="lead text-secondary">No reference available.</p>
-	</div>
-</div>
-{% else %}
-<div class="card m-2">
-	<div class="card-body">
-		<h5 class="card-title">{{reference['bigg_id'] | format_reference}}</h5>
-		<p class="card-text">{{reference['name']}}</p>
-	</div>
-	<ul class="list-group list-group-flush rounded-3-end">
-		{{ cards.flush_list_group_item(label="Type", value=reference["type"]) }}
-		{% if not reference['bigg_id'].startswith("CHEBI:") %}
-		{{ cards.flush_list_group_item(label="Charge", value=reference["charge"]) }}
-		{{ cards.flush_list_group_item(label="Formula", value=reference["formula"]) }}
-		{% endif %}
-		{{ general.inchi_list_item(reference.inchi) }}
-		{% if reference['bigg_id'].startswith('CHEBI:') %}
-		{% set chebi_link -%}http://identifiers.org/{{reference['bigg_id']}}{%- endset %}
-		{{ cards.flush_list_group_item(value="View on ChEBI", link=chebi_link) }}
-		{% endif %}
 
-	</ul>
+{% macro reference_info(reference) %}
+{% if reference.name is not none %}{{ cards.flush_list_group_item(value=reference.name) }}{% endif %}
+{{ cards.flush_list_group_item(label="Type", value=reference.type_str) }}
+{% if not reference.bigg_id.startswith("CHEBI:") or reference.reference_n is not none %}
+{{ cards.flush_list_group_item(label="Charge", value=reference.charge) }}
+{% set ref_formula = reference.formula %}
+{% if reference.reference_formula_delta %}
+  {% set ref_formula = ref_formula ~ " [" ~ reference.reference_formula_delta ~ "]" %}
+{% endif %}
+{% if reference.reference_n is not none %}
+  {% set ref_formula = ref_formula ~ " [n=" ~ reference.reference_n ~ "]" %}
+{% endif %}
+{{ cards.flush_list_group_item(label="Formula", value=ref_formula) }}
+{% endif %}
+{{ general.inchi_key_list_item(reference.inchi) }}
+{% if reference.bigg_id.startswith('CHEBI:') %}
+{% set chebi_link -%}http://identifiers.org/{{reference.bigg_id}}{%- endset %}
+{{ cards.flush_list_group_item(value="View on ChEBI", link=chebi_link) }}
+{% endif %}
+{% for reactive_part in reference.reactive_parts %}
+{{ cards.flush_list_group_item(label="Part", value=reactive_part.bigg_id, accent=True) }}
+{{ cards.flush_list_group_item(label="Part Name", value=reactive_part.name) }}
+{% endfor %}
+{% endmacro %}
+
+{% if references|length == 1 %}
+{% set reference = references[0] %}
+{% call(is_title) cards.entity_card(reference.bigg_id | format_reference, "reference_L") %}
+{% call cards.flush_list_group() %}
+{{ reference_info(reference) }}
+{% endcall %}
+{% endcall %}
+{% elif references|length > 1 %}
+{% call(is_title) cards.entity_card(none, "reference_L") %}
+{% if is_title %}
+<ul class="nav d-flex flex-row" id="reference_tab_list_{{component.id}}" role="tablist">
+{% for reference in references %}
+<li class="card-title-tab flex-fill position-relative" role="presentation">
+<a class="text-reset text-decoration-none text-center stretched-link d-block w-100{% if reference.id == references[0]["id"] %} active{% endif %}" id="reference_tab_{{reference.id}}" data-bs-toggle="tab" data-bs-target="#reference_tab_pane_{{reference.id}}" type="button" role="tab" aria-controls="reference_tab_pane_{{reference.id}}" aria-selected="{% if reference.id == references[0]["id"] %}true{% else %}false{% endif %}}">{{reference.bigg_id | format_reference()}}</a>
+</li>
+{% endfor %}
+</ul>
+{% else %}
+<div class="tab-content" id="reference_tabs_{{component.id}}">
+{% for reference in references %}
+<div class="tab-pane {% if reference.id == references[0]["id"] %} show active{% endif %}" aria-labelledby="reference_tab_{{reference.id}}" id="reference_tab_pane_{{reference.id}}" role="tabpanel" tabindex="0">
+{% call cards.flush_list_group() %}
+{{ reference_info(reference) }}
+{% endcall %}
+</div>
+{% endfor %}
 </div>
 {% endif %}
+{% endcall %}
+{% endif %}
+

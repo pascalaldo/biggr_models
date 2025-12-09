@@ -65,4 +65,11 @@ class GeneHandler(utils.BaseHandler):
         result = utils.safe_query(
             gene_queries.get_model_gene, gene_bigg_id, model_bigg_id
         )
+        result["breadcrumbs"] = [
+            ("Home", "/"),
+            ("Models", "/models/"),
+            (result["model_bigg_id"], f"/models/{result['model_bigg_id']}"),
+            ("Genes", f"/models/{result['model_bigg_id']}/genes/"),
+            (gene_bigg_id, f"/models/{result['model_bigg_id']}/genes/{gene_bigg_id}"),
+        ]
         self.return_result(result)

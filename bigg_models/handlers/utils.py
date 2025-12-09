@@ -102,7 +102,7 @@ def format_bigg_id(bigg_id, format_type=None):
 
 
 def format_reference(identifier):
-    namespace, ref_id = identifier.rsplit(":", maxsplit=1)
+    namespace, ref_id = identifier.split(":", maxsplit=1)
     return f'<span class="fw-normal text-body-secondary">{namespace}:</span><span class="text-body-emphasis">{ref_id}</span>'
 
 
@@ -329,7 +329,7 @@ def _interpret_asc(input: str) -> bool:
 def col_str_search(query, col_spec: "DataColumn"):
     if (search_value := col_spec.search_value.strip()) == "":
         return False, query
-    return True, query.filter(col_spec.prop.contains(search_value, autoescape=True))
+    return True, query.filter(col_spec.prop.icontains(search_value, autoescape=True))
 
 
 def col_bool_search(query, col_spec: "DataColumn"):

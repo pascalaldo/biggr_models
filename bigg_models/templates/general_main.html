@@ -19,7 +19,11 @@
 	{% block head %}{% endblock %}
 </head>
 
+{% if body_scroll_spy %}
+<body data-bs-spy="scroll" data-bs-target="#{{body_scroll_spy}}">
+{% else %}
 <body>
+{% endif %}
 	{% include "general_color_mode_switcher.html" %}
 	<main>
 		{% include "general_navbar.html" %}
