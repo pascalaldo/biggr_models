@@ -13,6 +13,10 @@ ln -s /models $BIGG_MODELS_DIR/static/models
 bin/run
 
 if [ $? -eq 0 ]; then
-	python -m bigg_models.server --port=8910 --processes=6
+	for i in $(seq 1 5);
+	do
+		python -m bigg_models.server --port=8910 --process_i=$i &
+	done
+	python -m bigg_models.server --port=8910 --process_i=6
 fi
 
