@@ -23,6 +23,9 @@
           {{ cards.flush_list_group_item("Strand", strand_string, accent=True) }}
           {{ cards.flush_list_group_item("Chromosome", chromosome_ncbi_accession, link="/genomes/"~genome_ref_string~"#"~chromosome_ncbi_accession, accent=True) }}
         {% endif %}
+        {% if genome_ref_string.startswith("pankb_assembly:") %}
+          {{ cards.flush_list_group_item("PanKB Gene", bigg_id, link="https://pankb.org/gene_function/genome_gene_info/?genome_id="~genome_name~"&locus_tag="~bigg_id, accent=True) }}
+        {% endif %}
       {% endcall %}
     {% endcall %}
   </div>

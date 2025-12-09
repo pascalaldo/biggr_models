@@ -248,7 +248,12 @@ def get_routes():
         #
         # Pages
         (r"/web_api$", RedirectHandler, {"url": "/data_access"}),
-        (r"/data_access$", utils.WebAPIHandler),
+        # (r"/data_access$", utils.WebAPIHandler),
+        (
+            r"/data_access/?",
+            utils.TemplateHandler,
+            {"template_name": "data_access.html"},
+        ),
         (
             r"/license$",
             utils.TemplateHandler,

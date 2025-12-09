@@ -1,4 +1,3 @@
-
 {% extends "general_main.html" %}
 {% macro biggr_change() %}
 <div class="bigg_biggr_change"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-asterisk me-4" viewBox="0 0 16 16">
@@ -20,6 +19,7 @@
 {% endmacro %}
 {% block title %}About BiGGr{% endblock %}
 {% set body_scroll_spy = "about-nav" %}
+{% set aboutpage = True %}
 {% block body %}
 <div class="row">
   <div class="col-10 offset-1 col-lg-3 offset-lg-0">
@@ -78,6 +78,7 @@
       
       <div id="about_database_models">
         <h3>Models &amp; Collections</h3>
+        <a href="/collections"><img src="/static/assets/screenshots/screenshot_collections.png" style="width: 16rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
         <p>A <strong class="dbentity">Model</strong> represents an entity that combines metabolites, reactions, and genes into a form that can be used to model aspects of an organism or tissue or group thereof. In BiGGr, Models are members of a <strong class="dbentity">Collection</strong>. Collections group models that were constructed in the same research, pipeline or manuscript together. In cases where a single model was constructed in a specific research, the models still belong to a distinct collection, but this collection is often omitted (e.g. in the new <a href="/collections">collections page</a>). The BiGG IDs of models should still be globablly unique, i.e. a model can always be accessed by its BiGG ID alone, without the necessity of knowing the collection BiGG ID.</p>
         {% call biggr_change() %}Model Collections are added to help better organize the models in the database.{% endcall %}
       </div>
@@ -120,13 +121,25 @@
     <div id="about_features">
       <h2>Features</h2>
       <p class="lead">BiGGr is packed with usefull features, in addition to its core functionality of persenting metabolic models and their components.</p>
+      <div id="about_features_search">
+        <h3>Search &amp; Navigation</h3>
+        <p>BiGGr includes a powerfull search function that returns results to the user as fast as possible. Results include any entity where (part of) the BiGG ID, name or synonym matches the search query. BiGGr aims to serve the most relevant results at the top of the results tables. Therefore, BiGG ID matches are preferred over name or synonyms, and exact matches and entities where the start of the BiGG ID, name, etc. matches the search query are prioritized.</p>
+        <div class="d-flex flex-wrap">
+          <a href="/search/?search_query=ace" class="flex-fill"><img src="/static/assets/screenshots/screenshot_search_ace.png" style="height: 8rem;" class="rounded border border-2 border-primary m-2"></a>
+          <a href="/search/?search_query=EC%3A4.1.3.*" class="flex-fill"><img src="/static/assets/screenshots/screenshot_search_ec.png" style="height: 8rem;" class="rounded border border-2 border-primary m-2"></a>
+        </div>
+        <p>In addition, BiGGr search will recognize many types of external identifiers and return the relevant BiGGr entities. For a full list and examples of searching by external identifier, click the search box/button at the top of the page.</p>
+      </div>
       <div id="about_features_memote">
         <h3>MEMOTE Integration</h3>
+        <a href="/models/iML1515"><img src="/static/assets/screenshots/screenshot_MEMOTE.png" style="width: 18rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
         <p>{{general.external_link("MEMOTE", "https://memote.readthedocs.io/en/latest/")}} is a suite of tools that can be used to analyze various aspects of model quality. This test suite is now automatically executed for all models in BiGGr. The results can be found on each model page. Whenever MEMOTE results pertain to specific model metabolites or reactions, the results are also displayed on those respective pages.</p>
       </div>
       <div id="about_features_escher">
         <h3>Escher Maps</h3>
+        <a href="/models/iML1515"><img src="/static/assets/screenshots/screenshot_escher.png" style="width: 18rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
         <p>{{general.external_link("Escher", "https://escher.github.io/")}} is a tool for visualizing metabolic models and pathways. BiGGr uses the normalized BiGG ID namespace to automatically generate model-spefic maps, based on templates or sets of rules.</p>
+        <p>For maps showing the interconversion of two (or a few) components, all reactions interconverting these components are collected and displayed on the maps. Examples of these maps are <i>Ubiquinone Reduction/Oxidation</i> and <i>L-Arginine Biosynthesis</i>. Other &mdash; more complex &mdash; maps make use of a template Escher map, on which reactions are mapped (e.g. <i>E. coli Central Metabolism</i>). Maps are required to have a decent completeness (percentage of reactions in the template that are also in the model; exact threshold varies per map), otherwise they are omitted.</p>
       </div>
       <div id="about_features_api">
         <h3>API</h3>
