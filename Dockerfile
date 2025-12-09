@@ -49,7 +49,5 @@ RUN cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js bigg_models/static
 
 RUN python setup.py install
 
-RUN rm -rf bigg_models
-
 #CMD ["python", "-m", "bigg_models.server", "--port=8910", "--processes=6"]
 CMD ["bin/server-entrypoint.sh"]

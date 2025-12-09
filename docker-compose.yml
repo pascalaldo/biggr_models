@@ -11,7 +11,7 @@ services:
     build: .
     restart: always
     ports:
-      - "8910:8910"
+      - 8910:8910
     depends_on:
       biggr-db:
         condition: service_healthy
@@ -40,14 +40,6 @@ services:
     networks:
       - biggr-net
 
-  certbot:
-    profiles:
-      - prod
-    image: certbot/certbot:latest
-    volumes:
-      - /data/certbot/www/:/var/www/certbot/:rw
-      - /data/certbot/conf/:/etc/letsencrypt/:rw
-
   biggr-web-dev:
     profiles:
       - dev
@@ -56,7 +48,7 @@ services:
       dockerfile: ./Dockerfile.dev
     restart: always
     ports:
-      - "80:8910"
+      - 80:8910
     depends_on:
       biggr-db:
         condition: service_healthy
@@ -74,7 +66,7 @@ services:
     image: postgres:17.6
     restart: always
     ports:
-      - "5432:5432"
+      - 5432:5432
     volumes:
       - /data/biggr-postgres:/var/lib/postgresql/data
       - /projects/biggr/biggr_models/db/load-extensions.sh:/docker-entrypoint-initdb.d/load-extensions.sh
