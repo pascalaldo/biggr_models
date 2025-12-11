@@ -1,3 +1,4 @@
+from typing import Dict, Any
 from bigg_models.queries import utils, id_queries
 from cobradb.util import ref_tuple_to_str
 from cobradb.models import (
@@ -14,6 +15,7 @@ from cobradb.models import (
 )
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session, joinedload, subqueryload, contains_eager
 
 
 def get_gene_ids_for_gene_name(name, session):
@@ -219,3 +221,24 @@ def get_model_gene(gene_bigg_id, model_bigg_id, session):
         "database_links": synonym_db,
         "old_identifiers": old_id_results,
     }
+
+
+def get_gene(
+    session: Session, accession_type: str, accession_value: str, gene_bigg_id: str
+) -> Dict[str, Any]:
+    gene_db = session.scalars(
+        select(Gene)
+        .options(
+            contains_eager(Gene.chromosome).contains_eager(Chromosome.genome),
+            subqueryload(Gene.model_genes).joinedload(ModelGene.model),
+        )
+        .join(Gene.chromosome)
+        .join(Chromosome.genome)
+        .filter(Genome.accession_type == accession_type)
+        .filter(Genome.accession_value == accession_value)
+        .filter(Gene.bigg_id == gene_bigg_id)
+    ).first()
+    if gene_db is None:
+        raise utils.NotFoundError("Could not find gene")
+
+    return {"gene": gene_db}

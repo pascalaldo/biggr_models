@@ -103,6 +103,10 @@
           </h5>
           <div id="flush-collapse-{{mapping_id}}" class="accordion-collapse collapse"
             aria-labelledby="flush-heading-{{mapping_id}}" data-bs-parent="#maps_accordion">
+            <div class="btn-group p-1" role="group">
+              <a class="btn btn-sm btn-outline-primary" href="/models/{{model_bigg_id}}/escher/{{escher_module.bigg_id}}?edit=True" target="_blank">Open in new Window</a>
+              <a class="btn btn-sm btn-outline-primary" href="/api/v3/models/{{model_bigg_id}}/escher/{{escher_module.bigg_id}}?download=True" target="_blank">Download map</a>
+            </div>
             <div class="accordion-body p-0">
               {% include "escher_embedded.html" %}
             </div>

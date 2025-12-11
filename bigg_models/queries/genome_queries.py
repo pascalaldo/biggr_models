@@ -1,3 +1,4 @@
+from bigg_models.handlers import gene_handlers
 from bigg_models.queries import utils
 from cobradb.util import ref_tuple_to_str, ref_str_to_tuple
 from cobradb.models import Genome, Chromosome, Model, GenomeRegion
@@ -11,12 +12,11 @@ def get_genomes_count(session, **kwargs):
     query = session.scalars(select(func.count(Genome.id))).first()
     return query
 
+
 def get_all_genomes(session):
     """Get all genomes."""
-    rows = session.execute(
-        select(Genome.accession_value).distinct()
-    ).all()
-    
+    rows = session.execute(select(Genome.accession_value).distinct()).all()
+
     return [r[0] for r in rows]
 
 
@@ -75,6 +75,10 @@ def get_genome_and_models(genome_ref_string, session):
     chromosomes_db = session.scalars(
         select(Chromosome).filter(Chromosome.genome_id == genome_db.id)
     ).all()
+
+    genes_in_genome_url = f"/genomes/{genome_ref_string}/genes"
+    genes_in_genome_columns = gene_handlers.GenesInGenomeListViewHandler.column_specs
+
     return {
         "name": genome_db.accession_value,
         "genome_ref_string": ref_tuple_to_str(
@@ -83,18 +87,15 @@ def get_genome_and_models(genome_ref_string, session):
         "organism": genome_db.organism,
         "models": [x.bigg_id for x in models_db],
         "chromosomes": [x.ncbi_accession for x in chromosomes_db],
+        "genes_in_genome_url": genes_in_genome_url,
+        "genes_in_genome_columns": genes_in_genome_columns,
     }
 
 
 def get_reactions_for_genome(genome_id, session):
     """Get all reactions associated with a genome through its models."""
-    from cobradb.models import (
-        Model, 
-        ModelReaction, 
-        Reaction,
-        UniversalReaction
-    )
-    
+    from cobradb.models import Model, ModelReaction, Reaction, UniversalReaction
+
     # Get reactions through the model associated with this genome
     reactions = session.execute(
         select(
@@ -104,7 +105,7 @@ def get_reactions_for_genome(genome_id, session):
             ModelReaction.lower_bound,
             ModelReaction.upper_bound,
             ModelReaction.copy_number,
-            ModelReaction.subsystem
+            ModelReaction.subsystem,
         )
         .join(Reaction, Reaction.universal_reaction_id == UniversalReaction.id)
         .join(ModelReaction, ModelReaction.reaction_id == Reaction.id)
@@ -112,7 +113,7 @@ def get_reactions_for_genome(genome_id, session):
         .filter(Model.genome_id == genome_id)
         .distinct()
     ).all()
-    
+
     return [
         {
             "bigg_id": f"{r[0]}:{r[5]}" if r[5] != 1 else r[0],
@@ -121,7 +122,7 @@ def get_reactions_for_genome(genome_id, session):
             "lower_bound": r[3],
             "upper_bound": r[4],
             "copy_number": r[5],
-            "subsystem": r[6]
+            "subsystem": r[6],
         }
         for r in reactions
     ]
@@ -130,12 +131,12 @@ def get_reactions_for_genome(genome_id, session):
 def get_metabolites_for_genome(genome_id, session):
     """Get all metabolites associated with a genome through its models."""
     from cobradb.models import (
-        Model, 
-        ModelCompartmentalizedComponent, 
-        CompartmentalizedComponent, 
-        Component
+        Model,
+        ModelCompartmentalizedComponent,
+        CompartmentalizedComponent,
+        Component,
     )
-    
+
     # Get metabolites through the model associated with this genome
     metabolites = session.execute(
         select(
@@ -143,34 +144,41 @@ def get_metabolites_for_genome(genome_id, session):
             Component.name,
             Component.formula,
             Component.charge,
-            CompartmentalizedComponent.bigg_id.label('compartmentalized_bigg_id')
+            CompartmentalizedComponent.bigg_id.label("compartmentalized_bigg_id"),
         )
         .join(
             CompartmentalizedComponent,
-            CompartmentalizedComponent.component_id == Component.id
+            CompartmentalizedComponent.component_id == Component.id,
         )
         .join(
             ModelCompartmentalizedComponent,
-            ModelCompartmentalizedComponent.compartmentalized_component_id == CompartmentalizedComponent.id
+            ModelCompartmentalizedComponent.compartmentalized_component_id
+            == CompartmentalizedComponent.id,
         )
         .join(Model, Model.id == ModelCompartmentalizedComponent.model_id)
         .filter(Model.genome_id == genome_id)
         .distinct()
     ).all()
-    
+
     return [
         {
             "bigg_id": m[0],
             "name": m[1],
             "formula": m[2],
             "charge": m[3],
-            "compartmentalized_bigg_id": m[4]
+            "compartmentalized_bigg_id": m[4],
         }
         for m in metabolites
     ]
 
 
-def get_genomes_with_chromosomes(accession_id, session, gene_id_filter=None, include_metabolites=True, include_reactions=True):
+def get_genomes_with_chromosomes(
+    accession_id,
+    session,
+    gene_id_filter=None,
+    include_metabolites=True,
+    include_reactions=True,
+):
     if not accession_id:
         return []
 
@@ -227,15 +235,16 @@ def get_genomes_with_chromosomes(accession_id, session, gene_id_filter=None, inc
             col.key: getattr(g, col.key) for col in inspect(Genome).mapper.column_attrs
         }
         genome_dict["chromosome"] = chrom_map.get(g.id, [])
-        
+
         # Add metabolites if requested
         if include_metabolites:
             genome_dict["metabolites"] = get_metabolites_for_genome(g.id, session)
-        
+
         # Add reactions if requested
         if include_reactions:
             genome_dict["reactions"] = get_reactions_for_genome(g.id, session)
-        
+
         results.append(genome_dict)
 
     return results
+

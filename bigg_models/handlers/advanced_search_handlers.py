@@ -2,10 +2,13 @@ from cobradb.models import (
     Annotation,
     AnnotationLink,
     AnnotationProperty,
+    Chromosome,
     Component,
     ComponentIDMapping,
     ComponentReferenceMapping,
     DataSource,
+    Gene,
+    Genome,
     InChI,
     Model,
     ModelCollection,
@@ -50,6 +53,93 @@ DATA_SOURCE_IDS = {
     "metanetx.reaction": utils.do_safe_query(get_data_source_id, "metanetx.reaction"),
     "ec-code": utils.do_safe_query(get_data_source_id, "ec-code"),
 }
+
+
+class GenomeSearchHandler(utils.DataHandler):
+    title = "Genomes"
+    search_query: str = ""
+    column_specs = [
+        utils.DataColumnSpec(
+            Genome.accession_value,
+            "Accession",
+            hyperlink="/universal/metabolites/${row['genome__accession_type']}:${row['genome__accession_value']}",
+        ),
+        utils.DataColumnSpec(
+            Genome.accession_type,
+            "Type",
+        ),
+        utils.DataColumnSpec(
+            Genome.organism,
+            "Organism",
+            agg_func=agg_strings,
+        ),
+        utils.DataColumnSpec(
+            Chromosome.ncbi_accession,
+            "Chromosomes",
+            agg_func=agg_strings,
+            requires=[Genome.chromosomes],
+        ),
+    ]
+
+    def post_filter(self, query):
+        return query.group_by(Genome.accession_value, Genome.accession_type)
+
+    def return_data(self, search_query, *args, **kwargs):
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
+
+
+class GeneSearchHandler(utils.DataHandler):
+    title = "Genes"
+    search_query: str = ""
+    column_specs = [
+        # utils.DataColumnSpec(
+        #     Gene.id,
+        #     "ID",
+        #     apply_search_query=False,
+        # ),
+        utils.DataColumnSpec(
+            Gene.bigg_id,
+            "BiGG ID",
+            agg_func=agg_strings,
+            hyperlink="/genomes/${row['genome__accession_type']}:${row['genome__accession_value']}/genes/${row['gene__bigg_id']}",
+        ),
+        utils.DataColumnSpec(
+            Gene.name,
+            "Name",
+            agg_func=agg_strings,
+        ),
+        utils.DataColumnSpec(
+            Gene.locus_tag,
+            "Locus Tag",
+            agg_func=agg_strings,
+        ),
+        utils.DataColumnSpec(
+            Genome.accession_type,
+            "Genome Type",
+            agg_func=agg_strings,
+            requires=[Gene.chromosome, Chromosome.genome],
+            apply_search_query=False,
+        ),
+        utils.DataColumnSpec(
+            Genome.accession_value,
+            "Genome Accession",
+            agg_func=agg_strings,
+            requires=[Gene.chromosome, Chromosome.genome],
+            apply_search_query=False,
+        ),
+    ]
+
+    def post_filter(self, query):
+        return query.group_by(Gene.id)
+
+    def return_data(self, search_query, *args, **kwargs):
+        data, total, filtered = self.data_query(
+            query_utils.get_search_list, search_query=search_query
+        )
+        self.write_data(data, total, filtered)
 
 
 class UniversalMetaboliteSearchHandler(utils.DataHandler):
@@ -758,6 +848,28 @@ class SearchResultsHandler(utils.BaseHandler):
                     ),
                     "columns": UniversalReactionSearchHandler.column_specs,
                     "row_icon": "reaction_S",
+                },
+                {
+                    "id": "genomes",
+                    "title": "Genomes",
+                    "data_url": utils.get_reverse_url(
+                        self,
+                        "search_genomes",
+                        {"api": "/api/v3", "search_query": search_query},
+                    ),
+                    "columns": GenomeSearchHandler.column_specs,
+                    "row_icon": "genome_S",
+                },
+                {
+                    "id": "genes",
+                    "title": "Genes",
+                    "data_url": utils.get_reverse_url(
+                        self,
+                        "search_genes",
+                        {"api": "/api/v3", "search_query": search_query},
+                    ),
+                    "columns": GeneSearchHandler.column_specs,
+                    "row_icon": "gene_S",
                 },
             ],
             "breadcrumbs": [("Home", "/"), ("Search", None), (search_query, None)],

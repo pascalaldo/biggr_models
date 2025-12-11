@@ -198,6 +198,11 @@ class EscherHandler(utils.BaseHandler):
         escher_map.fit_canvas(expand_only=False)
         escher_map_json = escher_map.to_escher()
         if self.api:
+            if str(self.get_query_argument("download", default="false")).lower() == "true":
+                self.set_header("Content-Type", "application/x-json")
+                self.set_header(
+                    "Content-Disposition", 'attachment; filename="biggr_reactions.json"'
+                )
             self.write(escher_map_json)
             self.finish()
         else:
@@ -219,20 +224,36 @@ class EscherHandler(utils.BaseHandler):
                     if zoom_to_element_id is not None:
                         zoom_to_element = {"type": "reaction", "id": zoom_to_element_id}
 
-            self.write_map(
-                json.dumps(escher_map_json),
-                menu="zoom",
-                scroll_behavior=None,
-                never_ask_before_quit=True,
-                enable_keys=False,
-                enable_editing=False,
-                reaction_data=reaction_data,
-                reaction_styles=["color"],
-                metabolite_styles=["color"],
-                zoom_to_element=zoom_to_element,
-                embedded_css=ESCHER_CSS,
-                builder_opts=dict(model_bigg_id=model_bigg_id),
-            )
+            if str(self.get_query_argument("edit", default="false")).lower() == "true":
+                self.write_map(
+                    json.dumps(escher_map_json),
+                    menu="all",
+                    scroll_behavior="pan",
+                    never_ask_before_quit=False,
+                    enable_keys=True,
+                    enable_editing=True,
+                    reaction_data=reaction_data,
+                    reaction_styles=["color"],
+                    metabolite_styles=["color"],
+                    zoom_to_element=zoom_to_element,
+                    embedded_css=ESCHER_CSS,
+                    builder_opts=dict(model_bigg_id=model_bigg_id),
+                )
+            else:
+                self.write_map(
+                    json.dumps(escher_map_json),
+                    menu="zoom",
+                    scroll_behavior=None,
+                    never_ask_before_quit=True,
+                    enable_keys=False,
+                    enable_editing=False,
+                    reaction_data=reaction_data,
+                    reaction_styles=["color"],
+                    metabolite_styles=["color"],
+                    zoom_to_element=zoom_to_element,
+                    embedded_css=ESCHER_CSS,
+                    builder_opts=dict(model_bigg_id=model_bigg_id),
+                )
 
     def write_map(self, map_json: str, builder_opts: Dict[str, Any] = {}, **kwargs):
         builder = plots.Builder(map_json=map_json, **kwargs)

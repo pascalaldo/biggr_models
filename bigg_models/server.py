@@ -32,14 +32,14 @@ def start_debug_server():
 
     print("Serving BiGG Models on port %d in debug mode" % options.port)
     # This code has some performance issues, so disabled
-    # autoreload.start()
-    # for dir, _, files in chain(
-    #     os.walk("bigg_models/templates"),
-    #     os.walk("bigg_models/static/js"),
-    #     os.walk("bigg_models/static/css"),
-    #     os.walk("bigg_models/static/assets"),
-    # ):
-    #     [autoreload.watch(dir + "/" + f) for f in files if not f.startswith(".")]
+    autoreload.start()
+    for dir, _, files in chain(
+        os.walk("bigg_models/templates"),
+        # os.walk("bigg_models/static/js"),
+        # os.walk("bigg_models/static/css"),
+        # os.walk("bigg_models/static/assets"),
+    ):
+        [autoreload.watch(dir + "/" + f) for f in files if not f.startswith(".")]
     asyncio.run(run_server())
 
 

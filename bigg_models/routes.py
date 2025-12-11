@@ -3,6 +3,7 @@ from tornado.routing import URLSpec
 from tornado.web import RequestHandler
 from bigg_models.handlers import (
     advanced_search_handlers,
+    data_access_handlers,
     identifiers_handlers,
     download_handlers,
     escher_handlers,
@@ -87,7 +88,7 @@ def get_routes():
             compartment_handlers.CompartmentHandler,
         ),
         url(
-            api_regex + r"/compartments/(?P<bigg_id>[^/]+)/models?$",
+            api_regex + r"/compartments/(?P<bigg_id>[^/]+)/models/?$",
             compartment_handlers.ModelsWithCompartmentListViewHandler,
             name="models_with_compartment",
         ),
@@ -96,6 +97,16 @@ def get_routes():
             api_regex + r"/genomes/?$",
             genome_handlers.GenomeListViewHandler,
             name="genomes",
+        ),
+        url(
+            api_regex
+            + r"/genomes/(?P<accession_type>[^/:]+):(?P<accession_value>[^/]+)/genes/?$",
+            gene_handlers.GenesInGenomeListViewHandler,
+            name="genes_in_genomes",
+        ),
+        (
+            r"/genomes/(?P<accession_type>[^/:]+):(?P<accession_value>[^/]+)/genes/(?P<gene_bigg_id>[^/]+)/?$",
+            gene_handlers.GenomeGeneHandler,
         ),
         #
         (
@@ -182,6 +193,16 @@ def get_routes():
             advanced_search_handlers.SearchResultsHandler,
         ),
         url(
+            api_regex + r"/search/genomes/(?P<search_query>.*)$",
+            advanced_search_handlers.GenomeSearchHandler,
+            name="search_genomes",
+        ),
+        url(
+            api_regex + r"/search/genes/(?P<search_query>.*)$",
+            advanced_search_handlers.GeneSearchHandler,
+            name="search_genes",
+        ),
+        url(
             api_regex + r"/search/metabolites/(?P<search_query>.*)$",
             advanced_search_handlers.UniversalMetaboliteSearchHandler,
             name="search_metabolites",
@@ -228,31 +249,14 @@ def get_routes():
             advanced_search_handlers.ModelSearchHandler,
             name="search_models",
         ),
-        (r"/api/%s/search$" % utils.api_v, search_handlers.SearchHandler),
-        (
-            r"/api/%s/search_reaction_with_stoichiometry$" % utils.api_v,
-            reaction_handlers.ReactionWithStoichHandler,
-        ),
-        (r"/search$", search_handlers.SearchDisplayHandler),
-        (r"/advanced_search$", search_handlers.AdvancedSearchHandler),
-        # (
-        #     r"/advanced_search_external_id_results$",
-        #     search_handlers.AdvancedSearchExternalIDHandler,
-        # ),
-        (r"/advanced_search_results$", search_handlers.AdvancedSearchResultsHandler),
-        (r"/advanced_search_sequences$", search_handlers.AdvancedSearchSequences),
-        (r"/autocomplete$", utils.AutocompleteHandler),
-        #
-        # Maps
-        (r"/escher_map_json/([^/]+)$", utils.EscherMapJSONHandler),
         #
         # Pages
         (r"/web_api$", RedirectHandler, {"url": "/data_access"}),
+        (r"/api$", RedirectHandler, {"url": "/data_access"}),
         # (r"/data_access$", utils.WebAPIHandler),
         (
             r"/data_access/?",
-            utils.TemplateHandler,
-            {"template_name": "data_access.html"},
+            data_access_handlers.DataAccessPageHandler,
         ),
         (
             r"/license$",
