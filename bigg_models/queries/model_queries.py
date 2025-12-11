@@ -25,7 +25,7 @@ from os import path
 from bigg_models.queries.memote_queries import get_general_results_for_model
 
 
-def get_models_count(session, multistrain_off, **kwargs):
+def get_models_count(session, **kwargs):
     """Return the number of models in the database."""
     query = session.scalars(select(func.count(Model.id))).first()
     return query
@@ -37,7 +37,6 @@ def get_models(
     size=None,
     sort_column=None,
     sort_direction="ascending",
-    multistrain_off=False,
 ):
     """Get models and number of components.
 
@@ -107,7 +106,7 @@ def get_models(
 
 
 def get_model_and_counts(
-    model_bigg_id, session, static_model_dir=None, static_multistrain_dir=None
+    model_bigg_id, session, static_model_dir=None,
 ):
     model_db = session.scalars(
         select(
@@ -183,17 +182,10 @@ def get_model_and_counts(
 
     if static_model_dir:
         # get filesizes
-        for ext in ("xml", "xml_gz", "mat", "mat_gz", "json", "json_gz", "multistrain"):
-            if ext == "multistrain":
-                if not static_multistrain_dir:
-                    continue
-                fpath = path.join(
-                    static_multistrain_dir, model_bigg_id + "_multistrain.zip"
-                )
-            else:
-                fpath = path.join(
-                    static_model_dir, model_bigg_id + "." + ext.replace("_", ".")
-                )
+        for ext in ("xml", "xml_gz", "mat", "mat_gz", "json", "json_gz"):
+            fpath = path.join(
+                static_model_dir, model_bigg_id + "." + ext.replace("_", ".")
+            )
             byte_size = path.getsize(fpath) if path.isfile(fpath) else 0
             if byte_size > 1048576:
                 result[ext + "_size"] = "%.1f MB" % (byte_size / 1048576.0)

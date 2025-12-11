@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # mkdir -p /static/models/
-# mkdir -p /static/multistrain/
 # mkdir -p /static/namespace/
 #
 # ln -s /static/models bigg_models/static/models

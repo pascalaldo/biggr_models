@@ -15,7 +15,6 @@ from bigg_models.handlers import (
     genome_handlers,
     metabolite_handlers,
     model_handlers,
-    search_handlers,
     db_interop_handlers,
 )
 from os import path
@@ -258,11 +257,11 @@ def get_routes():
             r"/data_access/?",
             data_access_handlers.DataAccessPageHandler,
         ),
-        (
-            r"/license$",
-            utils.TemplateHandler,
-            {"template_name": "about_license_page.html"},
-        ),
+        # (
+        #     r"/license$",
+        #     utils.TemplateHandler,
+        #     {"template_name": "about_license_page.html"},
+        # ),
         # (
         #     r"/about$",
         #     utils.TemplateHandler,

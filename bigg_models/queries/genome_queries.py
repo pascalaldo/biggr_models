@@ -26,7 +26,6 @@ def get_genomes(
     size=None,
     sort_column=None,
     sort_direction="ascending",
-    multistrain_off=False,
 ):
     # get the sort column
     columns = {

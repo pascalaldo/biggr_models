@@ -1,3 +1,0 @@
-BIGG=/home/zaking/
-
-01 * * * * /home/zaking/bigg_models/bin/check_running >> /home/zaking/cron_debug.log 2>&1

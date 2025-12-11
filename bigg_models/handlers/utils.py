@@ -137,10 +137,9 @@ env.filters["int_or_float"] = lambda x: int(x) if x.is_integer() else x
 # root directory
 directory = path.abspath(path.join(path.dirname(__file__), ".."))
 static_model_dir = path.join(directory, "static", "models")
-static_multistrain_dir = path.join(directory, "static", "multistrain")
 
 # host
-api_host = "bigg.ucsd.edu"
+api_host = "bigg.org"
 
 
 def _possibly_compartmentalized_met_id(obj):
@@ -267,55 +266,6 @@ class BaseHandler(RequestHandler):
 class TemplateHandler(BaseHandler):
     def initialize(self, template_name):
         self.template = env.get_template(template_name)
-
-
-class PageableHandler(BaseHandler):
-    """HTTP requests can pass in arguments for page, size, columns, and the
-    sort_column.
-
-    TODO test this class.
-
-    """
-
-    def _get_pager_args(self, default_sort_column=None, sort_direction="ascending"):
-        query_kwargs = {
-            "page": self.get_argument("page", None),
-            "size": self.get_argument("size", None),
-            "multistrain_off": self.get_argument("multistrain", None) == "off",
-            "sort_column": default_sort_column,
-            "sort_direction": sort_direction,
-        }
-
-        # determine the columns
-        column_str = self.get_argument("columns", None)
-        columns = column_str.split(",") if column_str else []
-
-        # determine which column we are sorting by
-        # These are parameters formatted as col[i] = 0 (or 1 for descending)
-        for param_name, param_value in self.request.query_arguments.items():
-            if not (param_name.startswith("col[") and param_name.endswith("]")):
-                continue
-            try:
-                # get the number in col[?]
-                col_index = int(param_name[4:-1])
-                sort_direction = "ascending" if param_value[0] == b"0" else "descending"
-            except ValueError as e:
-                raise HTTPError(
-                    status_code=400,
-                    reason="could not parse %s=%s" % (param_name, param_value),
-                )
-            # convert these integers into meaningful sort params
-            try:
-                query_kwargs["sort_column"] = columns[col_index]
-            except IndexError:
-                raise HTTPError(
-                    status_code=400,
-                    reason="column #%d not found in columns" % col_index,
-                )
-            else:
-                query_kwargs["sort_direction"] = sort_direction
-
-        return query_kwargs
 
 
 def _interpret_bool(input: str) -> bool:

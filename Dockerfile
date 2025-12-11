@@ -34,7 +34,7 @@ RUN apt-get install -y nodejs npm
 RUN npm install -g sass
 RUN npm install bootstrap@5.3.7
 
-COPY bigg_models/ /app/bigg_models/
+COPY biggr_models/ /app/biggr_models/
 COPY bin/ /app/bin/
 COPY scripts/ /app/scripts/
 COPY pytest.ini /app/
@@ -43,11 +43,11 @@ COPY setup.py /app/
 
 COPY settings.ini /app/settings.ini
 
-RUN sass ./bigg_models/scss/custom.scss ./bigg_models/static/css/custom.css
+RUN sass ./biggr_models/scss/custom.scss ./biggr_models/static/css/custom.css
 
-RUN cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js bigg_models/static/js/
+RUN cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js biggr_models/static/js/
 
 RUN python setup.py install
 
-#CMD ["python", "-m", "bigg_models.server", "--port=8910", "--processes=6"]
+#CMD ["python", "-m", "biggr_models.server", "--port=8910", "--processes=6"]
 CMD ["bin/server-entrypoint.sh"]

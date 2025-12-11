@@ -118,7 +118,6 @@ class ModelHandler(utils.BaseHandler):
             model_queries.get_model_and_counts,
             model_bigg_id,
             static_model_dir=utils.static_model_dir,
-            static_multistrain_dir=utils.static_multistrain_dir,
         )
         result["breadcrumbs"] = [
             ("Home", "/"),
