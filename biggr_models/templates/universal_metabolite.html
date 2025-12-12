@@ -1,0 +1,95 @@
+{% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
+{% import "general_table_macros.html" as tables %}
+{% block title %}BiGG Metabolite {{bigg_id}}{% endblock %}
+{% block head %}
+<link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.css" rel="stylesheet"
+	integrity="sha384-RqJtgepBGtU0p2QrKr7V6ktj9xhjmruqRUBkoNgZSdyNDI9FYHUwbaapY3jgsx7a" crossorigin="anonymous">
+<script src="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.js"
+	integrity="sha384-LFoikRctTHRCzOQ2ubrUfFQlhXMtaj7g32RRDMk2UVJFlHlk/s3w8xMOPB5t92MP"
+	crossorigin="anonymous"></script>
+	<script src="/static/js/biggr_datatables.js"></script>
+{% endblock %}
+{% block body %}
+
+<div class="row">
+  <div class="col-12 p-3">
+        <h5 class="card-title"><span class="fw-normal text-body-secondary">Universal:</span>{{bigg_id}}</h5>
+            {% if name is not none %}<p class="card-text">{{name}}</p>{% endif %}
+  </div>
+</div>
+
+{% for component in components %}
+{% set entity_icon = "molecule_smallmolecule_L" %}
+{% if component.reference | length > 0 %}
+  {% if component.reference[0].type == "generic_polypeptide" %}
+    {% set entity_icon = "molecule_protein_L" %}
+  {% elif component.reference[0].type == "generic_polynucleotide" %}
+    {% set entity_icon = "molecule_dna_L" %}
+  {% endif %}
+{% endif %}
+
+<div class="row rounded-2 border-start border-2 border-primary{% if not component.default %}-subtle{% endif %} mb-3 {% if component.default %}bg-primary bg-opacity-10{% endif %}">
+  <div class="pb-1 ps-4 {% if component.default %}text-primary-emphasis{% else %}text-secondary{%endif%} fw-medium fst-italic small">{% if component.default %}Default Component{% else %}Alternative Component{% endif %}</div>
+    {% call(is_title) cards.entity_card(component.bigg_id | format_id("comp"), entity_icon) %}
+      {% call cards.flush_list_group(accent=False) %}
+    {% if component.name is not none %}{{ cards.flush_list_group_item(value=component.name, accent=False) }}{% endif %}
+        {{ cards.flush_list_group_item("Charge", component.charge) }}
+        {{ cards.flush_list_group_item("Formula", component.formula) }}
+      {% endcall %}
+    {% endcall %}
+
+    {% set references = component.reference %}
+    {% include "reference_metabolite_ui.html" %}
+
+    {% if component.annotation_properties %}
+      <div class="col-md-6">
+        <div class="card mb-3 bg-transparent"> 
+      <div class="card-header"><h6 class="card-title">Properties</h6></div>
+        <ul class="list-group list-group-flush rounded-1 bg-transparent">
+          {% for prop_key, prop_info in component.annotation_properties.items() %}
+            <li class="list-group-item bg-transparent"><b>{{prop_key}}: </b>
+              {% for prop_val, prop_sources in prop_info.items() %}
+        <span>{{prop_val}}<sup>[{{ prop_sources | join(",") }}]</sup></span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      <div class="card-footer small"><b>Data Sources: </b>{% for data_source in component.annotation_sources %}[{{loop.index0}}] {{data_source[1]}} via {{data_source[0]}}{% if not loop.last %}, {% endif %}{% endfor%}</div>
+      </div>
+      </div>
+    {% endif %}
+    {% if component.annotation_linkouts %}
+      <div class="col-md-6">
+        <div class="card mb-3 bg-transparent"> 
+      <div class="card-header"><h6 class="card-title">Linkouts</h6></div>
+        <ul class="list-group list-group-flush rounded-1 bg-transparent">
+          {% for linkout_key, linkout_info in component.annotation_linkouts.items() %}
+            <li class="list-group-item bg-transparent"><b>{{linkout_key}}: </b>
+              {% for linkout_val, (linkout_url, linkout_sources) in linkout_info.items() %}
+          <span>{{general.external_link(linkout_val, linkout_url)}}<sup>[{{ linkout_sources | join(",") }}]</sup></span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      <div class="card-footer small"><b>Data Sources: </b>{% for data_source in component.annotation_sources %}[{{loop.index0}}] {{data_source[1]}} via {{data_source[0]}}{% if not loop.last %}, {% endif %}{% endfor%}</div>
+      </div>
+      </div>
+    {% endif %}
+
+  </div>
+{% endfor %}
+<div class="row">
+	<div class="col-12">
+		<div class="card mb-3 pb-2">
+			<div class="card-header">
+				<h5 class="card-title">Metabolite in Models</h5>
+			</div>
+			<div class="card-body p-0">
+				{{ tables.data_table("listview", metabolite_in_models_columns, metabolite_in_models_url, "model_S") }}
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,192 @@
+{% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
+{% import "general_table_macros.html" as tables %}
+{% block title %}BiGG Reaction {{full_bigg_id}} in {{model_bigg_id}}{% endblock %}
+{% block head %}
+<link href="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.css" rel="stylesheet"
+	integrity="sha384-RqJtgepBGtU0p2QrKr7V6ktj9xhjmruqRUBkoNgZSdyNDI9FYHUwbaapY3jgsx7a" crossorigin="anonymous">
+<script src="https://cdn.datatables.net/v/bs5/jq-3.7.0/dt-2.3.4/r-3.0.7/datatables.min.js"
+	integrity="sha384-LFoikRctTHRCzOQ2ubrUfFQlhXMtaj7g32RRDMk2UVJFlHlk/s3w8xMOPB5t92MP"
+	crossorigin="anonymous"></script>
+	<script src="/static/js/biggr_datatables.js"></script>
+{% endblock %}
+{% block body %}
+<div class="row">
+  {% if other_copy_numbers %}
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title"><span class="fw-normal text-body-secondary">Other instances of the same
+            reaction:</span>{% for cpn in other_copy_numbers %}<a
+            href="/models/{{model_bigg_id}}/reactions/{{bigg_id}}:{{cpn}}" class="ms-3">{{(bigg_id~":"~cpn) |
+            format_id("reaction")}}</a>{% endfor %}</h5>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row rounded-2 border-start border-2 border-primary pt-3 mb-3 bg-primary bg-opacity-10">
+    {% call(is_title) cards.entity_card(none, "reaction_L", col_class="col-12") %}
+      {% if is_title %}
+  {{ model_reaction.bigg_id }} <span class="text-reset fw-normal ps-2 pe-2">in</span> <a class="text-decoration-none fw-normal" href="/models/{{model.bigg_id}}">{{model.bigg_id}}</a>
+      {% else %}
+      {% call cards.flush_list_group() %}
+    {% if universal_reaction.name is not none %}{{ cards.flush_list_group_item(value=universal_reaction.name) }}{% endif %}
+    {{ cards.flush_list_group_item(value=reaction_string) }}
+    {{ cards.flush_list_group_item("Bounds", '('~model_reaction.lower_bound~', '~model_reaction.upper_bound~')') }}
+    {{ cards.flush_list_group_item("Universal Reaction", universal_reaction.bigg_id | format_id("reaction"),
+    link="/universal/reactions/"~universal_reaction.bigg_id) }}
+      {% endcall %}
+      {% endif %}
+    {% endcall %}
+
+    {% if reference  %}
+    {% call(is_title) cards.entity_card(reference.bigg_id | format_reference, "reference_L", col_class="col-12") %}
+      {% call cards.flush_list_group() %}
+    {% if reference.name is not none %}{{ cards.flush_list_group_item(value=reference.name) }}{% endif %}
+      {{ cards.flush_list_group_item(value=reference.equation) }}
+      {{ general.inchi_key_list_item(reference.inchi) }}
+      {% if reference.bigg_id.startswith('RHEA:') %}
+        {% set rhea_link -%}http://identifiers.org/{{reference.bigg_id}}{%- endset %}
+        {{ cards.flush_list_group_item(value="View on RHEA", link=rhea_link) }}
+      {% endif %}
+      {% endcall %}
+    {% endcall %}
+    {% endif %}
+
+    {% if annotation_properties %}
+      <div class="col-md-6">
+        <div class="card mb-3 bg-transparent"> 
+      <div class="card-header"><h6 class="card-title">Properties</h6></div>
+        <ul class="list-group list-group-flush rounded-1 bg-transparent">
+          {% for prop_key, prop_info in annotation_properties.items() %}
+            <li class="list-group-item bg-transparent"><b>{{prop_key}}: </b>
+              {% for prop_val, prop_sources in prop_info.items() %}
+        <span>{{prop_val}}<sup>[{{ prop_sources | join(",") }}]</sup></span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      <div class="card-footer small"><b>Data Sources: </b>{% for data_source in annotation_sources %}[{{loop.index0}}] {{data_source[1]}} via {{data_source[0]}}{% if not loop.last %}, {% endif %}{% endfor%}</div>
+      </div>
+      </div>
+    {% endif %}
+    {% if annotation_linkouts %}
+      <div class="col-md-6">
+        <div class="card mb-3 bg-transparent"> 
+      <div class="card-header"><h6 class="card-title">Linkouts</h6></div>
+        <ul class="list-group list-group-flush rounded-1 bg-transparent">
+          {% for linkout_key, linkout_info in annotation_linkouts.items() %}
+            <li class="list-group-item bg-transparent"><b>{{linkout_key}}: </b>
+              {% for linkout_val, (linkout_url, linkout_sources) in linkout_info.items() %}
+          <span>{{general.external_link(linkout_val, linkout_url)}}<sup>[{{ linkout_sources | join(",") }}]</sup></span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </li>
+          {% endfor %}
+        </ul>
+      <div class="card-footer small"><b>Data Sources: </b>{% for data_source in annotation_sources %}[{{loop.index0}}] {{data_source[1]}} via {{data_source[0]}}{% if not loop.last %}, {% endif %}{% endfor%}</div>
+      </div>
+      </div>
+    {% endif %}
+
+  </div>
+
+
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Reaction Participants</h5>
+      </div>
+      <div class="card-body p-0">
+        {% call(metabolite) tables.simple_table([{"name": "Stoich.", "colspan": 2}, {"name": "BiGG ID", "class":
+        "w-25"}, "Name", {"name": "Reference", "class": "border-start"}, "x [side]", "Compartment"], metabolites) %}
+        {% set link -%}/models/{{model_bigg_id}}/metabolites/{{metabolite['bigg_id']}}{%- endset %}
+        {% set ref_n = metabolite['reference_participant']['reference_n'] %}
+        <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#{%- if metabolite['coefficient'] < 0 -%}reaction_substrate_S{%- else
+              -%}reaction_product_S{%- endif -%}" style="height: 1em;" /></a></td>
+        <td><a href="{{link}}"
+            class="d-block text-reset text-decoration-none">{{metabolite['coefficient_int_or_float']}}</a></td>
+        <td><a href="{{link}}" class="d-block">{{metabolite.bigg_id | format_id("comp_comp")}}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{metabolite['name']}}</a></td>
+        <td class="border-start"><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if
+            metabolite['reference'] is none %} - {% else %}{{metabolite['reference']['bigg_id'] | format_reference}}{%
+            endif %}{%- if ref_n -%}<span> (n={{ref_n}})</span>{%- endif -%}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference_participant']
+            is none %} - {% else %}{{metabolite['reference_participant']['coefficient']}}
+            [{{metabolite['reference_participant']['side']}}]{% endif %}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{% if metabolite['reference_participant']
+            is none %} - {% else %}{{metabolite['reference_participant']['compartment']}}{% endif %}</a></td>
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+  {% if genes %}
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Gene Reaction Rule</h5>
+      </div>
+      <div class="card-body bg-body-tertiary border-bottom border-solid">
+        {{model_reaction.gene_reaction_rule | format_gene_reaction_rule}}
+      </div>
+      <div class="card-body p-0">
+        {% call(gene) tables.simple_table([{"name": ""}, {"name": "BiGG ID", "class": "w-50"}, "Name"], genes) %}
+        {% set link -%}/models/{{model_bigg_id}}/genes/{{gene.bigg_id}}{%- endset %}
+        <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#gene_S"
+              style="height: 1em;" /></a></td>
+        <td><a href="{{link}}" class="d-block">{{gene.bigg_id}}</a></td>
+        <td><a href="{{link}}" class="d-block text-reset text-decoration-none">{{gene.name}}</a></td>
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if memote_result %}
+  {% set memote_result_type = "reaction" %}
+  {% include "memote_flags.html" %}
+  {% endif %}
+  {% if model_reaction.escher_mappings %}
+  {% include "escher_embedded_script.html" %}
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Escher Maps</h5>
+      </div>
+      <div class="card-body card-intro">
+        This reaction is present in the following Escher maps:
+      </div>
+      <div class="accordion accordion-flush" id="maps_accordion">
+        {% for escher_mapping in model_reaction.escher_mappings %}
+        {% set escher_module = escher_mapping.escher_module %}
+        {% set mapping_id = escher_mapping.id %}
+        {% set zoom_to_reaction = "'" ~ model_reaction.bigg_id ~ "'" %}
+        <div class="accordion-item">
+          <h5 class="accordion-header" id="flush-heading-{{mapping_id}}">
+            <button class="accordion-button collapsed p-2" type="button" data-bs-toggle="collapse"
+              data-bs-target="#flush-collapse-{{mapping_id}}" aria-expanded="false"
+              aria-controls="flush-collapseOne"><img src="/static/assets/iconset.svg#model_S" style="height: 1em;"
+                class="ps-2 pe-4">
+              <div class="d-flex flex-column"><span
+                  class="fw-medium">{{escher_module.name}}</span><i>{{escher_module.description}}</i></div>
+            </button>
+          </h5>
+          <div id="flush-collapse-{{mapping_id}}" class="accordion-collapse collapse"
+            aria-labelledby="flush-heading-{{mapping_id}}" data-bs-parent="#maps_accordion">
+            <div class="accordion-body p-0">
+              {% include "escher_embedded.html" %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        document.getElementById('flush-collapse-{{mapping_id}}').addEventListener('show.bs.collapse', event => {if (document.getElementById('map-container-{{escher_module.bigg_id}}').innerHTML === "") {show_escher_map('{{escher_module.bigg_id}}', '{{model_bigg_id}}', '/api/v3/models/{{model_bigg_id}}/escher/{{escher_module.bigg_id}}', {{zoom_to_reaction}}); }});
+      </script>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+</div>
+{% endblock %}

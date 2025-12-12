@@ -3,9 +3,9 @@
 # mkdir -p /static/models/
 # mkdir -p /static/namespace/
 
-BIGG_MODELS_DIR=`python -c "import bigg_models; print(bigg_models.__file__)" | xargs dirname`
+BIGGR_MODELS_DIR=`python -c "import biggr_models; print(biggr_models.__file__)" | xargs dirname`
 # ln -s /static/models $BIGG_MODELS_DIR/static/models
-ln -s /models $BIGG_MODELS_DIR/static/models
+ln -s /models $BIGGR_MODELS_DIR/static/models
 # ln -s /static/namespace $BIGG_MODELS_DIR/static/namespace
 
 bin/run
@@ -13,8 +13,8 @@ bin/run
 if [ $? -eq 0 ]; then
 	for i in $(seq 1 5);
 	do
-		python -m bigg_models.server --port=8910 --process_i=$i &
+		python -m biggr_models.server --port=8910 --process_i=$i &
 	done
-	python -m bigg_models.server --port=8910 --process_i=6
+	python -m biggr_models.server --port=8910 --process_i=6
 fi
 
