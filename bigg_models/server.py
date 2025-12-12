@@ -17,11 +17,6 @@ define("public", default=True, help="run on all addresses")
 define("debug", default=False, help="Start server in debug mode")
 define("process_i", default=0, help="The index of the process", type=int)
 
-# -------------------------------------------------------------------------------
-# Application API
-# -------------------------------------------------------------------------------
-
-
 def get_application(debug=False):
     app_routes = routes.get_routes()
     return Application(app_routes, debug=debug)
@@ -65,12 +60,6 @@ def run():
         start_debug_server()
     else:
         start_production_server()
-
-
-# -------------------------------------------------------------------------------
-# Handlers
-# -------------------------------------------------------------------------------
-
 
 if __name__ == "__main__":
     run()

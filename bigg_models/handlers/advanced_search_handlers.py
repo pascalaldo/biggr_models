@@ -21,7 +21,7 @@ from cobradb.models import (
 )
 from sqlalchemy import distinct, and_, select
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.functions import aggregate_strings, array_agg
+from sqlalchemy.sql.functions import aggregate_strings
 from bigg_models.handlers import utils
 from bigg_models.queries import utils as query_utils
 
@@ -29,10 +29,15 @@ ALLOWED_SEARCH_ALPHABET = (
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-()[]/:.,"
 )
 
+
 # agg_strings = lambda x: aggregate_strings(x, ", ")
 # agg_strings = lambda x: array_agg(distinct(x))
-agg_strings = lambda x: aggregate_strings(distinct(x), ", ")
-process_string_array = lambda x: ", ".join(x)
+def agg_strings(x):
+    return aggregate_strings(distinct(x), ", ")
+
+
+def process_string_array(x):
+    return ", ".join(x)
 
 
 def get_data_source_id(session: Session, bigg_id: str):
@@ -62,7 +67,11 @@ class GenomeSearchHandler(utils.DataHandler):
         utils.DataColumnSpec(
             Genome.accession_value,
             "Accession",
-            hyperlink="/universal/metabolites/${row['genome__accession_type']}:${row['genome__accession_value']}",
+            hyperlink=(
+                "/universal/metabolites/"
+                "${row['genome__accession_type']}:"
+                "${row['genome__accession_value']}"
+            ),
         ),
         utils.DataColumnSpec(
             Genome.accession_type,
@@ -104,7 +113,10 @@ class GeneSearchHandler(utils.DataHandler):
             Gene.bigg_id,
             "BiGG ID",
             agg_func=agg_strings,
-            hyperlink="/genomes/${row['genome__accession_type']}:${row['genome__accession_value']}/genes/${row['gene__bigg_id']}",
+            hyperlink=(
+                "/genomes/${row['genome__accession_type']}:"
+                "${row['genome__accession_value']}/genes/${row['gene__bigg_id']}"
+            ),
         ),
         utils.DataColumnSpec(
             Gene.name,
@@ -635,6 +647,9 @@ class ModelSearchHandler(utils.DataHandler):
         self.write_data(data, total, filtered)
 
 
+S_API = "/api/v3/search"
+
+
 class SearchResultsHandler(utils.BaseHandler):
     template = utils.env.get_template("search_results.html")
 
@@ -695,7 +710,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "Reference",
-                "data_url": f"/api/v3/search/metabolites_ref/{namespace}:{identifier}",
+                "data_url": f"{S_API}/metabolites_ref/{namespace}:{identifier}",
                 "row_icon": "molecule_S",
                 "columns": MetaboliteReferenceSearchHandler.column_specs,
                 "message": "Interpreted search query as a reference metabolite entry.",
@@ -704,7 +719,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "Reference",
-                "data_url": f"/api/v3/search/reactions_ref/{namespace}:{identifier}",
+                "data_url": f"{S_API}/reactions_ref/{namespace}:{identifier}",
                 "row_icon": "reaction_S",
                 "columns": UniversalReactionReferenceSearchHandler.column_specs,
                 "message": "Interpreted search query as a reference reaction entry.",
@@ -713,7 +728,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "SEED",
-                "data_url": f"/api/v3/search/metabolites_ann/seed.compound/{identifier}",
+                "data_url": f"{S_API}/metabolites_ann/seed.compound/{identifier}",
                 "row_icon": "molecule_S",
                 "columns": MetaboliteAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a ModelSEED metabolite entry.",
@@ -722,7 +737,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "SEED",
-                "data_url": f"/api/v3/search/reactions_ann/seed.reaction/{identifier}",
+                "data_url": f"{S_API}/reactions_ann/seed.reaction/{identifier}",
                 "row_icon": "reaction_S",
                 "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a ModelSEED reaction entry.",
@@ -732,7 +747,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "KEGG",
-                "data_url": f"/api/v3/search/metabolites_ann/kegg.compound/{identifier}",
+                "data_url": f"{S_API}/metabolites_ann/kegg.compound/{identifier}",
                 "row_icon": "molecule_S",
                 "columns": MetaboliteAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a KEGG metabolite entry.",
@@ -741,7 +756,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "KEGG",
-                "data_url": f"/api/v3/search/reactions_ann/kegg.reaction/{identifier}",
+                "data_url": f"{S_API}/reactions_ann/kegg.reaction/{identifier}",
                 "row_icon": "reaction_S",
                 "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a KEGG reaction entry.",
@@ -751,7 +766,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "MetaNetX",
-                "data_url": f"/api/v3/search/metabolites_ann/metanetx.chemical/{identifier}",
+                "data_url": f"{S_API}/metabolites_ann/metanetx.chemical/{identifier}",
                 "row_icon": "molecule_S",
                 "columns": MetaboliteAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaNetX metabolite entry.",
@@ -760,7 +775,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "MetaNetX",
-                "data_url": f"/api/v3/search/reactions_ann/metanetx.reaction/{identifier}",
+                "data_url": f"{S_API}/reactions_ann/metanetx.reaction/{identifier}",
                 "row_icon": "reaction_S",
                 "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaNetX reaction entry.",
@@ -770,7 +785,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "MetaCyc",
-                "data_url": f"/api/v3/search/metabolites_ann/metacyc.compound/{identifier}",
+                "data_url": f"{S_API}/metabolites_ann/metacyc.compound/{identifier}",
                 "row_icon": "molecule_S",
                 "columns": MetaboliteAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaCyc metabolite entry.",
@@ -779,7 +794,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "MetaCyc",
-                "data_url": f"/api/v3/search/reactions_ann/metacyc.reaction/{identifier}",
+                "data_url": f"{S_API}/reactions_ann/metacyc.reaction/{identifier}",
                 "row_icon": "reaction_S",
                 "columns": UniversalReactionAnnotationSearchHandler.column_specs,
                 "message": "Interpreted search query as a MetaCyc reaction entry.",
@@ -788,7 +803,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "InChIKey",
-                "data_url": f"/api/v3/search/metabolites_inchikey/{identifier}",
+                "data_url": f"{S_API}/metabolites_inchikey/{identifier}",
                 "row_icon": "molecule_S",
                 "columns": MetaboliteInChIKeySearchHandler.column_specs,
                 "message": "Interpreted search query as an InChIKey.",
@@ -797,7 +812,7 @@ class SearchResultsHandler(utils.BaseHandler):
             return {
                 "id": "special_page",
                 "title": "EC-code",
-                "data_url": f"/api/v3/search/reactions_ec/{identifier}",
+                "data_url": f"{S_API}/reactions_ec/{identifier}",
                 "row_icon": "reaction_S",
                 "columns": UniversalReactionECSearchHandler.column_specs,
                 "message": "Interpreted search query as an EC-code.",

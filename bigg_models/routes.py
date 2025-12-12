@@ -27,6 +27,11 @@ def url(
     kwargs: Optional[Dict[str, Any]] = None,
     name: Optional[str] = None,
 ) -> URLSpec:
+    """Helper function to create a tornado.routing.URLSpec.
+    
+    Using this function will cause the name argument to also be inserted
+    as a URLSpec keyword argument. Usefull if the handler is (derived from)
+    the DataHandler class."""
     if name is None:
         return URLSpec(pattern, handler, kwargs)
     if kwargs is None:
@@ -252,7 +257,6 @@ def get_routes():
         # Pages
         (r"/web_api$", RedirectHandler, {"url": "/data_access"}),
         (r"/api$", RedirectHandler, {"url": "/data_access"}),
-        # (r"/data_access$", utils.WebAPIHandler),
         (
             r"/data_access/?",
             data_access_handlers.DataAccessPageHandler,

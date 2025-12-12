@@ -8,13 +8,15 @@ from typing import (
     Iterable,
     List,
     Optional,
+    # Protocol,
+    Tuple,
     TypeVar,
     Union,
 )
-from cobradb.models import Base, Session, MemoteResult, MemoteTest
+from cobradb.models import Base, Session
 from sqlalchemy import Row, and_, or_
-from bigg_models import __api_version__ as api_v
-from bigg_models.queries import search_queries, escher_map_queries, utils as query_utils
+from sqlalchemy.sql.expression import Select
+from bigg_models.queries import utils as query_utils
 import json
 from tornado.web import (
     RequestHandler,
@@ -32,16 +34,18 @@ MODELS_CLASS_MAP = {x.__name__: x for x in Base.__subclasses__()}
 
 
 class BiGGrJSONEncoder(json.JSONEncoder):
+    """Handle exporting database entities to the BiGGr API return format."""
+
     def default(self, o):
         if o is None:
             return None
         if isinstance(o, Row):
             return o._tuple()
-        if isinstance(o, (MemoteTest, MemoteResult)):
-            print(vars(o))
-            print(dir(o))
-            print(o._to_shallow_dict())
-            return o._to_shallow_dict()
+        # if isinstance(o, (MemoteTest, MemoteResult)):
+        #     print(vars(o))
+        #     print(dir(o))
+        #     print(o._to_shallow_dict())
+        #     return o._to_shallow_dict()
         if isinstance(o, Base):
             return o._to_shallow_dict()
         if isinstance(o, datetime):
@@ -51,6 +55,7 @@ class BiGGrJSONEncoder(json.JSONEncoder):
 
 
 def biggr_json_object_hook(o):
+    """Hook function to use with JSONDecoder and cobradb objects."""
     if o is None:
         return None
     if not isinstance(o, dict):
@@ -69,7 +74,27 @@ def biggr_json_object_hook(o):
     return None
 
 
-def format_bigg_id(bigg_id, format_type=None):
+def format_bigg_id(bigg_id: str, format_type: Optional[str] = None) -> str:
+    """Generate a HTML string that formats any BiGG ID.
+
+    The output results in accentuation of important parts of the BiGG ID.
+
+    Parameters
+    ----------
+    bigg_id: str
+        Input BiGG ID to format.
+    format_type: str, optional
+        The object type represented by the BiGG ID. Determines the exact
+        formatting used. If format_type is None, no formatting is applied.
+        Argument can be any of: 'comp' (Component), 'comp_comp'
+        (CompartmentalizedComponent), 'universal_comp_comp'
+        (UniversalCompartmentalizedComponent), 'reaction' (Reaction).
+
+    Returns
+    -------
+    str
+        HTML string containing formatted BiGG ID.
+    """
     if format_type is None:
         return bigg_id
     try:
@@ -78,35 +103,65 @@ def format_bigg_id(bigg_id, format_type=None):
             if "__" in bigg_id[2:]:
                 model_id, bigg_id = bigg_id[2:].split("__", maxsplit=1)
                 prefix = (
-                    f"<span class='small opacity-75 fw-lighter'>__{model_id}__</span>"
+                    "<span class='small opacity-75 fw-lighter'>"
+                    f"__{model_id}__</span>"
                 )
         if format_type == "comp_comp":
             comp_id, charge = bigg_id.rsplit(":", maxsplit=1)
             universal_id, compartment_id = comp_id.rsplit("_", maxsplit=1)
-            return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span><span class="fw-normal fst-italic opacity-75 small">:{charge}</span>'
+            return (
+                f"{prefix}"
+                f'<span class="fw-semibold">{universal_id}</span>'
+                f'<span class="fw-normal opacity-75">'
+                f"_{compartment_id}</span>"
+                f'<span class="fw-normal fst-italic opacity-75 small">'
+                f":{charge}</span>"
+            )
         elif format_type == "comp":
             universal_id, charge = bigg_id.rsplit(":", maxsplit=1)
-            return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal fst-italic opacity-75 small">:{charge}</span>'
+            return (
+                f"{prefix}"
+                f'<span class="fw-semibold">{universal_id}</span>'
+                f'<span class="fw-normal fst-italic opacity-75 small">'
+                f":{charge}</span>"
+            )
         elif format_type == "universal_comp_comp":
             universal_id, compartment_id = bigg_id.rsplit("_", maxsplit=1)
-            return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal opacity-75">_{compartment_id}</span>'
+            return (
+                f"{prefix}"
+                f'<span class="fw-semibold">{universal_id}</span>'
+                f'<span class="fw-normal opacity-75">'
+                f"_{compartment_id}</span>"
+            )
         elif format_type == "reaction":
             if ":" in bigg_id:
                 universal_id, copy_number = bigg_id.rsplit(":", maxsplit=1)
-                return f'{prefix}<span class="fw-semibold">{universal_id}</span><span class="fw-normal fst-italic opacity-75 small">:{copy_number}</span>'
+                return (
+                    f"{prefix}"
+                    '<span class="fw-semibold">{universal_id}</span>'
+                    f'<span class="fw-normal fst-italic opacity-75 small">'
+                    f":{copy_number}</span>"
+                )
             return f'{prefix}<span class="fw-semibold">{bigg_id}</span>'
         else:
             return bigg_id
     except:
+        # Always fall back to simply returning the input BiGG ID.
         return bigg_id
 
 
-def format_reference(identifier):
+def format_reference(identifier: str) -> str:
+    """Format a reference identifier."""
     namespace, ref_id = identifier.split(":", maxsplit=1)
-    return f'<span class="fw-normal text-body-secondary">{namespace}:</span><span class="text-body-emphasis">{ref_id}</span>'
+    return (
+        f'<span class="fw-normal text-body-secondary">'
+        f"{namespace}:</span>"
+        f'<span class="text-body-emphasis">{ref_id}</span>'
+    )
 
 
-def format_gene_reaction_rule(grr):
+def format_gene_reaction_rule(grr: str) -> str:
+    """Format a Gene Reaction Rule."""
     s = grr.replace("(", " ( ").replace(")", " ) ")
     s = [xs for x in s.split(" ") if (xs := x.strip()) != ""]
     s = [
@@ -138,47 +193,8 @@ env.filters["int_or_float"] = lambda x: int(x) if x.is_integer() else x
 directory = path.abspath(path.join(path.dirname(__file__), ".."))
 static_model_dir = path.join(directory, "static", "models")
 
-# host
-api_host = "bigg.org"
-
-
-def _possibly_compartmentalized_met_id(obj):
-    if "compartment_bigg_id" not in obj:
-        return obj["bigg_id"]
-    else:
-        return "{bigg_id}_{compartment_bigg_id}".format(**obj)
-
-
-def _parse_col_arg(s):
-    try:
-        return s.split(",")
-    except AttributeError:
-        return None
-
-
-def _get_col_name(
-    query_arguments, columns, default_column=None, default_direction="ascending"
-):
-    for k, v in query_arguments.items():
-        split = [x.strip("[]") for x in k.split("[")]
-        if len(split) != 2:
-            continue
-        if split[0] == "col":
-            sort_direction = "ascending" if v[0] == b"0" else "descending"
-            sort_col_index = int(split[1])
-            return columns[sort_col_index], sort_direction
-    return default_column, default_direction
-
 
 def safe_query(func, *args, **kwargs):
-    """Run the given function, and raise a 404 if it fails.
-
-    Arguments
-    ---------
-
-    func: The function to run. *args and **kwargs are passed to this function.
-
-    """
     session = Session()
     kwargs["session"] = session
     try:
@@ -191,13 +207,29 @@ def safe_query(func, *args, **kwargs):
         session.close()
 
 
+# This type annotation is only available for python 3.12+
+# rT = TypeVar("rT")
+# class QueryProtocol[rT](Protocol):
+#     def __call__(self, session: Session, *args, **kwargs) -> rT: ...
+# def do_safe_query(func: QueryProtocol[rT], *args, **kwargs) -> rT:
+
+
 def do_safe_query(func, *args, **kwargs):
     """Run the given function, and raise a 404 if it fails.
 
-    Arguments
+    Parameters
     ---------
+    func: The function to run. A session object is passed as first argument to
+    this function, *args and **kwargs are passed subsequently.
 
-    func: The function to run. *args and **kwargs are passed to this function.
+    Returns
+    -------
+    The result of `func`.
+
+    Raises
+    ------
+    HTTPError
+        Raises a 404 error if an entity was not found or 400 when a ValueError occurred.
 
     """
     session = Session()
@@ -212,6 +244,8 @@ def do_safe_query(func, *args, **kwargs):
 
 
 class BaseHandler(RequestHandler):
+    """Base RequestHandler that handles standard requests."""
+
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
@@ -264,6 +298,8 @@ class BaseHandler(RequestHandler):
 
 
 class TemplateHandler(BaseHandler):
+    """Simple handler that only requires a template name."""
+
     def initialize(self, template_name):
         self.template = env.get_template(template_name)
 
@@ -277,12 +313,50 @@ def _interpret_asc(input: str) -> bool:
 
 
 def col_str_search(query, col_spec: "DataColumn"):
+    """Implements searching string columns in data tables.
+
+    Searching is implemented as an icontains call, meaning that the query is filtered in
+    a case-insensitive manner.
+
+    Parameters
+    ----------
+    query: sqlalchemy query object
+        Extra filters are added upon this query to achieve the search.
+    col_spec: DataColumn
+        All column information, including search query.
+    
+    Returns
+    -------
+    has_changed: bool
+        True when any filter was applied to the query. Helps with optimizations.
+    query
+        The new query object.
+    """
     if (search_value := col_spec.search_value.strip()) == "":
         return False, query
     return True, query.filter(col_spec.prop.icontains(search_value, autoescape=True))
 
 
 def col_bool_search(query, col_spec: "DataColumn"):
+    """Implements searching string columns in data tables.
+
+    Searching is implemented as an icontains call, meaning that the query is filtered in
+    a case-insensitive manner.
+
+    Parameters
+    ----------
+    query: sqlalchemy query object
+        Extra filters are added upon this query to achieve the search.
+    col_spec: DataColumn
+        All column information, including search query.
+    
+    Returns
+    -------
+    has_changed: bool
+        True when any filter was applied to the query. Helps with optimizations.
+    query
+        The new query object.
+    """
     if (search_value := col_spec.search_value.strip()) == "":
         return False, query
     value_as_bool = search_value.upper() == "TRUE"
@@ -293,7 +367,30 @@ REGEX_COL_NUMBER_1 = re.compile(r"^((?P<eq>[\>\<]\=?) *)?(?P<nr>\d+(\.\d+)?)$")
 REGEX_COL_NUMBER_2 = re.compile(r"^(?P<nr1>\d+(\.\d+)?) *\- *(?P<nr2>\d+(\.\d+)?)$")
 
 
-def col_number_search(query, col_spec):
+def col_number_search(query: Select, col_spec: "DataColumn") -> Tuple[bool, Select]:
+    """Implements searching number columns in data tables.
+
+    Many number search patterns are implemented: >, <, >=, and <= can be used to search
+    an open range, i.e. >10 will return all rows where the column value is greater than
+    10. A closed inclusive range can be specified using a dash (-), i.e. 10-20 means 10
+    up to and including 20. Commas (,) can be used to separate numbers and thus search
+    for a list of numbers or a list of (open) ranges, effectively functioning as an OR
+    operator. The ampersand symbol (&) can be used as an AND operator, e.g. >10&<20.
+
+    Parameters
+    ----------
+    query: sqlalchemy query object
+        Extra filters are added upon this query to achieve the search.
+    col_spec: DataColumn
+        All column information, including search query.
+
+    Returns
+    -------
+    has_changed: bool
+        True when any filter was applied to the query. Helps with optimizations.
+    query
+        The new query object.
+    """
     if (search_value := col_spec.search_value.strip()) == "":
         return False, query
 
@@ -347,6 +444,8 @@ def col_number_search(query, col_spec):
 
 
 class DataColumnSpec:
+    """This class holds all information of a data tables column."""
+
     def __init__(
         self,
         prop: Any,
@@ -392,6 +491,8 @@ class DataColumnSpec:
 
 
 class DataColumn:
+    """This class adds user specified filters etc. on top of a DataColumnSpec."""
+
     def __init__(self, spec: DataColumnSpec):
         self.spec = spec
         self.search_value: str = ""
@@ -438,6 +539,8 @@ _TD = TypeVar("_TD")
 
 
 class DataHandler(BaseHandler):
+    """Request handler that implements data tables (API) logic."""
+
     template = env.get_template("data_table.html")
     title = None
     column_specs: List[DataColumnSpec] = []
@@ -618,34 +721,6 @@ class DataHandler(BaseHandler):
         self.finish()
 
 
-class AutocompleteHandler(BaseHandler):
-    def get(self):
-        query_string = self.get_argument("query")
-        result_array = safe_query(
-            search_queries.search_ids_fast, query_string, limit=15
-        )
-        self.write(result_array)
-        self.finish()
-
-
-class EscherMapJSONHandler(BaseHandler):
-    def get(self, map_name):
-        map_json = safe_query(escher_map_queries.json_for_map, map_name)
-
-        self.write(map_json)
-        # need to do this because map_json is a string
-        self.set_header("Content-type", "application/json; charset=utf-8")
-        self.finish()
-
-
-class WebAPIHandler(BaseHandler):
-    template = env.get_template("data_access.html")
-
-    def get(self):
-        self.write(self.template.render(api_v=api_v, api_host=api_host))
-        self.finish()
-
-
 class APIVersionHandler(BaseHandler):
     def get(self):
         result = safe_query(query_utils.database_version)
@@ -666,7 +741,7 @@ class StaticFileHandlerWithEncoding(StaticFileHandler):
         return p
 
     def get_content_type(self):
-        """Same as the default, except that we add a utf8 encoding for XML and JSON files."""
+        """Same as the default, but with utf8 encoding for XML and JSON files."""
         mime_type, encoding = mimetypes.guess_type(self.path)
 
         # from https://github.com/tornadoweb/tornado/pull/1468
