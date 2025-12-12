@@ -1,0 +1,301 @@
+{% extends "general_main.html" %}
+{% macro github_link(title, url) %}
+<div class="border border-secondary-subtle rounded m-3 p-3 d-flex">
+<div class="p-2 ps-0 pe-4 d-flex align-items-center text-primary"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
+  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+</svg></div>
+<div class="flex-grow-1">
+<h5>{{general.external_link(title, url)}}</h5>
+<div class="fst-italic">{{caller()}}</div>
+</div>
+</div>
+{% endmacro %}
+{% block title %}BiGGr Data Access{% endblock %}
+{% set body_scroll_spy = "about-nav" %}
+{% set dataaccesspage = True %}
+{% block body %}
+<div class="row">
+  <div class="col-10 offset-1 col-lg-3 offset-lg-0">
+    <nav id="about-nav" class="flex-column align-items-stretch pt-4 pe-4 sticky-lg-top">
+      <nav class="nav nav-underline flex-column">
+        <a class="nav-link" href="#data_overview">Overview</a>
+        <a class="nav-link" href="#data_downloads">Downloads</a>
+        <a class="nav-link" href="#data_objects">Object Access</a>
+        <nav class="nav nav-underline flex-column">
+          <a class="nav-link ms-3 py-0" href="#data_objects_workflow">Workflow</a>
+          <a class="nav-link ms-3 py-0" href="#data_objects_objects">Available Objects</a>
+        </nav>
+        <a class="nav-link" href="#data_tables">Table Access</a>
+        <nav class="nav nav-underline flex-column">
+          <a class="nav-link ms-3 py-0" href="#data_tables_workflow">Workflow</a>
+          <a class="nav-link ms-3 py-0" href="#data_tables_tables">Available Tables</a>
+        </nav>
+        <a class="nav-link" href="#data_escher">Escher Maps</a>
+      </nav>
+    </nav>
+  </div>
+  <div class="col-12 col-lg-9 pt-3" >
+    <h1>BiGGr Data Access</h1>
+    <p class="lead">Bulk (programmatic) data access is crucial for developing new tools on top of the BiGGr platform. We have therefore aimed to make it as easy as possible to access all data in BiGGr through APIs.</p>
+
+    <div id="data_overview">
+      <h2>Overview</h2>
+      <p>Data access is integrated throughout BiGGr, wherever possible. Models can for example be directly downloaded from their respective pages. Bulk metabolite and reaction downloads are available below. In addition, an extensive API is available, including a small python library that facilitates accessing this API.</p>
+    </div>
+
+    <div id="data_downloads">
+      <h2>Downloads</h2>
+      <p class="lead">The full sets of reactions and metabolites can be downloaded as JSON file using the links below:</p>
+      <div class="d-flex mb-2">
+        <a href="/api/v3/download/metabolites" class="btn btn-outline-primary btn-lg m-2 flex-fill" role="button">Download Metabolites</a>
+        <a href="/api/v3/download/reactions" class="btn btn-outline-primary btn-lg m-2 flex-fill" role="button">Download Reactions</a>
+      </div>
+      <p>The returned JSON files contain a list of all applicable entities. In the case of metabolites, information on each <strong class="dbentity">Component</strong> in the database is returned, in conjunction with select properties of the corresponding <strong class="dbentity">Universal Component</strong>, as recognized by the prefix '<i>universalcomponent__</i>'. An example entry for ATP is shown below:</p>
+      <pre class="code-result"><code>[...,
+  {
+    "bigg_id": "atp:-4",
+    "name": "ATP(4-)",
+    "formula": "C10H12N5O13P3",
+    "charge": -4,
+    "universalcomponent__bigg_id": "atp",
+    "universalcomponent__name": "ATP(4-)",
+    "universalcomponent__default_component": "atp:-4",
+    "universalcomponent__old_bigg_ids": [],
+    "compartmentalized_components": [
+      "atp_c:-4", "atp_m:-4", "atp_x:-4", "atp_n:-4", "atp_v:-4",
+      "atp_r:-4", "atp_e:-4", "atp_h:-4", "atp_g:-4","atp_f:-4"
+    ],
+    "references": [
+        "CHEBI:30616"
+    ]
+  },
+...]</code></pre>
+      <p>For the reactions download, information on each <strong class="dbentity">Reaction</strong> in the database is returned, in conjunction with select properties of the corresponding <strong class="dbentity">Universal Reaction</strong>, as recognized by the prefix '<i>universalreaction__</i>'. An example of a reaction entry is shown below:</p>
+      <pre class="code-result"><code>[...,
+  {
+    "bigg_id": "ASNS2",
+    "copy_number": 1,
+    "participants": [
+      [-1.0, "nh4_c:1"], [-1.0, "asp__L_c:-1"], [-1.0, "atp_c:-4"],
+      [1.0, "asn__L_c:0"], [1.0, "ppi_c:-3"], [1.0, "amp_c:-2"], [1.0, "h_c:1"]
+    ],
+    "universalreaction__bigg_id": "ASNS2",
+    "universalreaction__name": "asparagine synthetase",
+    "universalreaction__participants": [
+      [-1.0, "nh4_c"], [-1.0, "asp__L_c"], [-1.0, "atp_c"],
+      [1.0, "asn__L_c"], [1.0, "ppi_c"], [1.0, "amp_c"], [1.0, "h_c"]
+    ],
+    "universalreaction__is_exchange": false,
+    "universalreaction__is_pseudo": false,
+    "universalreaction__is_transport": false,
+    "referencereaction__bigg_id": "RHEA:11372"
+  },
+...]</code></pre>
+    </div>
+
+    <div id="data_objects">
+      <h2>Object Access</h2>
+      <p class="lead">The first set of API calls discussed here enables users to directly access the entities as they are represented in the database. This is a more low-level method of retrieving the data and may require more data processing comparedt to the table-based API calls discussed below. To facilitate usage of this API, BiGGr provides a small python library that provides abstractions for the API.</p>
+
+      {% call github_link("biggr", "https://github.com/pascalaldo/biggr") %}
+        Repository containing a small python library that can be used to easily access the BiGGr API.
+      {% endcall %}
+
+      <div id="data_objects_workflow">
+        <h3>Workflow</h3>
+        <p>Database objects can be accessed through the endpoint {{biggr_address}}/api/v3/objects. Requests are expected to be POST requests with a JSON body, specifying the object query. For example, to retrieve information on the model with BiGG ID iML1515, the request body should be:</p>
+        <pre class="code-example"><code>{
+  "type": "model",
+  "id": "iML1515"
+}</code></pre>
+        <p>The following curl commmand makes this request:</p>
+        <pre class="code-example"><code>curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{"type":"model","id":"iML1515"}' \
+  https://{{biggr_address}}/api/v3/objects</code></pre>
+        <pre class="code-result"><code>{
+  "id": "iML1515",
+  "object": {
+    "_type": "Model",
+    "bigg_id": "iML1515",
+    "organism": "Escherichia coli str. K-12 substr. MG1655",
+    "collection_id": 4,
+    "genome_id": 1,
+    "taxon_id": 511145,
+    "date_modified": {"_type": "datetime", "iso": "2025-12-08T00:27:14.369421+00:00"},
+    "id": 4,
+    "published_filename": "iML1515.json",
+    "base_filename": "iML1515",
+    "publication_models": [{"_type": "PublicationModel", "publication_id": 4, "model_id": 4}],
+    "model_count": {
+      "_type": "ModelCount",
+      "id": 4,
+      "reaction_count": 2712,
+      "metabolite_count": 1877,
+      "gene_count": 1516,
+      "model_id": 4
+    },
+    "collection": {
+      "_type": "ModelCollection",
+      "id": 4,
+      "oneliner": null,
+      "publication_id": null,
+      "description": null,
+      "taxon_id": 511145,
+      "bigg_id": "iML1515"
+    },
+    "genome": {
+      "_type": "Genome",
+      "id": 1,
+      "accession_type": "ncbi_assembly",
+      "accession_value": "GCF_000005845.2",
+      "taxon_id": 511145,
+      "organism": "Escherichia coli str. K-12 substr. MG1655",
+      "strain": "K-12",
+      "ncbi_assembly_id": null
+    }
+  }
+}</code></pre>
+        <p>It can be seen that some dependent entities (Model Collection, Genome, Publication Models and Model Count) are returned for convenience. All entities can be retrieved using their BiGG ID (string; if applicable) or internal ID (int, "id" fields). More information about the taxon of iML1515 could thus be retrieved using the following command:</p>
+        <pre class="code-example"><code>curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{"type":"taxon","id":511145}' \
+  https://{{biggr_address}}/api/v3/objects</code></pre>
+        <pre class="code-result"><code>{
+  "id": 511145,
+  "object": {
+    "_type": "Taxon",
+    "parent_id": 83333,
+    "name": "Escherichia coli str. K-12 substr. MG1655",
+    "id": 511145,
+    "rank_id": 1,
+    "rank": {"_type": "TaxonomicRank", "id": 1, "name": "no rank"}
+  }
+}</code></pre>
+        <p>The equivalent can be achieved using the following python code, utilizing the BiGGr python library:</p>
+        <pre class="code-example"><code>from biggr import objects
+
+model = objects.get("model", "iML1515")
+print(dir(model))</code></pre>
+        <pre class="code-result"><code>[...,
+  'base_filename', 'bigg_id', 'collection', 'collection_id',
+  'date_modified', 'escher_maps', 'from_dict', 'genome',
+  'genome_id', 'id', 'memote_results', 'model_compartmentalized_components',
+  'model_count', 'model_genes', 'model_reactions', 'organism',
+  'publication_models', 'published_filename', 'taxon', 'taxon_id'
+]</code></pre>
+      <p>When accessing the taxon attribute, a new request is automatically sent to the server to retreive the corresponding object. This type of lazy-loading enables easy navigation of the database entities.</p>
+      <pre class="code-example"><code>print(model.taxon.name)</code></pre>
+      <pre class="code-result"><code>Escherichia coli str. K-12 substr. MG1655</code></pre>
+      <p>More complex one-to-many relationships can also be loaded lazily using the python library:</p>
+      <pre class="code-example"><code>print(model.model_reactions[0].reaction.universal_reaction.name)</code></pre>
+      <pre class="code-result"><code>1,2 diacylglycerol transport via flipping (periplasm to cytoplasm, n-C12:0)</code></pre>
+      <p>The corresponding curl command to retrieve all Model Reaction entries is:</p>
+      <pre class="code-example"><code>curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{"type":"model.model_reactions","id":4}' \
+  https://{{biggr_address}}/api/v3/objects</code></pre>
+      <p>Note that for relationship attributes like above, it is required that a internal ID (integer) is provided, not a BiGG ID. If the internal ID is not known, one should first laod the parent object to retrieve the internal ID.</p>
+      </div>
+      <div id="data_objects_objects">
+        <h3>Available Objects</h3>
+        <p>The following entities are available through this API (names are case-insensitive and may be separated by an underscore, e.g. 'universal_component' is equivalent to 'UNIVERSALCOMPONENT'):</p>
+        <ul>
+          {% for entity in data_models %}
+          <li>{{entity}}</li>
+          {% endfor %}
+        </ul>
+        <p>
+          <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#data_relations" aria-expanded="false" aria-controls="data_relations">
+            Display all relationships available through this API.
+          </button>
+        </p>
+        <ul id="data_relations" class="collapse">
+          {% for entity in data_attributes %}
+          <li>{{entity}}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div id="data_tables">
+      <h2>Table Access</h2>
+      <p class="lead">A different API access method allows users to download the contents of any dynamic table presented on the BiGGr website.</p>
+      <div id="data_tables_workflow">
+        <h3>Workflow</h3>
+        <p>The data of all tables that dynamically list database entities (i.e. they are sortable and searchable) can be accessed programmatically through API endpoints. Generally, the endpoint URL can be obtained by inserting /api/v3 into the URL after the domain name. The data of the table of all models at {{general.external_link(biggr_address ~ "/models", "https://" ~ biggr_address ~ "/models")}} can be accessed at {{general.external_link(biggr_address ~ "/api/v3/models", "https://" ~ biggr_address ~ "/api/v3/models")}}.</p>
+        <pre class="code-example"><code>curl https://{{biggr_address}}/api/v3/models</code></pre>
+        <pre class="code-result"><code>{
+  "recordsTotal": 192,
+  "recordsFiltered": 192,
+  "data": [
+    {
+      "model__bigg_id": "iJO1366",
+      "model__organism": "Escherichia coli str. K-12 substr. MG1655",
+      "modelcollection__bigg_id": "iJO1366",
+      "modelcount__metabolite_count": 1805,
+      "modelcount__reaction_count": 2583,
+      "modelcount__gene_count": 1367
+    },
+    ...
+  ]
+}</code></pre>
+        <p>This API follows the datatables.js {{general.external_link('server-side processing protocol', "https://datatables.net/manual/server-side")}}. This means that you can filter the data on any column, do a global search, and sort the data. The number of results can for example be limited using the following POST request.</p>
+        <pre class="code-example"><code>curl --request POST \
+  --data 'length=5' \
+  https://{{biggr_address}}/api/v3/models</code></pre>
+      </div>
+      <div id="data_tables_tables">
+        <h3>Available Tables</h3>
+        <p>The following table endpoints are available via this type of API calls:</p>
+        {% set api_base="https://"~biggr_address~"/api/v3" %}
+        <ul>
+          <li>{{api_base}}/compartments</li>
+          <li>{{api_base}}/genomes</li>
+          <li>{{api_base}}/models</li>
+          <li>{{api_base}}/collections</li>
+          <li>{{api_base}}/collections/[collection_bigg_id]</li>
+          <li>{{api_base}}/universal/reactions</li>
+          <li>{{api_base}}/universal/metabolites</li>
+          <li>{{api_base}}/universal/metabolite_in_models/[model_bigg_id]</li>
+          <li>{{api_base}}/compartments/[compartment_bigg_id]/models</li>
+          <li>{{api_base}}/models/[model_bigg_id]/reactions</li>
+          <li>{{api_base}}/models/[model_bigg_id]/genes</li>
+          <li>{{api_base}}/models/[model_bigg_id]/metabolites</li>
+          <li>{{api_base}}/models/[model_bigg_id]/metabolite_in_reactions/[metabolite_bigg_id]</li>
+          <li>{{api_base}}/search/metabolites/[query]</li>
+          <li>{{api_base}}/search/metabolites_ref/[query]</li>
+          <li>{{api_base}}/search/metabolites_ann/[query]</li>
+          <li>{{api_base}}/search/metabolites_inchikey/[query]</li>
+          <li>{{api_base}}/search/reactions/[query]</li>
+          <li>{{api_base}}/search/reactions_ref/[query]</li>
+          <li>{{api_base}}/search/reactions_ann/[query]</li>
+          <li>{{api_base}}/search/reactions_ec/[query]</li>
+          <li>{{api_base}}/search/models/[query]</li>
+          <li>{{api_base}}/search/genomes/[query]</li>
+        </ul>
+      </div>
+    </div>
+    <div id="data_escher">
+      <h2>Escher Maps</h2>
+      <p>Editable Escher maps are available through the url pattern https://{{biggr_address}}/models/[model_bigg_id]/escher/[map_bigg_id], where [map_bigg_id] can be one of the following available maps. Note that not all maps are available for all models, since we set thresholds on the completeness of the map for each model.</p>
+      <ul>
+        {% for escher_map in escher_maps%}
+          <li>{{escher_map}}</li>
+        {% endfor %}
+      </ul>
+      <p>Analogous to the API for the data tables, the raw JSON map data can be retrieved by inserting /api/v3, as illustrated below:</p>
+      <pre class="code-example"><code>curl https://{{biggr_address}}/api/v3/models/iML1515/escher/ubiquinone</code></pre>
+      <pre class="code-result"><code>[
+  {
+    "map_name": "Ubiquinone Reduction/Oxidation",
+    "map_description": "Auto-generated map of all reactions involved in the reversible redox cycle of ubiquinone-8.",
+    "homepage": "https://escher.github.io",
+    "schema": "https://escher.github.io/escher/jsonschema/1-0-0#"
+  }, 
+  ...
+]</code></pre>
+    <div>
+  </div>
+</div>
+{% endblock %}
+

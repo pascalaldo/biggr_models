@@ -1,0 +1,43 @@
+{% import "general_macros.html" as general %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="">
+	<meta name="author" content="Pascal Pieters">
+	<link rel="apple-touch-icon" sizes="180x180" href="/static/assets/favicon/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/static/assets/favicon/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/static/assets/favicon/favicon-16x16.png">
+	<link rel="manifest" href="/static/assets/favicon/site.webmanifest">
+	<title>{% block title %}BiGGr{% endblock %}</title>
+	{% include "analytics.html" %}
+	<script src="/static/js/bootstrap.bundle.min.js"></script>
+	<script src="/static/js/color-modes.js"></script>
+	<meta name="theme-color" content="#712cf9">
+	{% include "general_style.html" %}
+	{% block head %}{% endblock %}
+</head>
+
+{% if body_scroll_spy %}
+<body data-bs-spy="scroll" data-bs-target="#{{body_scroll_spy}}">
+{% else %}
+<body>
+{% endif %}
+	{% include "general_color_mode_switcher.html" %}
+	<main>
+		{% include "general_navbar.html" %}
+		{% include "general_breadcrumbs.html" %}
+		<div class="container-lg p-3 pt-0 mb-5">
+			{% block body %}
+			{% endblock %}
+		</div>
+	</main>
+	<script>
+		const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+		const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+	</script>
+</body>
+
+</html>

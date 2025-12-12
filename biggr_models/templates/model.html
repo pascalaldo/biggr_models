@@ -1,0 +1,128 @@
+{% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
+{% block title %}BiGG Model {{model_bigg_id}}{% endblock %}
+{% macro flush_model_download_item(filetype="sbml") %}
+<li class="list-group-item">
+  <div class="row g-0">
+    <div class="col-6">
+      <span class="align-middle">
+        <svg class="me-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+          class="bi bi-file-earmark-arrow-down" viewBox="0 0 16 16">
+          <path
+            d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293z" />
+          <path
+            d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
+        </svg>
+        Download model as {{filetype | upper}}</span>
+    </div>
+    <div class="col-6">
+      <div class="btn-group row g-0 w-100" role="group" aria-label="Model download">
+        <a type="button" class="btn btn-outline-primary btn-sm col-6"
+          href="/static/models/models/{{model_bigg_id}}.biggr.{{filetype}}">.{{filetype}}</a>
+        <a type="button" class="btn btn-outline-primary btn-sm col-6"
+          href="/static/models/models/{{model_bigg_id}}.biggr.{{filetype}}.gz">.{{filetype}}.gz</a>
+      </div>
+    </div>
+  </div>
+</li>
+{% endmacro %}
+{% block body %}
+<div class="row">
+  <div class="col-md-6">
+    {% call cards.item_card("model_L", "Model", True) %}
+    <div class="card-body">
+      <h5 class="card-title">{{model_bigg_id}}</h5>
+      <p class="card-text">{{organism}}{% if strain %} (strain: <i>{{strain}}</i>){% endif %}</p>
+    </div>
+    {% call cards.flush_list_group(accent=True) %}
+    {% if genome_name is none %}
+    {{ cards.flush_list_group_item(value='Model is not mapped to a genome', accent=True) }}
+    {% else %}
+    {{ cards.flush_list_group_item(label="Genome", value=genome_name, link="/genomes/"~genome_ref_string, accent=True)
+    }}
+    {% endif %}
+    {% if reference_type == 'pmid' %}
+    {{ cards.flush_list_group_item(label="Publication PMID", value=reference_id,
+    link="https://www.ncbi.nlm.nih.gov/pubmed/"~reference_id, accent=True) }}
+    {% elif reference_type == 'doi' %}
+    {{ cards.flush_list_group_item(label="Publication DOI", value=reference_id, link="https://dx.doi.org/"~reference_id,
+    accent=True) }}
+    {% endif %}
+    {{ cards.flush_list_group_item(label='Part of collection', value=collection_bigg_id,
+    link='/collections/'~collection_bigg_id, accent=True) }}
+    {% endcall %}
+    {% endcall %}
+  </div>
+
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="card-title">Model Metrics</h5>
+      </div>
+      {{ cards.flush_list_group(model_metrics, align=6) }}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="card-title">Download</h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {{ flush_model_download_item(filetype='sbml') }}
+        {{ flush_model_download_item(filetype='json') }}
+        {{ flush_model_download_item(filetype='yaml') }}
+      </ul>
+      <div class="card-footer">
+        <small>Last updated: <span class="text-primary-emphasis">{{ model_modified_date }}</span></small>
+      </div>
+    </div>
+  </div>
+
+  {% if escher_modules %}
+  {% include "escher_embedded_script.html" %}
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Escher Maps</h5>
+      </div>
+      <div class="card-body card-intro">
+        This model is represented by the following Escher maps:
+      </div>
+      <div class="accordion accordion-flush" id="maps_accordion">
+        {% for escher_module in escher_modules %}
+        {% set mapping_id = escher_module.id %}
+        <div class="accordion-item">
+          <h5 class="accordion-header" id="flush-heading-{{mapping_id}}">
+            <button class="accordion-button collapsed p-2" type="button" data-bs-toggle="collapse"
+              data-bs-target="#flush-collapse-{{mapping_id}}" aria-expanded="false"
+              aria-controls="flush-collapseOne"><img src="/static/assets/iconset.svg#model_S" style="height: 1em;"
+                class="ps-2 pe-4">
+              <div class="d-flex flex-column"><span
+                  class="fw-medium">{{escher_module.name}}</span><i>{{escher_module.description}}</i></div>
+            </button>
+          </h5>
+          <div id="flush-collapse-{{mapping_id}}" class="accordion-collapse collapse"
+            aria-labelledby="flush-heading-{{mapping_id}}" data-bs-parent="#maps_accordion">
+            <div class="btn-group p-1" role="group">
+              <a class="btn btn-sm btn-outline-primary" href="/models/{{model_bigg_id}}/escher/{{escher_module.bigg_id}}?edit=True" target="_blank">Open in new Window</a>
+              <a class="btn btn-sm btn-outline-primary" href="/api/v3/models/{{model_bigg_id}}/escher/{{escher_module.bigg_id}}?download=True" target="_blank">Download map</a>
+            </div>
+            <div class="accordion-body p-0">
+              {% include "escher_embedded.html" %}
+            </div>
+          </div>
+        </div>
+        <script>
+          document.getElementById('flush-collapse-{{mapping_id}}').addEventListener('show.bs.collapse', event => {if (document.getElementById('map-container-{{escher_module.bigg_id}}').innerHTML === "") {show_escher_map('{{escher_module.bigg_id}}', '{{model_bigg_id}}', '/api/v3/models/{{model_bigg_id}}/escher/{{escher_module.bigg_id}}', {{zoom_to_reaction}}); }});
+        </script>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+
+  {% include "memote_report.html" %}
+
+</div>
+{% endblock %}

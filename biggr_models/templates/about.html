@@ -1,0 +1,159 @@
+{% extends "general_main.html" %}
+{% macro biggr_change() %}
+<div class="bigg_biggr_change">
+  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-asterisk me-4" viewBox="0 0 16 16">
+    <path d="M8 0a1 1 0 0 1 1 1v5.268l4.562-2.634a1 1 0 1 1 1 1.732L10 8l4.562 2.634a1 1 0 1 1-1 1.732L9 9.732V15a1 1 0 1 1-2 0V9.732l-4.562 2.634a1 1 0 1 1-1-1.732L6 8 1.438 5.366a1 1 0 0 1 1-1.732L7 6.268V1a1 1 0 0 1 1-1"/>
+  </svg>
+  {{caller()}}
+</div>
+{% endmacro %}
+{% macro github_link(title, url) %}
+<div class="border border-secondary-subtle rounded m-3 p-3 d-flex">
+  <div class="p-2 ps-0 pe-4 d-flex align-items-center text-primary">
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+    </svg>
+  </div>
+  <div class="flex-grow-1">
+    <h5>{{general.external_link(title, url)}}</h5>
+    <div class="fst-italic">{{caller()}}</div>
+  </div>
+</div>
+{% endmacro %}
+{% block title %}About BiGGr{% endblock %}
+{% set body_scroll_spy = "about-nav" %}
+{% set aboutpage = True %}
+{% block body %}
+<div class="row">
+  <div class="col-10 offset-1 col-lg-3 offset-lg-0">
+    <nav id="about-nav" class="flex-column align-items-stretch pt-4 pe-4 sticky-lg-top">
+      <nav class="nav nav-underline flex-column">
+        <a class="nav-link" href="#about_overview">Overview</a>
+        <a class="nav-link" href="#about_source">Source Code</a>
+        <a class="nav-link" href="#about_database">Database</a>
+        <nav class="nav nav-underline flex-column">
+          <a class="nav-link ms-3 py-0" href="#about_database_models">Models &amp; Collections</a>
+          <a class="nav-link ms-3 py-0" href="#about_database_metabolites">Metabolites</a>
+          <a class="nav-link ms-3 py-0" href="#about_database_reactions">Reactions</a>
+          <a class="nav-link ms-3 py-0" href="#about_database_genes">Genomes &amp; Genes</a>
+        </nav>
+        <a class="nav-link" href="#about_features">Features</a>
+        <nav class="nav nav-underline flex-column">
+          <a class="nav-link ms-3 py-0" href="#about_features_memote">MEMOTE Integration</a>
+          <a class="nav-link ms-3 py-0" href="#about_features_escher">Escher Maps</a>
+          <a class="nav-link ms-3 py-0" href="#about_features_api">API</a>
+        </nav>
+        <a class="nav-link" href="#about_license">License</a>
+      </nav>
+    </nav>
+  </div>
+  <div class="col-12 col-lg-9 pt-3" >
+    <h1>BiGGr Models</h1>
+    <p class="lead">BiGGr Models is a knowledgebase of genome-scale metabolic network reconstructions. It is an evolution of the BiGG Models repository ({{general.external_link("legacy BiGG", "http://bigg.ucsd.edu")}}).</p>
+
+    <div id="about_overview">
+      <h2>Overview</h2>
+      <p>BiGG Models integrates a plethora of published and unpublished genome-scale metabolic networks into a single database with a set of standardized identifiers, called BiGG IDs. Genes in the BiGG models are mapped to NCBI genome annotations whenever possible, metabolites are anchored to reference compounds (typically {{general.external_link("ChEBI", "https://www.ebi.ac.uk/chebi/")}} or {{general.external_link("InChI", "https://www.inchi-trust.org/")}}), and reactions are linked to {{general.external_link("RHEA", "https://www.rhea-db.org/")}} reactions, if available.</p>
+    </div>
+
+    <div id="about_source">
+      <h2>Source Code</h2>
+      {% call github_link("biggr_models", "https://github.com/pascalaldo/biggr_models") %}
+        Repository containing the source code of the BiGGr website.
+      {% endcall %}
+      {% call github_link("cobradb", "https://github.com/pascalaldo/cobradb") %}
+        Repository containing the source code of the database and pipeline that processes SBML/cobrapy models.
+      {% endcall %}
+      {% call github_link("bigg_models_data", "https://github.com/pascalaldo/bigg_models_data") %}
+        Repository containing many of the input SBML files and some processing code.
+      {% endcall %}
+      {% call github_link("biggr", "https://github.com/pascalaldo/biggr") %}
+        Repository containing a small python library that can be used to easily access the BiGGr API.
+      {% endcall %}
+      {% call github_link("biggr_maps", "https://github.com/pascalaldo/biggr_maps") %}
+        Repository containing a small python library for parsing and generating Escher maps.
+      {% endcall %}
+    </div>
+
+    <div id="about_database">
+      <h2>Database</h2>
+      <p class="lead">BiGGr presents metabolic models as standardized database entries. To help understand the database representations and standardizations, the different types of database entities are explained below. Yellow boxes describe major differences or improvements compared to legacy BiGG. Thumbnail images are shown which link to examples of the described entity or behaviour.</p>
+      
+      <div id="about_database_models">
+        <h3>Models &amp; Collections</h3>
+        <a href="/collections"><img src="/static/assets/screenshots/screenshot_collections.png" style="width: 16rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
+        <p>A <strong class="dbentity">Model</strong> represents an entity that combines metabolites, reactions, and genes into a form that can be used to model aspects of an organism or tissue or group thereof. In BiGGr, Models are members of a <strong class="dbentity">Collection</strong>. Collections group models that were constructed in the same research, pipeline or manuscript together. In cases where a single model was constructed in a specific research, the models still belong to a distinct collection, but this collection is often omitted (e.g. in the new <a href="/collections">collections page</a>). The BiGG IDs of models should still be globablly unique, i.e. a model can always be accessed by its BiGG ID alone, without the necessity of knowing the collection BiGG ID.</p>
+        {% call biggr_change() %}Model Collections are added to help better organize the models in the database.{% endcall %}
+      </div>
+      <div id="about_database_metabolites">
+        <h3>Metabolites</h3>
+        <p>A <strong class="dbentity">Metabolite</strong> (or <strong class="dbentity">Component</strong>) represents a chemical compound present in a model. A component is linked to one <strong class="dbentity">Reference Compound</strong> (or multiple in the case of tautomers). A Reference Compound represents an (external) definition of the metabolite. In most cases this is a ChEBI entity. However, in cases where no ChEBI is available, a compound can be anchored to a InChI string. Components that represent the same compound in different protonation states are grouped together under the entity <strong class="dbentity">Universal Component</strong>. Each Universal Component has a default Component, represents the Component the database will default to when no explicit charge is given.</p>
+        <a href="/universal/metabolites/atp"><img src="/static/assets/screenshots/screenshot_atp.png" style="width: 16rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
+        <p>Universal Component have BiGG IDs that are human-readable shorthand forms of their name (e.g. <b>atp</b>). Components can be explicity referred to using the BiGG ID of the universal component and the charge of the component, separated by a colon (e.g. <b>atp</b><i>:-4</i>). In practice, the charge can often be omitted in the BiGG ID, since charge is a property of metabolites in SBML models. In the rare case when one would like to use two different components that share the same universal component in a single model, the charge should be explicitly specified in the identifier.</p>
+        {% call biggr_change() %}Metabolites are anchored to a reference compound and protonation states are handled more explicitly.{% endcall %}
+        <span class="h4">Complex Metabolites</span>
+        <p>Components are generally expected to represent specific, well-defined molecules. In some cases however, reference compounds describe compounds with a repeating unit (typically polymers). In those cases, the specific value of <i>n</i> (the humber of repeats) is stored in link between the component and reference compound.</p>
+        <div class="d-flex flex-wrap">
+          <a href="/universal/metabolites/14glucan" class="flex-fill"><img src="/static/assets/screenshots/screenshot_14glucan.png" style="width: 20rem;" class="rounded border border-2 border-primary m-2"></a>
+          <a href="/models/iML1515/metabolites/3haACP_c" class="flex-fill"><img src="/static/assets/screenshots/screenshot_3haACP.png" style="width: 20rem;" class="rounded border border-2 border-primary m-2"></a>
+        </div>
+        <p>When the full formula and/or structure of a component is not known, or not practical to include, components can be defined as a component with a spefic reactive group. This is often the case for reactive groups on proteins or DNA. Since it is often subjective which exact part of the molecule is the reactive group, there is some freedom built into BiGGr for these molecules. When a universal component represents a complex metabolite, the default component has a formula equal to the formula of the reactive part as defined by its reference. Additional components with differnt formulas can be created under the same universal component. BiGG IDs of these components follow the format <b>&lt;universal_id&gt;:&lt;variant&gt;&lt;charge&gt;</b>, where the variant is represented by a capital letter (e.g. <b>dnac</b><i>:A-1</i>).</p>
+        {% call biggr_change() %}Improved handling of polymers, polypeptides and polynucleotides.{% endcall %}
+        <h4>Collection-specific Metabolites</h4>
+        <a href="/models/iML1515/metabolites/__iML1515__met__D_c"><img src="/static/assets/screenshots/screenshot_collection_specific.png" style="width: 16rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
+        <p>Collection-specific components and univeral components reside in a separate namespace from the rest of the BiGG IDs, as indicated by their __<i>namespace</i>__ prefix, where <i>namespace</i> is the collection BiGG ID. A component is considered collection-specific when it can not be matched to any of the known metabolites. This causes models that have small errors or peculiarities to not pollute the general namespace. The general BiGG ID namespaces of BiGGr should therefore be of high quality, with clear definitions of each component and reaction.</p>
+        {% call biggr_change() %}Tidier BiGG ID namespace through separation of ill-defined components.{% endcall %}
+        <h4>Compartmentalized Metabolites</h4>
+        <p>A <strong class="dbentity">Compartmentalized Component</strong> refers to a component within a specific compartment. All metabolites in a model are compartmentalized components. Similarly, a <strong class="dbentity">Universal Compartmentalized Component</strong> refers to the combination of a universal component and a compartment.</p>
+      </div>
+      <div id="about_database_reactions">
+        <h3>Reactions</h3>
+        <a href="/universal/reactions/CYS"><img src="/static/assets/screenshots/screenshot_CYS.png" style="width: 16rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
+        <p>A <strong class="dbentity">Reaction</strong> describes the conversion of compartmentalized components. Similarly to compontents/metabolties, reactions are always a member of a <strong class="dbentity">Universal Reaction</strong>. Universal reactions group all reactions involving the same pattern of substrates and products, but with optionally more or fewer H<sup>+</sup> components at either side of the reaction to balance the charge.</p>
+        <p>Universal reactions are automatically matched to RHEA reaction or internal references (e.g. for exhange or biomass reactions), based on the reaction pattern and the reference compounds linked to the substrates and products. There is no hard requirement that a reaction should be linked to a reference.</p>
+        <a href="/models/iML1515/reactions/ICHORS:2"><img src="/static/assets/screenshots/screenshot_ICHORS.png" style="width: 18rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
+        <p>In models, reactions use the BiGG ID of their universal reaction. Whenever a model uses multiple instances of reactions that fall under the same universal reaction, they are numbered using the pattern <b>&lt;BiGG ID&gt;</b><i>:&lt;copy number&gt;</i>.</p>
+        <h4>Collection-specific Reactions</h4>
+        <p>Analogous to components, reactions can be collection-specific and reside in a separate namespace from the rest of the BiGG IDs, as indicated by their __<i>namespace</i>__ prefix, where <i>namespace</i> is the collection BiGG ID. A reaction is considered collection-specific when it can not be matched to any of the known reactions. This is often the case when one of the components (substrates or products) is collection-specific</p>
+      </div>
+      <div id="about_database_genes">
+        <h3>Genes &amp; Genomes</h3>
+        <p>Wherever possible, genomes are imported into the database and linked to model genes. No normalization or references are required here.</p>
+      </div>
+    </div>
+    <div id="about_features">
+      <h2>Features</h2>
+      <p class="lead">BiGGr is packed with usefull features, in addition to its core functionality of persenting metabolic models and their components.</p>
+      <div id="about_features_search">
+        <h3>Search &amp; Navigation</h3>
+        <p>BiGGr includes a powerfull search function that returns results to the user as fast as possible. Results include any entity where (part of) the BiGG ID, name or synonym matches the search query. BiGGr aims to serve the most relevant results at the top of the results tables. Therefore, BiGG ID matches are preferred over name or synonyms, and exact matches and entities where the start of the BiGG ID, name, etc. matches the search query are prioritized.</p>
+        <div class="d-flex flex-wrap">
+          <a href="/search/?search_query=ace" class="flex-fill"><img src="/static/assets/screenshots/screenshot_search_ace.png" style="height: 8rem;" class="rounded border border-2 border-primary m-2"></a>
+          <a href="/search/?search_query=EC%3A4.1.3.*" class="flex-fill"><img src="/static/assets/screenshots/screenshot_search_ec.png" style="height: 8rem;" class="rounded border border-2 border-primary m-2"></a>
+        </div>
+        <p>In addition, BiGGr search will recognize many types of external identifiers and return the relevant BiGGr entities. For a full list and examples of searching by external identifier, click the search box/button at the top of the page.</p>
+      </div>
+      <div id="about_features_memote">
+        <h3>MEMOTE Integration</h3>
+        <a href="/models/iML1515"><img src="/static/assets/screenshots/screenshot_MEMOTE.png" style="width: 18rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
+        <p>{{general.external_link("MEMOTE", "https://memote.readthedocs.io/en/latest/")}} is a suite of tools that can be used to analyze various aspects of model quality. This test suite is now automatically executed for all models in BiGGr. The results can be found on each model page. Whenever MEMOTE results pertain to specific model metabolites or reactions, the results are also displayed on those respective pages.</p>
+      </div>
+      <div id="about_features_escher">
+        <h3>Escher Maps</h3>
+        <a href="/models/iML1515"><img src="/static/assets/screenshots/screenshot_escher.png" style="width: 18rem;" class="rounded border border-2 border-primary m-2 float-end"></a>
+        <p>{{general.external_link("Escher", "https://escher.github.io/")}} is a tool for visualizing metabolic models and pathways. BiGGr uses the normalized BiGG ID namespace to automatically generate model-spefic maps, based on templates or sets of rules.</p>
+        <p>For maps showing the interconversion of two (or a few) components, all reactions interconverting these components are collected and displayed on the maps. Examples of these maps are <i>Ubiquinone Reduction/Oxidation</i> and <i>L-Arginine Biosynthesis</i>. Other &mdash; more complex &mdash; maps make use of a template Escher map, on which reactions are mapped (e.g. <i>E. coli Central Metabolism</i>). Maps are required to have a decent completeness (percentage of reactions in the template that are also in the model; exact threshold varies per map), otherwise they are omitted.</p>
+      </div>
+      <div id="about_features_api">
+        <h3>API</h3>
+        <p>Test</p>
+      </div>
+    </div>
+    <div id="about_license">
+      <h2>License</h2>
+      <p>BiGG is freely available for non-commercial use. It is hosted and maintained by the Systems Biology Research Group at the University of California, San Diego.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

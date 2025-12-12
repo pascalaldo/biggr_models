@@ -1,0 +1,75 @@
+{% extends "general_main.html" %}
+{% import "general_card_macros.html" as cards %}
+{% import "general_table_macros.html" as tables %}
+{% block title %}BiGG Gene {{bigg_id}}{% endblock %}
+{% block body %}
+<div class="row">
+  <div class="col-md-6">
+    {% call cards.item_card("gene_L", "Gene", accent=True) %}
+      <div class="card-body">
+        <h5 class="card-title">{{gene.bigg_id}}</h5>
+        {% if gene.name is not none %}<p class="card-text">{{gene.name}}</p>{% endif %}
+      </div>
+      {% call cards.flush_list_group(accent=True) %}
+        {% if gene.mapped_to_genbank %}
+          {% set strand_string = "Unknown" %}
+          {% if gene.strand == '-' %}
+            {% set strand_string = "Minus" %}
+          {% elif gene.strand == '+' %}
+            {% set strand_string = "Plus" %}
+          {% endif %}
+          {{ cards.flush_list_group_item("Position", gene.leftpos~" - "~gene.rightpos, accent=True) }}
+          {{ cards.flush_list_group_item("Strand", strand_string, accent=True) }}
+          {{ cards.flush_list_group_item("Chromosome", gene.chromosome.ncbi_accession, accent=True) }}
+          {{ cards.flush_list_group_item("Chromosome", gene.chromosome.genome.accession_type ~ ":" ~ gene.chromosome.genome.accession_value, link="/genomes/"~gene.chromosome.genome.accession_type ~ ":" ~ gene.chromosome.genome.accession_value, accent=True) }}
+        {% endif %}
+        {% if gene.chromosome.genome.accession_type == "pankb_assembly" %}
+          {{ cards.flush_list_group_item("PanKB Gene", bigg_id, link="https://pankb.org/gene_function/genome_gene_info/?genome_id="~genome_name~"&locus_tag="~bigg_id, accent=True) }}
+        {% endif %}
+      {% endcall %}
+    {% endcall %}
+  </div>
+  {% if gene.protein_sequence is not none %}
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="card-title">
+          Protein Sequence
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="user-select-all font-monospace small lh-sm">{{gene.protein_sequence}}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if gene.dna_sequence is not none %}
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="card-title">
+          DNA Sequence
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="user-select-all font-monospace small lh-sm">{{gene.dna_sequence}}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0">Associated Models</h5>
+      </div>
+      <div class="card-body p-0">
+        {% call(model_gene) tables.simple_table(["&nbsp;", "BiGG ID"], gene.model_genes) %}
+          {% set link -%}/models/{{model_gene.model.bigg_id}}{%- endset %}
+          <td style="width: 1.2em;"><a href="{{link}}" class="d-block"><img src="/static/assets/iconset.svg#model_S" style="height: 1em;" /></a></td>
+          <td><a href="{{link}}" class="d-block">{{model_gene.model.bigg_id}}</a></td>
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

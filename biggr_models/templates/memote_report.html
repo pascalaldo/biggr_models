@@ -1,0 +1,217 @@
+{% import "general_macros.html" as general %}
+{% macro memote_category(cat_id, title) %}
+<div class="memote-category-accordion accordion accordion-flush mb-2 d-inline-block w-100" id="memote_{{cat_id}}">
+	<div class="accodion-item ps-3 pt-2">
+		<h5 class="fs-6 fw-medium text-secondary">{{title}}</h5>
+	</div>
+	{{ caller(cat_id) }}
+</div>
+{% endmacro %}
+{% macro memote_item(test_id, cat_id, result_obj) %}
+{% set res = result_obj[test_id] %}
+{% if res %}
+{% set test_data = res[0] %}
+{% set result_data = res[1] %}
+{% set test_result = result_data.result %}
+{% if test_data.invert_result %}
+{% if test_result == "passed" %}
+{% set test_result = "failed" %}
+{% elif test_result == "failed" %}
+{% set test_result = "passed" %}
+{% endif %}
+{% endif %}
+{% if test_result == "passed" %}{% set icon -%}
+<span class="me-2 text-success"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+		class="bi bi-check-square" viewBox="0 0 16 16">
+		<path
+			d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" />
+		<path
+			d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z" />
+	</svg></span>
+{%- endset %}{% elif test_result == "failed" %}{% set icon -%}
+<span class="me-2 text-danger"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+		class="bi bi-exclamation-diamond" viewBox="0 0 16 16">
+		<path
+			d="M6.95.435c.58-.58 1.52-.58 2.1 0l6.515 6.516c.58.58.58 1.519 0 2.098L9.05 15.565c-.58.58-1.519.58-2.098 0L.435 9.05a1.48 1.48 0 0 1 0-2.098zm1.4.7a.495.495 0 0 0-.7 0L1.134 7.65a.495.495 0 0 0 0 .7l6.516 6.516a.495.495 0 0 0 .7 0l6.516-6.516a.495.495 0 0 0 0-.7L8.35 1.134z" />
+		<path
+			d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z" />
+	</svg></span>
+{%- endset %}{% else %}{% set icon -%}
+<span class="me-2 text-warning"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+		class="bi bi-patch-question" viewBox="0 0 16 16">
+		<path
+			d="M8.05 9.6c.336 0 .504-.24.554-.627.04-.534.198-.815.847-1.26.673-.475 1.049-1.09 1.049-1.986 0-1.325-.92-2.227-2.262-2.227-1.02 0-1.792.492-2.1 1.29A1.7 1.7 0 0 0 6 5.48c0 .393.203.64.545.64.272 0 .455-.147.564-.51.158-.592.525-.915 1.074-.915.61 0 1.03.446 1.03 1.084 0 .563-.208.885-.822 1.325-.619.433-.926.914-.926 1.64v.111c0 .428.208.745.585.745" />
+		<path
+			d="m10.273 2.513-.921-.944.715-.698.622.637.89-.011a2.89 2.89 0 0 1 2.924 2.924l-.01.89.636.622a2.89 2.89 0 0 1 0 4.134l-.637.622.011.89a2.89 2.89 0 0 1-2.924 2.924l-.89-.01-.622.636a2.89 2.89 0 0 1-4.134 0l-.622-.637-.89.011a2.89 2.89 0 0 1-2.924-2.924l.01-.89-.636-.622a2.89 2.89 0 0 1 0-4.134l.637-.622-.011-.89a2.89 2.89 0 0 1 2.924-2.924l.89.01.622-.636a2.89 2.89 0 0 1 4.134 0l-.715.698a1.89 1.89 0 0 0-2.704 0l-.92.944-1.32-.016a1.89 1.89 0 0 0-1.911 1.912l.016 1.318-.944.921a1.89 1.89 0 0 0 0 2.704l.944.92-.016 1.32a1.89 1.89 0 0 0 1.912 1.911l1.318-.016.921.944a1.89 1.89 0 0 0 2.704 0l.92-.944 1.32.016a1.89 1.89 0 0 0 1.911-1.912l-.016-1.318.944-.921a1.89 1.89 0 0 0 0-2.704l-.944-.92.016-1.32a1.89 1.89 0 0 0-1.912-1.911z" />
+		<path d="M7.001 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0" />
+	</svg></span>
+{%- endset %}{% endif%}
+{% set badge_style = {"skipped": "warning", "passed": "success", "failed": "danger"}[test_result] %}
+{% set badge_value = none %}
+{% if test_result == "skipped" %}
+{% set badge_value = "skipped" %}
+{% elif test_data.field == "data_count" %}
+{% set badge_value = result_data[test_data.field] %}
+{% elif test_data.format_type == "percent" or test_data.format_type == "count" %}
+{% set field_val = result_data[test_data.field] %}
+{% if test_data.invert %}{% set field_val = 1-field_val %}{% endif %}
+{% set badge_value = ('%0.2f' %(field_val * 100)).rstrip('0').rstrip('.') ~ "%" %}
+{% endif %}
+
+<div class="memote-accordion-item accordion-item">
+	<h5 class="accordion-header" id="flush-heading-{{test_id}}">
+		<button class="accordion-button collapsed p-2" type="button" data-bs-toggle="collapse"
+			data-bs-target="#flush-collapse-{{test_id}}" aria-expanded="false"
+			aria-controls="flush-collapseOne">{{icon}}
+			<span class="memote-report-item">{{test_data.name}}</span>{% if badge_value is not none %}<span
+				class="badge rounded-pill text-{{badge_style}} border border-{{badge_style}} ms-3">{{badge_value}}</span>{%
+			endif %}</button>
+	</h5>
+	<div id="flush-collapse-{{test_id}}" class="accordion-collapse collapse"
+		aria-labelledby="flush-heading-{{test_id}}" data-bs-parent="#memote_{{cat_id}}">
+		<div class="accordion-body">{% if result_data.message is not none %}<p>{{result_data.message}}</p>{%
+			else %}{% set
+			no_message = True %}{% endif %}{% if test_data.summary is not none %}<p class="small">
+				{{test_data.summary}}</p>{%
+			elif no_message %}<p><i>No further information available.</i></p>{% endif %}</div>
+	</div>
+</div>
+{% endif %}
+{% endmacro %}
+{% if memote_result is not none %}
+<div class="col-12">
+	<div class="card mb-3">
+		<div class="card-header">
+			<h5 class="card-title">MEMOTE Report</h5>
+		</div>
+		<div
+			class="card-body card-intro d-flex align-items-center">
+			<div class="flex-grow-1 pe-2">MEMOTE model test suite results, assessing model consistency,
+				annotation quality, and more.</div>
+			<div><a class="btn btn-sm btn-outline-secondary me-2" role="button" href="/static/models/memote/{{model_bigg_id}}.biggr.json.gz"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+				  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+				</svg></a>
+			</div>
+			<div>
+				<input id="memote-report-input"
+					class="form-control border-1 border-secondary p-1 ps-2 pe-2" type="search"
+					placeholder="Filter" aria-label="Filter">
+			</div>
+		</div>
+		<div class="memote-report" id="memote-report-body">
+			{% call(cat_id) memote_category("consistency", "Consistency") %}
+			{{ memote_item("test_stoichiometric_consistency", cat_id, memote_result) }}
+			{{ memote_item("test_reaction_mass_balance", cat_id, memote_result) }}
+			{{ memote_item("test_reaction_charge_balance", cat_id, memote_result) }}
+			{{ memote_item("test_find_disconnected", cat_id, memote_result) }}
+			{{ memote_item("test_find_reactions_unbounded_flux_default_condition", cat_id,
+			memote_result) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("annotation_sbo", "Annotation: SBO Terms") %}
+			{{ memote_item("test_metabolite_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_metabolite_specific_sbo_presence", cat_id, memote_result)
+			}}
+			{{ memote_item("test_reaction_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_metabolic_reaction_specific_sbo_presence", cat_id, memote_result)
+			}}
+			{{ memote_item("test_transport_reaction_specific_sbo_presence", cat_id, memote_result)
+			}}
+			{{ memote_item("test_exchange_specific_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_demand_specific_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_sink_specific_sbo_presence", cat_id, memote_result) }}
+			{{ memote_item("test_biomass_specific_sbo_presence", cat_id, memote_result) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("basic_info", "Basic Information") %}
+			{{ memote_item("test_metabolites_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_reactions_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_genes_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_compartments_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_metabolic_coverage", cat_id, memote_result ) }}
+			{{ memote_item("test_unconserved_metabolites", cat_id, memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("metabolite_info", "Metabolite Information") %}
+			{{ memote_item("test_find_duplicate_metabolites_in_compartments", cat_id, memote_result
+			) }}
+			{{ memote_item("test_metabolites_charge_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_metabolites_formula_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_find_medium_metabolites", cat_id, memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("reaction_info", "Reaction Information") %}
+			{{ memote_item("test_find_pure_metabolic_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_transport_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_constrained_transport_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_duplicate_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_reactions_with_identical_genes", cat_id, memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("gpr_info", "Gene-Protein-Reaction (GPR) Associations")
+			%}
+			{{ memote_item("test_gene_protein_reaction_rule_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_transport_reaction_gpr_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_protein_complex_presence", cat_id, memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("biomass_info", "Biomass") %}
+			{{ memote_item("test_biomass_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_consistency", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_default_production", cat_id, memote_result ) }}
+			{{ memote_item("test_fast_growth_default", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_open_production", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_precursors_default_production", cat_id, memote_result ) }}
+			{{ memote_item("test_biomass_precursors_open_production", cat_id, memote_result ) }}
+			{{ memote_item("test_direct_metabolites_in_biomass", cat_id, memote_result ) }}
+			{{ memote_item("test_essential_precursors_not_in_biomass", cat_id, memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("energy_metabolism_info", "Energy Metabolism") %}
+			{{ memote_item("test_ngam_presence", cat_id, memote_result ) }}
+			{{ memote_item("test_gam_in_biomass", cat_id, memote_result ) }}
+			{{ memote_item("test_find_reversible_oxygen_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_detect_energy_generating_cycles", cat_id, memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("network_topology_info", "Network Topology") %}
+			{{ memote_item("test_blocked_reactions", cat_id, memote_result ) }}
+			{{ memote_item("test_find_orphans", cat_id, memote_result ) }}
+			{{ memote_item("test_find_deadends", cat_id, memote_result ) }}
+			{{ memote_item("test_find_stoichiometrically_balanced_cycles", cat_id, memote_result )
+			}}
+			{{ memote_item("test_find_metabolites_not_produced_with_open_bounds", cat_id,
+			memote_result ) }}
+			{{ memote_item("test_find_metabolites_not_consumed_with_open_bounds", cat_id,
+			memote_result ) }}
+			{% endcall %}
+
+			{% call(cat_id) memote_category("matrix_conditioning", "Matrix Conditioning") %}
+			{{ memote_item("test_absolute_extreme_coefficient_ratio", cat_id, memote_result ) }}
+			{{ memote_item("test_number_independent_conservation_relations", cat_id, memote_result )
+			}}
+			{{ memote_item("test_matrix_rank", cat_id, memote_result ) }}
+			{{ memote_item("test_degrees_of_freedom", cat_id, memote_result ) }}
+			{% endcall %}
+		</div>
+	</div>
+</div>
+<script>
+	var input = document.getElementById('memote-report-input');
+	var report = document.getElementById('memote-report-body');
+	input.onkeyup = function () {
+		var filter = input.value.toUpperCase();
+		var lis = report.getElementsByClassName('accordion-item');
+		for (var i = 0; i < lis.length; i++) {
+			var report_item = lis[i].getElementsByClassName('memote-report-item');
+			if (report_item.length > 0) {
+				var name = report_item[0].innerHTML;
+				if (name.toUpperCase().indexOf(filter) >= 0)
+					lis[i].style.display = 'block';
+				else
+					lis[i].style.display = 'none';
+			}
+		}
+	}
+</script>
+{% endif %}

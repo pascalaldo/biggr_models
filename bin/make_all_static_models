@@ -1,5 +1,0 @@
-#!/usr/bin/env python3
-
-from bigg_models.model_dumper import make_all_static_models
-
-make_all_static_models()

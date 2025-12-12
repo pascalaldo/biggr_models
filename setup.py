@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 # this is a trick to get the version before the package is installed
 directory = dirname(abspath(__file__))
-sys.path.insert(0, join(directory, "bigg_models"))
+sys.path.insert(0, join(directory, "biggr_models"))
 version = __import__("version").__version__
 
 setup(
@@ -16,7 +16,7 @@ setup(
     url="http://bigg.ucsd.edu",
     packages=find_packages(),
     package_data={
-        "bigg_models": [
+        "biggr_models": [
             "static/assets/*",
             "static/css/*",
             "static/js/*",

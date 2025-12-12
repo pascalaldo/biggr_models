@@ -1,83 +1,35 @@
-bigg_models
+biggr_models
 -----------
 
 
-[BiGG Models](http://bigg.ucsd.edu) is a website for browsing gold-standard genome-scale models, described in our publication here:
+[BiGGr](https://biggr.org) is a website for browsing normalized, gold-standard genome-scale models and the corresponding metabolite and reaction namespace.
+BiGGr is based on [BiGG](http://bigg.ucsd.edu), described in the following publication:
 
 King ZA, Lu JS, Dräger A, Miller PC, Federowicz S, Lerman JA, Ebrahim A, Palsson BO, and Lewis NE. (2015). BiGG Models: A platform for integrating, standardizing, and sharing genome-scale models. Nucl Acids Res. doi:[10.1093/nar/gkv1049](https://doi.org/10.1093/nar/gkv1049).
 
-This repository includes the web server and front-end for BiGG Models. The database is managed by [COBRAdb](https://github.com/sbrg/cobradb). You can see our plans for new BiGG Models features in the [Development Roadmap](https://github.com/SBRG/bigg_models/wiki/Development-roadmap).
+This repository includes the web server and front-end for BiGGr. The database is managed by [COBRAdb](https://github.com/biosustain/cobradb), Escher maps are auto-generated with the help of [BiGGr Maps](http://github.com/biosustain/biggr_maps), and the [BiGGr Python library](http://github.com/biosustain/biggr) can be used to easily access the database and its API.
 
 Installation
 ============
 
-To install BiGG Models, first, follow the OME installation instructions:
-https://github.com/SBRG/ome/blob/bigg/INSTALL.md
+It is recommended to install and run BiGGr Models using [Docker](https://www.docker.com/).
 
-Then, do the following to get BiGG Models up and running:
+To run the server using Docker, make sure Docker is installed and then follow these steps:
 
-1. Download the code with ```git clone git@github.com:SBRG/bigg_models.git```
-2. ```cd bigg_models```
-3. Install with ```python setup.py develop``` (may need to sudo or add --user)
-4. Generate the PostgreSQL indices by running ```bin/make_database_indices```.
-4. Generate the static models by running ```bin/make_all_static_models```.
-5. Start the server with ```python -m bigg_models.server --port=8910```
+For development environments:
+1. Download cobradb with ```git clone git@github.com:biosustain/cobradb.git```.
+2. Download the code with ```git clone git@github.com:biosustain/biggr_models.git```
+3. ```cd biggr_models```
+4. TODO: SETTINGS, OTHER FILES
+5. Run ```docker compose --profile dev up --build```.
 
-Alternative installation: Docker
-================================
+For production environments:
+1. Download the code with ```git clone git@github.com:biosustain/biggr_models.git```
+2. ```cd biggr_models```
+3. TODO: SETTINGS, OTHER FILES
+4. Run ```docker compose --profile prod up --build```.
 
-BiGG Models can also be installed with Docker. Everything you need is here, thanks to @psalvy:
-
-https://github.com/psalvy/bigg-docker
-
-Testing BiGG Models
-===================
-
-Tests are run in both the [ome](https://github.com/sbrg/ome) and BiGG Models
-codebases using [pytest](http://pytest.org/). Running `py.test` with ome will
-create a temporary database and load it with a few simple test models. These
-tests can be run at any time. Running `py.test` with BiGG Models will run a
-series of test that are specific to the models currently available at
-http://bigg.ucsd.edu. These tests can only be run after the whole database is
-loaded.
-
-Dumping and restoring the database
-==================================
-
-The latest database dumps are available in this Dropbox folder:
-
-https://www.dropbox.com/sh/ye05djxrpxy37da/AAD6GrSRTt4MRfuIpprlnLYba?dl=0
-
-We generally dump the database with this command:
-
-```
-pg_dump -Fc bigg > bigg_database.dump
-```
-
-And then restore like this:
-
-```
-pg_restore -c -d bigg bigg_database.dump
-```
-
-Generate a schema browser
-=========================
-
-Install and run [schemaSpy](http://schemaspy.sourceforge.net/). For example,
-here are the Mac OS X instructions:
-
-```shell
-brew install graphviz
-
-brew tap gbeine/homebrew-java
-brew install postgresql-jdbc
-
-java -jar bin/schemaSpy_5.0.0.jar -t pgsql -db bigg -u username -s public \
-  -o docs/schema -host localhost -port 5432 \
-  -dp /usr/local/Cellar/postgresql-jdbc/9.3-1102/libexec/postgresql-9.3-1102.jdbc3.jar
-```
-
-Then open `docs/schema/index.html` in a web browser.
+Note that for the biggr.org server, a CI/CD pipeline is implemented on GitHub.
 
 License
 =======
